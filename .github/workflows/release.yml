@@ -1,0 +1,28 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Tag und VERSION müssen übereinstimmen
+        run: |
+          v="$(cat VERSION | tr -d '[:space:]')"
+          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} passt nicht zu VERSION $v"; exit 1; }
+      - run: ZW_REPO="${{ github.repository }}" python3 build.py
+      - run: node tests/engine.test.js
+      - name: Release-Text aus CHANGELOG.md
+        run: |
+          v="$(cat VERSION | tr -d '[:space:]')"
+          awk -v v="$v" '$0 ~ "^## "v"$" {f=1; next} /^## / {f=0} f' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Siehe CHANGELOG.md" > notes.md
+      - name: Release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" dist/zeitwerk.html --title "Zeitwerk ${GITHUB_REF_NAME#v}" --notes-file notes.md
