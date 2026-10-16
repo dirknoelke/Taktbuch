@@ -1,5 +1,10 @@
 # Änderungen
 
+## 1.0.1
+
+- Die Versionsnummer steht nicht mehr in der Kopfzeile, sondern unter „Daten“ im Abschnitt „Version“.
+- Felder in den Eingabezeilen (Heute) sitzen bündig und sind gleich hoch.
+
 ## 1.0.0
 
 Erste Version unter dem Namen Zeitwerk (vorher "Stundenkonto", intern bis v14).
