@@ -231,7 +231,6 @@ async function checkUpdate(manual) {
   } catch (e) { /* leer starten */ }
   if (!loaded) { makeDemo(); }
   const t = ls.get('stundenkonto-tab-' + PROFILE); if (t && TABS.some(x => x[0] === t)) UI.tab = t;
-  { const v = $('#ver'); if (v) v.textContent = VERSION + ' · lokal'; }
   recompute(); render();
   $('#saveState').textContent = loaded ? 'geladen' : 'Beispiel';
   setInterval(timerTick, 30000);

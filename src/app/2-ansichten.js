@@ -320,7 +320,7 @@ function viewDaten() {
     <div class="field" style="margin-top:12px"><label for="fileJ">Sicherung einlesen</label><input type="file" id="fileJ" accept=".json,application/json" data-f="file:json"></div>
     <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
     <div class="card-h"><h3>Version</h3></div>
-    <p class="hint" style="margin:0 0 10px">Zeitwerk ${esc(VERSION)}. ${REPO ? 'Die App prüft höchstens einmal am Tag, ob es eine neue Version gibt. Dabei wird nur die Versionsnummer abgefragt, keine deiner Daten gesendet.' : ''}</p>
+    <p class="hint" style="margin:0 0 10px"><b>Version ${esc(VERSION)}</b>. ${REPO ? 'Die App prüft höchstens einmal am Tag, ob es eine neue Version gibt. Dabei wird nur die Versionsnummer abgefragt, keine deiner Daten gesendet.' : ''}</p>
     <div class="nav"><button class="btn" data-a="chkUpd">Nach Updates suchen</button><span class="hint" id="updState"></span></div>
     <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
     <div class="nav">${UI.confirm === 'reset' ? `<span>Alle Daten in diesem Browser löschen?</span><button class="btn danger" data-a="resetAll">Ja, löschen</button><button class="btn" data-a="cancelConfirm">Abbrechen</button>` : '<button class="btn danger" data-a="askReset">Alle Daten löschen</button><button class="btn" data-a="loadDemo">Beispieldaten laden</button>'}</div>
