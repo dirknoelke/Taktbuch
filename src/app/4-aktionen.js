@@ -84,10 +84,10 @@ function autofillForm(a, v) {
     if (prev) { setFormField('cat', prev.cat); setFormField('w', prev.w); setFormField('sys', prev.sys); setFormField('pn', prev.pn || ''); }
   }
 }
-function fieldChange(el, final) {
+function fieldChange(el, final, snapNow) {
   const [scope, a, b] = el.dataset.f.split(':');
   let v = el.value;
-  if (el.type === 'time' && /^(form:[se]|day:[se]|act:[^:]+:[se])$/.test(el.dataset.f) && v) { const sv = snap(v); if (sv !== v) { v = sv; el.value = sv; } }
+  if (snapNow && el.type === 'time' && /^(form:[se]|day:[se]|act:[^:]+:[se])$/.test(el.dataset.f) && v) { const sv = snap(v); if (sv !== v) { v = sv; el.value = sv; } }
   if (scope === 'colv') { if (!final) return; const show = v === 'true'; if (a === 'pn') S.cfg.pnAn = show; else S.cfg.spaltenAus = Object.assign({}, S.cfg.spaltenAus, { [a]: !show }); commit(); return; }
   if (scope === 'col') { if (!final) return; S.cfg.spalten = Object.assign({}, S.cfg.spalten, { [a]: v.trim() }); commit(); return; }
   if (scope === 'form') { UI.form[a] = v; if (final) autofillForm(a, v); return; }
@@ -138,6 +138,11 @@ function fieldChange(el, final) {
   }
 }
 document.addEventListener('change', ev => { const el = ev.target.closest('[data-f]'); if (el) fieldChange(el, true); });
+/* Viertelstunden-Raster: erst beim Verlassen des Feldes runden, nicht während man tippt (sonst springen die Minuten auf 00) */
+document.addEventListener('focusout', ev => {
+  const el = ev.target.closest && ev.target.closest('[data-f]');
+  if (el && el.type === 'time' && S.cfg.raster === '15' && el.value && snap(el.value) !== el.value) fieldChange(el, true, true);
+});
 document.addEventListener('input', ev => { const el = ev.target.closest('[data-f]'); if (el && el.dataset.f.startsWith('form:')) fieldChange(el, false); });
 document.addEventListener('keydown', ev => {
   if (ev.key === 'Enter' && ev.target.closest('#addRow') && ev.target.tagName === 'INPUT') { ev.preventDefault(); ev.target.blur(); actions.addAct(); }
