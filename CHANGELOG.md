@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0
+
+- Activity columns (Category, Type, System, Project number, Topic) have their own names and the first four can be shown or hidden under Settings. Hidden columns keep their values. Applies to the activity tables, filters, reports and CSV export.
+- New optional column **Project number** (hidden by default), with filter and a grouping in Reports.
+- Excel import now recognises the activity columns by their headers instead of by position, imports the project number, adopts custom headers as column names and tells you which columns were filled. If a column contains almost only one value, the import report suggests hiding it.
+- Header: the tab row wraps below the title on screens up to 1360 px so that no tab is cut off.
+
 ## 1.3.1
 
 - Fix: the **Install** button in the update banner failed with “Failed to fetch” (GitHub release downloads are not readable from the browser). The installer now loads the build from the `dist` branch and asks for the target file first.

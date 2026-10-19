@@ -12,7 +12,10 @@ const nowH = () => { const d = new Date(); return d.getHours() + d.getMinutes() 
 const snap = v => { if (!v || !S.cfg || S.cfg.raster !== '15' || !/^\d{2}:\d{2}$/.test(v)) return v; const m = Math.min(23 * 60 + 45, Math.round((+v.slice(0, 2) * 60 + +v.slice(3)) / 15) * 15); return pad2(Math.floor(m / 60)) + ':' + pad2(m % 60); };
 const tstep = () => (S.cfg && S.cfg.raster === '15' ? ' step="900"' : '');
 const REGION_NAMES = { DE: 'Nur bundesweite Feiertage', BW: 'Baden-Württemberg', BY: 'Bayern', BE: 'Berlin', BB: 'Brandenburg', HB: 'Bremen', HH: 'Hamburg', HE: 'Hessen', MV: 'Mecklenburg-Vorpommern', NI: 'Niedersachsen', NW: 'Nordrhein-Westfalen', RP: 'Rheinland-Pfalz', SL: 'Saarland', SN: 'Sachsen', ST: 'Sachsen-Anhalt', SH: 'Schleswig-Holstein', TH: 'Thüringen' };
-const COLD = { cat: 'Kategorie', w: 'Art', sys: 'System', th: 'Thema' };
+const COLD = { cat: 'Kategorie', w: 'Art', sys: 'System', pn: 'Projektnummer', th: 'Thema' };
+const pnOn = () => !!(S.cfg && S.cfg.pnAn);
+/* Spalten der Tätigkeiten ein-/ausblenden (Projektnummer ist standardmäßig aus, die anderen an; Werte bleiben gespeichert) */
+const colOn = f => (f === 'pn' ? pnOn() : !(S.cfg && S.cfg.spaltenAus && S.cfg.spaltenAus[f]));
 const colN = c => (S.cfg && S.cfg.spalten && S.cfg.spalten[c]) || COLD[c];
 const nowStr = () => { const d = new Date(); return snap(pad2(d.getHours()) + ':' + pad2(d.getMinutes())); };
 const todayKey = () => { const d = new Date(); return E.key(d.getFullYear(), d.getMonth() + 1, d.getDate()); };
@@ -36,14 +39,14 @@ const PROFILES = { voll: { db: 'stundenkonto', name: 'Mit Urlaubsverfall und Kap
 let PROFILE = 'voll', DEFAULT_CFG = {};
 function applyProfile(p) {
   PROFILE = PROFILES[p] ? p : 'voll';
-  DEFAULT_CFG = Object.assign({}, E.DEFAULTS, { anzeige: 'dez', standardThema: I18N.lang === 'en' ? 'Work' : 'Arbeit', nettoAb: '9999-12-31', payRise: 0.025, payRiseMonat: 4, mirAn: true, raster: 'min', spalten: {}, region: 'NW', payRiseArt: 'pct', payRiseEur: 0, zahltagModus: 'letzte4' },
+  DEFAULT_CFG = Object.assign({}, E.DEFAULTS, { anzeige: 'dez', standardThema: I18N.lang === 'en' ? 'Work' : 'Arbeit', nettoAb: '9999-12-31', payRise: 0.025, payRiseMonat: 4, mirAn: true, raster: 'min', spalten: {}, pnAn: false, spaltenAus: {}, region: 'NW', payRiseArt: 'pct', payRiseEur: 0, zahltagModus: 'letzte4' },
     PROFILE === 'einfach' ? { urlaubVerfall: '', kappungTag: '', halbeTage: false, lzkMax: 0, payRiseMonat: 0, mirAn: false } : {});
   S.cfg = Object.assign({}, DEFAULT_CFG); E.setRegion(S.cfg.region);
 }
 let S = { v: 1, cfg: {}, days: {}, acts: [], pay: {}, demo: false };
 const UI = { sub: 'einst', uy: new Date().getFullYear(), payYear: new Date().getFullYear(), brush: 'Urlaub', tab: 'heute', date: todayKey(), year: new Date().getFullYear(), month: new Date().getMonth() + 1,
-  form: { s: '', e: '', u: '', cat: '', w: '', sys: '', th: '' },
-  filt: { y: '', m: '', cat: '', w: '', sys: '', q: '', limit: 200 }, dim: 'cat', pivotYear: 'alle',
+  form: { s: '', e: '', u: '', cat: '', w: '', sys: '', pn: '', th: '' },
+  filt: { y: '', m: '', cat: '', w: '', sys: '', pn: '', q: '', limit: 200 }, dim: 'cat', pivotYear: 'alle',
   range: { from: '', to: '', t: 'Urlaub' }, report: null, confirm: '' };
 let R = null; // Berechnung: { rows, map, years }
 
@@ -260,9 +263,20 @@ async function importWorkbook(buf) {
     if (!row) break;
     const cur = S.days[row.k] || {}; S.days[row.k] = Object.assign({}, cur, { z: +((cur.z || 0) + tKonto[row.k] - row.konto).toFixed(4) }); adj++;
   }
-  const ti = (sh['Tätigkeiten'] || [[]])[0].indexOf('Thema'), thI = ti >= 0 ? ti : 13;
-  S.acts = aRows.map(r => ({ id: newId(), d: xlDate(r[2]), s: HM(xlTime(r[3])), e: HM(xlTime(r[4])), u: xlTime(r[5]) ? HM(xlTime(r[5])) : '', cat: r[10] || '', w: r[11] || '', sys: r[12] || '', th: r[thI] || '' }));
-  UI.report = { days: Object.keys(S.days).length, acts: S.acts.length, pay: Object.keys(pay).length, adj, manual, from: k0, to: xlDate(dRows[dRows.length - 1][1]), rules: best.sc };
+  // Spalten der Tätigkeiten nach Überschrift erkennen (Reihenfolge egal), sonst die klassischen Positionen
+  const hd = ((sh['Tätigkeiten'] || [[]])[0] || []).map(x => String(x == null ? '' : x).trim().toLowerCase());
+  const ALIAS = { cat: ['category', 'kategorie'], w: ['work', 'art', 'tätigkeit'], sys: ['system'], pn: ['projektnummer', 'projekt-nr', 'projekt-nr.', 'projekt nr', 'projektnr', 'projekt-nummer', 'project number', 'project no'], th: ['thema', 'topic'] };
+  const col = {}; for (const f in ALIAS) { const i = hd.findIndex(h => ALIAS[f].includes(h)); if (i >= 0) col[f] = i; }
+  const POS = { cat: 10, w: 11, sys: 12, th: 13 }; for (const f in POS) if (col[f] == null && !(f === 'th' && hd.length > 14 && false)) col[f] = POS[f];
+  if (col.pn === col.th || Object.values(col).filter(v => v === col.pn).length > 1) delete col.pn;
+  const rawHead = ((sh['Tätigkeiten'] || [[]])[0] || []);
+  const sp = {};   // eigene Überschriften (z. B. „Projekte“) als Spaltennamen übernehmen, bekannte Namen nicht
+  for (const f of ['cat', 'w', 'sys', 'pn', 'th']) { const h = rawHead[col[f]]; const t = h == null ? '' : String(h).trim(); if (t && !ALIAS[f].includes(t.toLowerCase())) sp[f] = t; }
+  const cell = (r, f) => { const v = col[f] == null ? '' : r[col[f]]; if (v == null) return ''; return typeof v === 'number' ? String(Math.round(v) === v ? v : v) : String(v).trim(); };
+  S.acts = aRows.map(r => ({ id: newId(), d: xlDate(r[2]), s: HM(xlTime(r[3])), e: HM(xlTime(r[4])), u: xlTime(r[5]) ? HM(xlTime(r[5])) : '', cat: cell(r, 'cat'), w: cell(r, 'w'), sys: cell(r, 'sys'), pn: cell(r, 'pn'), th: cell(r, 'th') }));
+  const tipp = ['cat', 'w', 'sys', 'pn'].filter(f => { const vals = S.acts.map(a => a[f]).filter(Boolean); if (vals.length < 20) return false; const c = {}; vals.forEach(v => c[v] = (c[v] || 0) + 1); return Math.max(...Object.values(c)) / vals.length >= 0.85; }).map(f => colN(f));
+  S.cfg.pnAn = S.acts.some(a => a.pn); S.cfg.spalten = sp; S.cfg.spaltenAus = {};
+  UI.report = { days: Object.keys(S.days).length, acts: S.acts.length, pay: Object.keys(pay).length, adj, manual, tipp, cols: ['cat', 'w', 'sys', 'pn', 'th'].filter(f => col[f] != null).map(f => colN(f)).join(', '), from: k0, to: xlDate(dRows[dRows.length - 1][1]), rules: best.sc };
   commit(false);
 }
 function exportJSON() { return JSON.stringify({ app: 'stundenkonto', v: 1, exported: new Date().toISOString(), cfg: S.cfg, days: S.days, acts: S.acts, pay: S.pay || {} }); }
@@ -274,11 +288,11 @@ function importJSON(txt) {
 }
 const csvCell = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
 function exportCSV() {
-  const head = ['Datum', 'KW', 'Von', 'Bis', 'Unterbrechung', 'Netto h', colN('cat'), colN('w'), colN('sys'), colN('th')].map(h => I18N.tx(h));
+  const head = ['Datum', 'KW', 'Von', 'Bis', 'Unterbrechung', 'Netto h', ...['cat', 'w', 'sys', 'pn'].filter(colOn).map(colN), colN('th')].map(h => I18N.tx(h));
   const lines = [head.join(';')];
   for (const a of S.acts.slice().sort((x, y) => (x.d + x.s).localeCompare(y.d + y.s))) {
     const net = a.e ? (H(a.e) - H(a.s) - H(a.u)) : 0;
-    lines.push([a.d, E.isoWeek(a.d), a.s, a.e, a.u, fmtDec(net), a.cat, a.w, a.sys, a.th].map(csvCell).join(';'));
+    lines.push([a.d, E.isoWeek(a.d), a.s, a.e, a.u, fmtDec(net), ...['cat', 'w', 'sys', 'pn'].filter(colOn).map(f => a[f] || ''), a.th].map(csvCell).join(';'));
   }
   return '﻿' + lines.join('\r\n');
 }

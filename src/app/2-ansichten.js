@@ -8,7 +8,7 @@ const netto = a => (a.e ? Math.max(0, H(a.e) - H(a.s) - H(a.u)) : 0);
 const catColors = {};
 function catColor(c) { if (!c) return 'var(--c6)'; if (!(c in catColors)) catColors[c] = 'var(--c' + (1 + (Object.keys(catColors).length % 5)) + ')'; return catColors[c]; }
 function lists() {
-  const m = { cat: {}, w: {}, sys: {}, th: {} };
+  const m = { cat: {}, w: {}, sys: {}, pn: {}, th: {} };
   for (const a of S.acts) for (const f in m) if (a[f]) m[f][a[f]] = (m[f][a[f]] || 0) + 1;
   const o = {}; for (const f in m) o[f] = Object.keys(m[f]).sort((x, y) => m[f][y] - m[f][x]);
   const th = {}; for (const k in S.days) if (S.days[k].th) th[S.days[k].th] = 1; o.dayth = Object.keys(th);
@@ -124,16 +124,17 @@ function viewHeute() {
   <section class="card">
     <div class="card-h"><h3>Tätigkeiten am ${fmtShort(k)}</h3><span class="hint">${acts.length} Einträge · ${fmtT(acts.reduce((a, x) => a + netto(x), 0))} h</span></div>
     <div class="tablewrap"><table>
-      <thead><tr><th>Von</th><th>Bis</th><th>Unterbr.</th><th class="r">Netto</th><th>${esc(colN('cat'))}</th><th>${esc(colN('w'))}</th><th>${esc(colN('sys'))}</th><th>${esc(colN('th'))}</th><th></th></tr></thead>
+      <thead><tr><th>Von</th><th>Bis</th><th>Unterbr.</th><th class="r">Netto</th>${['cat', 'w', 'sys', 'pn'].filter(colOn).map(f => `<th>${esc(colN(f))}</th>`).join('')}<th>${esc(colN('th'))}</th><th></th></tr></thead>
       <tbody>
       ${acts.map(a => `<tr>
         <td><input type="time"${tstep()} value="${esc(a.s)}" data-f="act:${a.id}:s" aria-label="Von"></td>
         <td>${a.e ? `<input type="time"${tstep()} value="${esc(a.e)}" data-f="act:${a.id}:e" aria-label="Bis">` : `<span class="clock">läuft</span>`}</td>
         <td><input type="time" value="${esc(a.u || '')}" data-f="act:${a.id}:u" aria-label="Unterbrechung"></td>
         <td class="r num">${a.e ? fmtT(netto(a)) : '–'}</td>
-        <td><input list="dl-cat" value="${esc(a.cat)}" data-f="act:${a.id}:cat" style="min-width:70px" aria-label="${esc(colN('cat'))}"></td>
-        <td><input list="dl-w" value="${esc(a.w)}" data-f="act:${a.id}:w" style="min-width:90px" aria-label="${esc(colN('w'))}"></td>
-        <td><input list="dl-sys" value="${esc(a.sys)}" data-f="act:${a.id}:sys" style="min-width:90px" aria-label="${esc(colN('sys'))}"></td>
+        ${colOn('cat') ? `<td><input list="dl-cat" value="${esc(a.cat)}" data-f="act:${a.id}:cat" style="min-width:70px" aria-label="${esc(colN('cat'))}"></td>` : ''}
+        ${colOn('w') ? `<td><input list="dl-w" value="${esc(a.w)}" data-f="act:${a.id}:w" style="min-width:90px" aria-label="${esc(colN('w'))}"></td>` : ''}
+        ${colOn('sys') ? `<td><input list="dl-sys" value="${esc(a.sys)}" data-f="act:${a.id}:sys" style="min-width:90px" aria-label="${esc(colN('sys'))}"></td>` : ''}
+        ${colOn('pn') ? `<td><input list="dl-pn" value="${esc(a.pn || '')}" data-f="act:${a.id}:pn" style="min-width:80px" aria-label="${esc(colN('pn'))}"></td>` : ''}
         <td><input list="dl-th" value="${esc(a.th)}" data-f="act:${a.id}:th" style="min-width:110px;width:100%" aria-label="${esc(colN('th'))}"></td>
         <td>${a.e ? '' : `<button class="btn sm primary" data-a="timerStop" data-id="${a.id}">Stopp</button> `}<button class="btn sm ghost" data-a="delAct" data-id="${a.id}" aria-label="Eintrag löschen">✕</button></td></tr>`).join('')}
       <tr id="addRow" style="background:var(--surface2)">
@@ -141,13 +142,14 @@ function viewHeute() {
         <td><input type="time"${tstep()} id="f_e" value="${esc(f.e)}" data-f="form:e" aria-label="Neu: Bis"></td>
         <td><input type="time" id="f_u" value="${esc(f.u)}" data-f="form:u" aria-label="Neu: Unterbrechung"></td>
         <td></td>
-        <td><input id="f_cat" list="dl-cat" value="${esc(f.cat)}" data-f="form:cat" placeholder="${esc(colN('cat'))}" aria-label="Neu: ${esc(colN('cat'))}"></td>
-        <td><input id="f_w" list="dl-w" value="${esc(f.w)}" data-f="form:w" placeholder="${esc(colN('w'))}" aria-label="Neu: ${esc(colN('w'))}"></td>
-        <td><input id="f_sys" list="dl-sys" value="${esc(f.sys)}" data-f="form:sys" placeholder="${esc(colN('sys'))}" aria-label="Neu: ${esc(colN('sys'))}"></td>
+        ${colOn('cat') ? `<td><input id="f_cat" list="dl-cat" value="${esc(f.cat)}" data-f="form:cat" placeholder="${esc(colN('cat'))}" aria-label="Neu: ${esc(colN('cat'))}"></td>` : ''}
+        ${colOn('w') ? `<td><input id="f_w" list="dl-w" value="${esc(f.w)}" data-f="form:w" placeholder="${esc(colN('w'))}" aria-label="Neu: ${esc(colN('w'))}"></td>` : ''}
+        ${colOn('sys') ? `<td><input id="f_sys" list="dl-sys" value="${esc(f.sys)}" data-f="form:sys" placeholder="${esc(colN('sys'))}" aria-label="Neu: ${esc(colN('sys'))}"></td>` : ''}
+        ${colOn('pn') ? `<td><input id="f_pn" list="dl-pn" value="${esc(f.pn || '')}" data-f="form:pn" placeholder="${esc(colN('pn'))}" aria-label="Neu: ${esc(colN('pn'))}"></td>` : ''}
         <td><input id="f_th" list="dl-th" value="${esc(f.th)}" data-f="form:th" placeholder="Was wurde gemacht?" aria-label="Neu: ${esc(colN('th'))}"></td>
         <td><button class="btn sm primary" data-a="addAct">Hinzufügen</button> <button class="btn sm" data-a="timerStart" title="Startet einen Timer ab jetzt">Timer</button></td></tr>
       </tbody></table></div>
-    ${dl('dl-cat', L.cat)}${dl('dl-w', L.w)}${dl('dl-sys', L.sys, 200)}${dl('dl-th', L.thr, 400)}${dl('dl-dayth', L.dayth)}
+    ${dl('dl-cat', L.cat)}${dl('dl-w', L.w)}${dl('dl-sys', L.sys, 200)}${dl('dl-pn', L.pn, 300)}${dl('dl-th', L.thr, 400)}${dl('dl-dayth', L.dayth)}
   </section>`;
 }
 
@@ -217,8 +219,8 @@ function viewMonat() {
 function viewTaet() {
   const F = UI.filt, L = lists();
   const years = [...new Set(S.acts.map(a => a.d.slice(0, 4)))].sort().reverse();
-  let list = S.acts.filter(a => (!F.y || a.d.startsWith(F.y)) && (!F.m || a.d.slice(5, 7) === F.m) && (!F.cat || a.cat === F.cat) && (!F.w || a.w === F.w) && (!F.sys || a.sys === F.sys) &&
-    (!F.q || (a.th + ' ' + a.sys + ' ' + a.w).toLowerCase().includes(F.q.toLowerCase())));
+  let list = S.acts.filter(a => (!F.y || a.d.startsWith(F.y)) && (!F.m || a.d.slice(5, 7) === F.m) && (!F.cat || a.cat === F.cat) && (!F.w || a.w === F.w) && (!F.sys || a.sys === F.sys) && (!F.pn || a.pn === F.pn) &&
+    (!F.q || (a.th + ' ' + a.sys + ' ' + (a.pn || '') + ' ' + a.w).toLowerCase().includes(F.q.toLowerCase())));
   list.sort((a, b) => (b.d + b.s).localeCompare(a.d + a.s));
   const total = list.reduce((a, x) => a + netto(x), 0);
   const sel = (id, label, arr, cur, f) => `<div class="field"><label for="${id}">${label}</label><select id="${id}" data-f="filt:${f}"><option value="">alle</option>${arr.map(v => opt(v, v, cur)).join('')}</select></div>`;
@@ -227,11 +229,11 @@ function viewTaet() {
   <section class="card"><div class="fields" style="margin-bottom:14px">
     ${sel('fl_y', 'Jahr', years, F.y, 'y')}
     <div class="field"><label for="fl_m">Monat</label><select id="fl_m" data-f="filt:m"><option value="">alle</option>${MONL.map((n, i) => opt(pad2(i + 1), n, F.m)).join('')}</select></div>
-    ${sel('fl_c', esc(colN('cat')), L.cat, F.cat, 'cat')}${sel('fl_w', esc(colN('w')), L.w, F.w, 'w')}${sel('fl_s', esc(colN('sys')), L.sys, F.sys, 'sys')}
+    ${colOn('cat') ? sel('fl_c', esc(colN('cat')), L.cat, F.cat, 'cat') : ''}${colOn('w') ? sel('fl_w', esc(colN('w')), L.w, F.w, 'w') : ''}${colOn('sys') ? sel('fl_s', esc(colN('sys')), L.sys, F.sys, 'sys') : ''}${colOn('pn') ? sel('fl_p', esc(colN('pn')), L.pn, F.pn, 'pn') : ''}
     <div class="field"><label for="fl_q">Suche</label><input id="fl_q" type="search" value="${esc(F.q)}" data-f="filt:q" placeholder="${esc(colN('th'))}, ${esc(colN('sys'))} …"></div></div>
-    ${list.length ? `<div class="tablewrap"><table><thead><tr><th>Datum</th><th>Von</th><th>Bis</th><th class="r">Netto</th><th>${esc(colN('cat'))}</th><th>${esc(colN('w'))}</th><th>${esc(colN('sys'))}</th><th>${esc(colN('th'))}</th></tr></thead><tbody>
+    ${list.length ? `<div class="tablewrap"><table><thead><tr><th>Datum</th><th>Von</th><th>Bis</th><th class="r">Netto</th>${['cat', 'w', 'sys', 'pn'].filter(colOn).map(f => `<th>${esc(colN(f))}</th>`).join('')}<th>${esc(colN('th'))}</th></tr></thead><tbody>
     ${list.slice(0, F.limit).map(a => `<tr class="click" data-a="goto" data-k="${a.d}"><td class="num">${fmtShort(a.d)}${a.d.slice(2, 4)}</td><td class="num">${esc(a.s)}</td><td class="num">${esc(a.e)}</td><td class="r num">${fmtT(netto(a))}</td>
-      <td><span class="legend"><i style="background:${catColor(a.cat)};margin:0 5px 0 0"></i></span>${esc(a.cat)}</td><td>${esc(a.w)}</td><td>${esc(a.sys)}</td><td class="wrapc">${esc(a.th)}</td></tr>`).join('')}</tbody></table></div>
+      ${colOn('cat') ? `<td><span class="legend"><i style="background:${catColor(a.cat)};margin:0 5px 0 0"></i></span>${esc(a.cat)}</td>` : ''}${colOn('w') ? `<td>${esc(a.w)}</td>` : ''}${colOn('sys') ? `<td>${esc(a.sys)}</td>` : ''}${colOn('pn') ? `<td>${esc(a.pn || '')}</td>` : ''}<td class="wrapc">${esc(a.th)}</td></tr>`).join('')}</tbody></table></div>
     ${list.length > F.limit ? `<p style="margin:12px 0 0"><button class="btn" data-a="more">Weitere ${Math.min(300, list.length - F.limit)} anzeigen</button> <span class="hint">${list.length - F.limit} ausgeblendet</span></p>` : ''}`
       : '<div class="empty">Keine Einträge für diese Filter.</div>'}
   </section>`;
@@ -251,6 +253,7 @@ function viewAuswertung() {
   const refKey = isCur ? t : y + '-12-31', ref = R.map[refKey] || R.rows[R.rows.length - 1];
   const nowM = isCur ? +t.slice(5, 7) : 13;
   const years = yrs.filter(v => v <= curYear + 1);
+  if (!colOn(UI.dim)) UI.dim = ['cat', 'w', 'sys', 'pn'].find(colOn) || 'cat';
   const pv = pivot(UI.dim, UI.pivotYear), dimName = colN(UI.dim);
   // Prognose bis Jahresende / Kappung
   let prog = '';
@@ -290,7 +293,7 @@ function viewAuswertung() {
     <tfoot><tr><td>Jahr</td><td class="r num">${fmtT(T.stunden)}</td><td class="r num">${fmtT(T.soll)}</td><td class="r num ${cls(T.gebucht - T.soll)}">${fmtT(T.gebucht - T.soll, true)}</td><td class="r num">${fmtT(T.konto)}</td><td class="r num">${fmtDec(T.urlaub, T.urlaub % 1 ? 1 : 0)}</td><td class="r num">${fmtDec(T.krank, 1)}</td><td class="r num">${T.arbeitstage}</td><td class="r num">${fmtT(T.netto)}</td><td class="r num">${T.rate == null ? '' : Math.round(T.rate * 100) + ' %'}</td></tr></tfoot></table></div>
     <p class="hint" style="margin:10px 0 0">Differenz = Stunden + Urlaub + Krank − Soll, wie „+- Rechnung“ in der Excel. Künftige Monate zeigen nur Plan.</p></section>
   <section class="card"><div class="card-h"><h3>${I18N.tx('Tätigkeiten nach')} ${esc(I18N.tx(dimName))}</h3>
-    <div class="nav"><div class="seg" role="group" aria-label="Gruppierung">${[['cat', colN('cat')], ['w', colN('w')], ['sys', colN('sys')]].map(([v, l]) => `<button data-a="dim" data-v="${v}" aria-pressed="${UI.dim === v}">${l}</button>`).join('')}</div>
+    <div class="nav"><div class="seg" role="group" aria-label="Gruppierung">${['cat', 'w', 'sys', 'pn'].filter(colOn).map(f => [f, colN(f)]).map(([v, l]) => `<button data-a="dim" data-v="${v}" aria-pressed="${UI.dim === v}">${l}</button>`).join('')}</div>
     <select data-f="ui:pivotYear" aria-label="Zeitraum" style="width:auto">${opt('alle', 'Alle Jahre', UI.pivotYear)}${[...new Set(S.acts.map(a => a.d.slice(0, 4)))].sort().reverse().map(v => opt(v, v, UI.pivotYear)).join('')}</select></div></div>
     ${pv.arr.length ? `<div class="bars">${pv.arr.slice(0, 14).map(([n, v]) => `<div class="barrow"><span class="nm" title="${esc(n)}">${esc(n)}</span><span class="tr"><i style="width:${(v / pv.arr[0][1]) * 100}%;background:${UI.dim === 'cat' ? catColor(n === '(leer)' ? '' : n) : 'var(--c1)'}"></i></span><span class="num" style="text-align:right">${fmtT(v)} <span class="muted">${Math.round((v / pv.tot) * 100)}%</span></span></div>`).join('')}</div>
     <p class="hint" style="margin:10px 0 0">${pv.arr.length > 14 ? `Weitere ${pv.arr.length - 14} Einträge ausgeblendet. ` : ''}Summe ${fmtT(pv.tot)} h.</p>` : '<div class="empty">Noch keine Tätigkeiten erfasst.</div>'}</section>
@@ -311,9 +314,9 @@ function viewEinst() {
     <p style="margin:0 0 12px">Wähle deine <b>Stunden.xlsm</b>. Gelesen werden die Blätter „ab 2020“ (bei älteren Dateien „Zeiterfassung“), „Tätigkeiten“ und „Gehalt“. Die Datei verlässt deinen Browser nicht. Vorhandene Daten in dieser App werden ersetzt.</p>
     <input type="file" id="fileX" accept=".xlsx,.xlsm,.xls" data-f="file:xlsx" aria-label="Excel-Datei wählen">
     ${r ? `<div class="report"><b>Import fertig.</b><ul style="margin:6px 0 0;padding-left:18px">
-      <li>${r.days} Tage mit Einträgen ab ${esc(r.from)}</li><li>${r.acts} Tätigkeiten</li><li>${r.pay || 0} Monate Gehalt</li>
+      <li>${r.days} Tage mit Einträgen ab ${esc(r.from)}</li><li>${r.acts} Tätigkeiten${r.cols ? ' (' + I18N.tx('Spalten') + ': ' + esc(r.cols) + ')' : ''}</li><li>${r.pay || 0} Monate Gehalt</li>
       <li>${r.adj} Tage mit Handkorrektur aus der Excel als „Korrektur Zeitkonto“ übernommen, damit das Zeitkonto exakt stimmt</li>
-      <li>${r.manual} Tage mit abweichender Pause übernommen</li></ul></div>` : ''}
+      <li>${r.manual} Tage mit abweichender Pause übernommen</li>${r.tipp && r.tipp.length ? `<li>${I18N.tx('Tipp:')} ${esc(r.tipp.join(', '))} ${I18N.tx('enthält fast nur einen Wert. Unter „Einstellungen“ kannst du die Spalte ausblenden.')}</li>` : ''}</ul></div>` : ''}
     <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
     <div class="card-h"><h3>Sicherung</h3></div>
     <p class="hint" style="margin:0 0 10px">Die Daten liegen nur in diesem Browser. Speichere regelmäßig eine Sicherung, auch um auf ein anderes Gerät zu wechseln.</p>
@@ -381,8 +384,8 @@ function viewEinst() {
     </div>
     <h4 class="sh">Spaltennamen der Tätigkeiten</h4>
     <div class="fields wide">
-      ${['cat', 'w', 'sys', 'th'].map(x => `<div class="field"><label for="c_col_${x}">${esc(COLD[x])}</label><input id="c_col_${x}" value="${esc((c.spalten && c.spalten[x]) || '')}" placeholder="${esc(COLD[x])}" data-f="col:${x}"></div>`).join('')}
-      <span class="hint" style="grid-column:1/-1">Eigene Namen für die vier Spalten bei Tätigkeiten, in Auswertung und CSV-Export. Leer lassen für den Standardnamen. Die erfassten Einträge bleiben unverändert.</span>
+      ${['cat', 'w', 'sys', 'pn', 'th'].map(x => `<div class="field"><label for="c_col_${x}">${esc(COLD[x])}</label><input id="c_col_${x}" value="${esc((c.spalten && c.spalten[x]) || '')}" placeholder="${esc(COLD[x])}" data-f="col:${x}">${x === 'th' ? '' : `<select aria-label="${esc(COLD[x])}" data-f="colv:${x}" style="margin-top:6px">${opt('true', 'anzeigen', String(colOn(x)))}${opt('false', 'ausblenden', String(colOn(x)))}</select>`}</div>`).join('')}
+      <span class="hint" style="grid-column:1/-1">Eigene Namen und Sichtbarkeit der Spalten bei Tätigkeiten, in Filtern, Auswertung und CSV-Export. Leer lassen für den Standardnamen. Die Projektnummer ist standardmäßig ausgeblendet und wird beim Excel-Import eingeschaltet, wenn die Datei eine solche Spalte hat. Ausgeblendete Spalten behalten ihre erfassten Werte.</span>
     </div>
     <h4 class="sh">Anzeige</h4>
     <div class="fields wide">
