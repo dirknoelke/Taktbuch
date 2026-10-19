@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Quarter-hour mode: the time fields (arrive, leave, from, to) now show a list of all quarter hours as a dropdown. Before, only the browser’s own minute picker appeared.
+
 ## 1.4.0
 
 - Activity columns (Category, Type, System, Project number, Topic) have their own names and the first four can be shown or hidden under Settings. Hidden columns keep their values. Applies to the activity tables, filters, reports and CSV export.
