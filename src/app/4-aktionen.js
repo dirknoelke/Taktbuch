@@ -231,7 +231,13 @@ async function installUpdate(info) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const txt = await r.text();
     if (!txt.includes("__ZW_VERSION='" + info.tag.replace(/^v/, '') + "'")) throw new Error(I18N.tx('Die neue Datei ist noch nicht bereit, bitte in ein paar Minuten erneut versuchen.'));
-    const w = await h.createWritable(); await w.write(txt); await w.close();
+    if (txt.length < 100000) throw new Error('Datei unvollständig');
+    let old = ''; try { old = await (await h.getFile()).text(); } catch (e) { }
+    const size = new Blob([txt]).size;
+    const put = async t => { const w = await h.createWritable(); await w.write(t); await w.close(); };
+    await put(txt);
+    const chk = await h.getFile();   // nachprüfen, sonst alte Version zurückschreiben
+    if (chk.size !== size) { try { if (old) await put(old); } catch (e) { } throw new Error(I18N.tx('Schreiben unvollständig, die alte Version wurde wiederhergestellt.')); }
     alert(I18N.tx('Aktualisiert. Die Seite wird jetzt neu geladen.')); location.reload();
   } catch (e) { fallback(e && e.message); }
 }

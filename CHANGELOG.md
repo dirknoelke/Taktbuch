@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.3
+
+- The **Install** button now verifies the written file and restores the previous version if the result is incomplete (a 0 KB file after installing was reported).
+
 ## 1.4.2
 
 - Fix (quarter-hour mode): typing an hour no longer resets the minutes to 00. Times are rounded when you leave the field, not while typing.
