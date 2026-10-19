@@ -12,7 +12,7 @@ version = read('VERSION').strip()
 repo = os.environ.get('ZW_REPO') or read('REPO.txt').strip()
 
 order = ['1-kern.js', '2-ansichten.js', '3-gehalt.js', '4-aktionen.js']  # Reihenfolge ist wichtig
-app = '\n'.join(read('src/app/' + f) for f in order)
+app = '\n'.join([read('src/i18n-en.js'), read('src/i18n.js')] + [read('src/app/' + f) for f in order])
 html = read('src/template.html')
 assert '//@@ENGINE@@' in html and '//@@APP@@' in html
 html = html.replace('//@@ENGINE@@', read('src/engine.js'))

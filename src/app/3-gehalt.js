@@ -2,6 +2,7 @@
 function fmtEur(x, dp = 2) {
   if (x == null || isNaN(x)) return '–';
   const neg = x < 0, parts = Math.abs(x).toFixed(dp).split('.');
+  if (I18N.lang === 'en') return (neg ? '−' : '') + '€' + parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (parts[1] ? '.' + parts[1] : '');
   return (neg ? '−' : '') + parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (parts[1] ? ',' + parts[1] : '') + ' €';
 }
 const normType = (k, v) => (v === '' && E.defaultType(k, S.cfg) !== 'arbeit' ? 'arbeit' : v);
@@ -131,8 +132,8 @@ function viewGehalt() {
       <td class="r num"><b>${fmtDec(r.netto)}</b></td><td class="r num">${r.bs ? fmtDec((1 - r.netto / r.bs) * 100, 1) + ' %' : ''}</td>
       <td class="r num">${!r.plan && g ? fmtT(g) : ''}</td><td class="r num">${!r.plan && g ? fmtDec(r.b / g) : ''}</td></tr>`; }).join('')}</tbody>
     <tfoot><tr><td colspan="2">Jahr</td><td class="r num">${fmtDec(grund)}</td><td class="r num">${fmtDec(sum(r => r.s))}</td><td class="r num">${fmtDec(sum(r => r.u || 0))}</td>${MIR ? `<td class="r num">${fmtDec(sum(r => r.mir))}</td>` : ''}<td class="r num">${fmtDec(nettoS)}</td><td class="r num">${brutto ? fmtDec((1 - nettoS / brutto) * 100, 1) + ' %' : ''}</td><td class="r num">${fmtT(stdSum)}</td><td class="r num">${stdSum ? fmtDec(grundAct / stdSum) : ''}</td></tr></tfoot></table></div>
-    <p class="hint" style="margin:10px 0 0">Netto = überwiesen${MIR ? ' + MIR' : ''}. Prognose: Brutto bleibt gleich${S.cfg.payRiseMonat && (S.cfg.payRiseArt === 'eur' ? S.cfg.payRiseEur : S.cfg.payRise) ? ', steigt im ' + MONL[S.cfg.payRiseMonat - 1] + (S.cfg.payRiseArt === 'eur' ? ' um ' + fmtEur(S.cfg.payRiseEur, 0) : ' um ' + fmtDec(S.cfg.payRise * 100, 1) + ' %') : ''} (unter „Daten“ änderbar). Eine tatsächliche Erhöhung trägst du einfach als Brutto im jeweiligen Monat ein, ab da rechnet die Prognose damit weiter. Sonderzahlungen wie im Vorjahr, skaliert mit dem Brutto. Netto mit der Abzugsquote der letzten 12 Zahlungen (${fmtDec(M.quote * 100, 1)} %).
-    Zahltag ist ${ZT_TEXT[S.cfg.zahltagModus] || ZT_TEXT.letzte4}.</p></section>
+    <p class="hint" style="margin:10px 0 0">${I18N.tx('Netto = überwiesen')}${MIR ? ' + MIR' : ''}. ${I18N.tx('Prognose: Brutto bleibt gleich')}${S.cfg.payRiseMonat && (S.cfg.payRiseArt === 'eur' ? S.cfg.payRiseEur : S.cfg.payRise) ? ', ' + I18N.tx('steigt im') + ' ' + MONL[S.cfg.payRiseMonat - 1] + ' ' + I18N.tx('um') + ' ' + (S.cfg.payRiseArt === 'eur' ? fmtEur(S.cfg.payRiseEur, 0) : fmtDec(S.cfg.payRise * 100, 1) + ' %') : ''} ${I18N.tx('(unter „Daten“ änderbar).')} ${I18N.tx('Eine tatsächliche Erhöhung trägst du einfach als Brutto im jeweiligen Monat ein, ab da rechnet die Prognose damit weiter.')} ${I18N.tx('Sonderzahlungen wie im Vorjahr, skaliert mit dem Brutto.')} ${I18N.tx('Netto mit der Abzugsquote der letzten # Zahlungen (# %).').replace('#', '12').replace('#', fmtDec(M.quote * 100, 1))}
+    ${I18N.tx('Zahltag ist')} ${I18N.tx(ZT_TEXT[S.cfg.zahltagModus] || ZT_TEXT.letzte4)}.</p></section>
   <section class="card"><div class="card-h"><h3>Jahresvergleich</h3></div><div class="tablewrap"><table>
     <thead><tr><th>Jahr</th><th class="r">Brutto gesamt</th><th class="r">Netto</th><th class="r">Abzüge</th><th class="r">Ø Monatsgehalt</th><th class="r">Erhöhung im Jahr</th></tr></thead>
     <tbody>${yp.map(q => `<tr class="click ${q.plan ? 'dim' : ''}" data-a="payYear" data-v="${q.v}"><td>${q.v}${q.plan ? ' <span class="chip ty-WE">Plan</span>' : ''}</td><td class="r num">${fmtDec(q.bs)}</td><td class="r num">${fmtDec(q.ne)}</td><td class="r num">${fmtDec((1 - q.ne / q.bs) * 100, 1)} %</td><td class="r num">${fmtDec(q.avg)}</td><td class="r num">${q.rise == null ? '' : fmtDec(q.rise * 100, 1) + ' %'}</td></tr>`).join('')}</tbody></table></div></section>`;

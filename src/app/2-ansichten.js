@@ -289,7 +289,7 @@ function viewAuswertung() {
       <td class="r num ${cls(M.gebucht - M.soll)}">${fmtT(M.gebucht - M.soll, true)}</td><td class="r num">${fmtT(M.konto)}</td><td class="r num">${fmtDec(M.urlaub, M.urlaub % 1 ? 1 : 0)}</td><td class="r num">${fmtDec(M.krank, M.krank % 1 ? 1 : 0)}</td><td class="r num">${M.arbeitstage}</td><td class="r num">${fmtT(M.netto)}</td><td class="r num">${M.rate == null ? '' : Math.round(M.rate * 100) + ' %'}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td>Jahr</td><td class="r num">${fmtT(T.stunden)}</td><td class="r num">${fmtT(T.soll)}</td><td class="r num ${cls(T.gebucht - T.soll)}">${fmtT(T.gebucht - T.soll, true)}</td><td class="r num">${fmtT(T.konto)}</td><td class="r num">${fmtDec(T.urlaub, T.urlaub % 1 ? 1 : 0)}</td><td class="r num">${fmtDec(T.krank, 1)}</td><td class="r num">${T.arbeitstage}</td><td class="r num">${fmtT(T.netto)}</td><td class="r num">${T.rate == null ? '' : Math.round(T.rate * 100) + ' %'}</td></tr></tfoot></table></div>
     <p class="hint" style="margin:10px 0 0">Differenz = Stunden + Urlaub + Krank − Soll, wie „+- Rechnung“ in der Excel. Künftige Monate zeigen nur Plan.</p></section>
-  <section class="card"><div class="card-h"><h3>Tätigkeiten nach ${dimName}</h3>
+  <section class="card"><div class="card-h"><h3>${I18N.tx('Tätigkeiten nach')} ${I18N.tx(dimName)}</h3>
     <div class="nav"><div class="seg" role="group" aria-label="Gruppierung">${[['cat', 'Kategorie'], ['w', 'Art'], ['sys', 'System']].map(([v, l]) => `<button data-a="dim" data-v="${v}" aria-pressed="${UI.dim === v}">${l}</button>`).join('')}</div>
     <select data-f="ui:pivotYear" aria-label="Zeitraum" style="width:auto">${opt('alle', 'Alle Jahre', UI.pivotYear)}${[...new Set(S.acts.map(a => a.d.slice(0, 4)))].sort().reverse().map(v => opt(v, v, UI.pivotYear)).join('')}</select></div></div>
     ${pv.arr.length ? `<div class="bars">${pv.arr.slice(0, 14).map(([n, v]) => `<div class="barrow"><span class="nm" title="${esc(n)}">${esc(n)}</span><span class="tr"><i style="width:${(v / pv.arr[0][1]) * 100}%;background:${UI.dim === 'cat' ? catColor(n === '(leer)' ? '' : n) : 'var(--c1)'}"></i></span><span class="num" style="text-align:right">${fmtT(v)} <span class="muted">${Math.round((v / pv.tot) * 100)}%</span></span></div>`).join('')}</div>
@@ -395,6 +395,7 @@ function render() {
   const sy = window.scrollY;
   $('#view').innerHTML = v();
   window.scrollTo(0, sy);
+  $('#langSw').innerHTML = ['de', 'en'].map(l => `<button data-a="lang" data-v="${l}" aria-pressed="${I18N.lang === l}" title="${l === 'de' ? 'Deutsch' : 'English'}">${l.toUpperCase()}</button>`).join('');
   updatePill(); drawCharts();
 }
 function timerTick() {
