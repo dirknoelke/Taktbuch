@@ -100,8 +100,8 @@ function viewHeute() {
         ${isToday && d.s && !d.e ? '<button class="btn primary" data-a="stampOut">Gehen jetzt</button>' : ''}
       </div>
       <div class="fields" style="margin-top:12px">
-        <div class="field"><label for="d_p">Pause (leer = automatisch)</label><input id="d_p" type="time" value="${esc(d.p || '')}" data-f="day:p" placeholder="${HM(row.pause)}"></div>
-        <div class="field"><label for="d_a">Abwesenheit (z. B. Arzt)</label><input id="d_a" type="time" value="${esc(d.a || '')}" data-f="day:a"></div>
+        <div class="field"><label for="d_p">Pause (leer = automatisch)</label><input id="d_p"${tAttr(true)} value="${esc(d.p || '')}" data-f="day:p" placeholder="${HM(row.pause)}"></div>
+        <div class="field"><label for="d_a">Abwesenheit (z. B. Arzt)</label><input id="d_a"${tAttr(true)} value="${esc(d.a || '')}" data-f="day:a"></div>
         <div class="field"><label for="d_th">Thema / Ort</label><input id="d_th" type="text" list="dl-dayth" value="${esc(d.th || '')}" placeholder="${esc(S.cfg.standardThema)}" data-f="day:th"></div>
         <div class="field"><label for="d_z">Korrektur Zeitkonto (h)</label><input id="d_z" type="number" step="0.25" value="${d.z || ''}" data-f="day:z"></div>
       </div>
@@ -129,7 +129,7 @@ function viewHeute() {
       ${acts.map(a => `<tr>
         <td><input ${tAttr()} value="${esc(a.s)}" data-f="act:${a.id}:s" aria-label="Von"></td>
         <td>${a.e ? `<input ${tAttr()} value="${esc(a.e)}" data-f="act:${a.id}:e" aria-label="Bis">` : `<span class="clock">läuft</span>`}</td>
-        <td><input type="time" value="${esc(a.u || '')}" data-f="act:${a.id}:u" aria-label="Unterbrechung"></td>
+        <td><input${tAttr(true)} value="${esc(a.u || '')}" data-f="act:${a.id}:u" aria-label="Unterbrechung"></td>
         <td class="r num">${a.e ? fmtT(netto(a)) : '–'}</td>
         ${colOn('cat') ? `<td><input list="dl-cat" value="${esc(a.cat)}" data-f="act:${a.id}:cat" style="min-width:70px" aria-label="${esc(colN('cat'))}"></td>` : ''}
         ${colOn('w') ? `<td><input list="dl-w" value="${esc(a.w)}" data-f="act:${a.id}:w" style="min-width:90px" aria-label="${esc(colN('w'))}"></td>` : ''}
@@ -140,7 +140,7 @@ function viewHeute() {
       <tr id="addRow" style="background:var(--surface2)">
         <td><input ${tAttr()} id="f_s" value="${esc(f.s || sugS)}" data-f="form:s" aria-label="Neu: Von"></td>
         <td><input ${tAttr()} id="f_e" value="${esc(f.e)}" data-f="form:e" aria-label="Neu: Bis"></td>
-        <td><input type="time" id="f_u" value="${esc(f.u)}" data-f="form:u" aria-label="Neu: Unterbrechung"></td>
+        <td><input${tAttr(true)} id="f_u" value="${esc(f.u)}" data-f="form:u" aria-label="Neu: Unterbrechung"></td>
         <td></td>
         ${colOn('cat') ? `<td><input id="f_cat" list="dl-cat" value="${esc(f.cat)}" data-f="form:cat" placeholder="${esc(colN('cat'))}" aria-label="Neu: ${esc(colN('cat'))}"></td>` : ''}
         ${colOn('w') ? `<td><input id="f_w" list="dl-w" value="${esc(f.w)}" data-f="form:w" placeholder="${esc(colN('w'))}" aria-label="Neu: ${esc(colN('w'))}"></td>` : ''}
@@ -412,7 +412,7 @@ function render() {
   $('#banner').innerHTML = S.demo ? `<div class="banner"><span><b>Beispieldaten.</b> Diese Einträge sind erfunden. Lade deine Excel unter „Einstellungen“ → „Daten“, um mit deinen Zahlen zu arbeiten.</span><button class="btn sm primary" data-a="tab" data-v="daten">Excel importieren</button></div>` : '';
   const v = { heute: viewHeute, woche: viewWoche, monat: viewMonat, urlaub: viewUrlaub, taet: viewTaet, auswertung: viewAuswertung, gehalt: viewGehalt, einst: viewEinst }[UI.tab];
   const sy = window.scrollY;
-  $('#view').innerHTML = v() + (S.cfg.raster === '15' ? `<datalist id="dl-t15">${Array.from({ length: 96 }, (_, i) => `<option value="${pad2(Math.floor(i / 4))}:${pad2((i % 4) * 15)}">`).join('')}</datalist>` : '');
+  $('#view').innerHTML = v() + (S.cfg.raster === '15' ? `<datalist id="dl-t15">${Array.from({ length: 96 }, (_, i) => `<option value="${pad2(Math.floor(i / 4))}:${pad2((i % 4) * 15)}">`).join('')}</datalist><datalist id="dl-d15">${Array.from({ length: 33 }, (_, i) => `<option value="${pad2(Math.floor(i / 4))}:${pad2((i % 4) * 15)}">`).join('')}</datalist>` : '');
   window.scrollTo(0, sy);
   $('#langSw').innerHTML = ['de', 'en'].map(l => `<button data-a="lang" data-v="${l}" aria-pressed="${I18N.lang === l}" title="${l === 'de' ? 'Deutsch' : 'English'}">${l.toUpperCase()}</button>`).join('');
   updatePill(); drawCharts();

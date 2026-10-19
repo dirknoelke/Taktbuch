@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.5
+
+- Quarter-hour mode: the same text-field-with-dropdown applies to Break, Absence and Interruption: text field with a dropdown (00:00 to 08:00 in 15-minute steps). For these, `30` means 30 minutes.
+
 ## 1.4.4
 
 - Quarter-hour mode: Arrive, Leave, From and To are now text fields with a dropdown listing the whole day in 15-minute steps (the browser's own time picker cannot be limited to quarter hours). Typing works too: `9`, `930`, `09:30` all become 09:30, rounded to the nearest quarter hour.
