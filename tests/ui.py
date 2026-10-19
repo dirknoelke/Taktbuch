@@ -67,6 +67,7 @@ async def main():
         await pg3.fill('#f_s', '08:07'); await pg3.dispatch_event('#f_s', 'change')
         check('Eingabe wird auf Viertelstunde gerundet', await pg3.input_value('#f_s') == '08:00')
         check('Zeitfeld step=900', await pg3.get_attribute('#f_s', 'step') == '900')
+        check('Auswahlliste mit 96 Viertelstunden', await pg3.get_attribute('#f_s', 'list') == 'dl-t15' and await pg3.evaluate("()=>document.querySelectorAll('#dl-t15 option').length") == 96)
         check('Spalte umbenannt', 'projekt' in (await pg3.inner_text('#view')).lower())
         await pg3.evaluate("()=>{S.cfg.raster='min';S.cfg.spalten={};commit()}")
         await pg3.click('button[data-v=einst]'); await pg3.click('button[data-a=sub][data-v=einst]')

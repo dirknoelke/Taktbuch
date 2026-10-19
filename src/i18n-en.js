@@ -32,7 +32,7 @@ window.ZW_EN = {
   'Uhrzeiten erfassen': 'Record times',
   'minutengenau': 'to the minute',
   'viertelstündlich': 'every quarter hour',
-  'Bei „viertelstündlich“ springen die Zeitfelder in 15-Minuten-Schritten, eingetippte Uhrzeiten und der Timer (Kommen/Gehen jetzt, Tätigkeiten) werden auf die nächste Viertelstunde auf- oder abgerundet. Bereits erfasste Zeiten bleiben unverändert.': 'With “every quarter hour”, time fields step in 15-minute increments, typed times and the timer (arrive/leave now, activities) are rounded up or down to the nearest quarter hour. Times already recorded stay unchanged.',
+  'Bei „viertelstündlich“ bieten die Zeitfelder (Kommen, Gehen, Von, Bis) eine Auswahlliste in 15-Minuten-Schritten an und springen in 15-Minuten-Schritten, eingetippte Uhrzeiten und der Timer (Kommen/Gehen jetzt, Tätigkeiten) werden auf die nächste Viertelstunde auf- oder abgerundet. Bereits erfasste Zeiten bleiben unverändert.': 'With “every quarter hour”, the time fields (arrive, leave, from, to) offer a list in 15-minute steps and move in 15-minute steps, typed times and the timer (arrive/leave now, activities) are rounded up or down to the nearest quarter hour. Times already recorded stay unchanged.',
   'Spaltennamen der Tätigkeiten': 'Activity column names',
   'Eigene Namen für die vier Spalten bei Tätigkeiten, in Auswertung und CSV-Export. Leer lassen für den Standardnamen. Die erfassten Einträge bleiben unverändert.': 'Custom names for the four activity columns, also used in reports and CSV export. Leave empty for the default name. Recorded entries stay unchanged.',
   'Timer unter einer Viertelstunde verworfen.': 'Timer under a quarter hour discarded.',

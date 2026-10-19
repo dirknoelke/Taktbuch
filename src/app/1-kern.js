@@ -10,7 +10,7 @@ const HM = h => { if (!h && h !== 0) return ''; const t = Math.round(h * 60); re
 const nowH = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
 /* Zeitraster: 'min' = minutengenau, '15' = Viertelstunden (Uhrzeiten und Timer werden auf die nächste Viertelstunde gerundet) */
 const snap = v => { if (!v || !S.cfg || S.cfg.raster !== '15' || !/^\d{2}:\d{2}$/.test(v)) return v; const m = Math.min(23 * 60 + 45, Math.round((+v.slice(0, 2) * 60 + +v.slice(3)) / 15) * 15); return pad2(Math.floor(m / 60)) + ':' + pad2(m % 60); };
-const tstep = () => (S.cfg && S.cfg.raster === '15' ? ' step="900"' : '');
+const tstep = () => (S.cfg && S.cfg.raster === '15' ? ' step="900" list="dl-t15"' : '');
 const REGION_NAMES = { DE: 'Nur bundesweite Feiertage', BW: 'Baden-Württemberg', BY: 'Bayern', BE: 'Berlin', BB: 'Brandenburg', HB: 'Bremen', HH: 'Hamburg', HE: 'Hessen', MV: 'Mecklenburg-Vorpommern', NI: 'Niedersachsen', NW: 'Nordrhein-Westfalen', RP: 'Rheinland-Pfalz', SL: 'Saarland', SN: 'Sachsen', ST: 'Sachsen-Anhalt', SH: 'Schleswig-Holstein', TH: 'Thüringen' };
 const COLD = { cat: 'Kategorie', w: 'Art', sys: 'System', pn: 'Projektnummer', th: 'Thema' };
 const pnOn = () => !!(S.cfg && S.cfg.pnAn);

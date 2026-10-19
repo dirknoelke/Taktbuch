@@ -380,7 +380,7 @@ function viewEinst() {
     </div>
     <h4 class="sh">Zeiterfassung</h4>
     <div class="fields wide">
-      <div class="field"><label for="c_ra">Uhrzeiten erfassen</label><select id="c_ra" data-f="cfg:raster">${opt('min', 'minutengenau', c.raster || 'min')}${opt('15', 'viertelstündlich', c.raster || 'min')}</select><span class="hint">Bei „viertelstündlich“ springen die Zeitfelder in 15-Minuten-Schritten, eingetippte Uhrzeiten und der Timer (Kommen/Gehen jetzt, Tätigkeiten) werden auf die nächste Viertelstunde auf- oder abgerundet. Bereits erfasste Zeiten bleiben unverändert.</span></div>
+      <div class="field"><label for="c_ra">Uhrzeiten erfassen</label><select id="c_ra" data-f="cfg:raster">${opt('min', 'minutengenau', c.raster || 'min')}${opt('15', 'viertelstündlich', c.raster || 'min')}</select><span class="hint">Bei „viertelstündlich“ bieten die Zeitfelder (Kommen, Gehen, Von, Bis) eine Auswahlliste in 15-Minuten-Schritten an und springen in 15-Minuten-Schritten, eingetippte Uhrzeiten und der Timer (Kommen/Gehen jetzt, Tätigkeiten) werden auf die nächste Viertelstunde auf- oder abgerundet. Bereits erfasste Zeiten bleiben unverändert.</span></div>
     </div>
     <h4 class="sh">Spaltennamen der Tätigkeiten</h4>
     <div class="fields wide">
@@ -412,7 +412,7 @@ function render() {
   $('#banner').innerHTML = S.demo ? `<div class="banner"><span><b>Beispieldaten.</b> Diese Einträge sind erfunden. Lade deine Excel unter „Einstellungen“ → „Daten“, um mit deinen Zahlen zu arbeiten.</span><button class="btn sm primary" data-a="tab" data-v="daten">Excel importieren</button></div>` : '';
   const v = { heute: viewHeute, woche: viewWoche, monat: viewMonat, urlaub: viewUrlaub, taet: viewTaet, auswertung: viewAuswertung, gehalt: viewGehalt, einst: viewEinst }[UI.tab];
   const sy = window.scrollY;
-  $('#view').innerHTML = v();
+  $('#view').innerHTML = v() + (S.cfg.raster === '15' ? `<datalist id="dl-t15">${Array.from({ length: 96 }, (_, i) => `<option value="${pad2(Math.floor(i / 4))}:${pad2((i % 4) * 15)}">`).join('')}</datalist>` : '');
   window.scrollTo(0, sy);
   $('#langSw').innerHTML = ['de', 'en'].map(l => `<button data-a="lang" data-v="${l}" aria-pressed="${I18N.lang === l}" title="${l === 'de' ? 'Deutsch' : 'English'}">${l.toUpperCase()}</button>`).join('');
   updatePill(); drawCharts();
