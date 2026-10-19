@@ -371,6 +371,10 @@ function viewEinst() {
       <div class="field"><label for="c_mir">Spalte MIR (z. B. Werkskantine)</label><select id="c_mir" data-f="cfg:mirAn" data-bool="1">${opt('true', 'anzeigen', String(c.mirAn !== false))}${opt('false', 'ausblenden', String(c.mirAn !== false))}</select><span class="hint">MIR ist der Abzug bzw. Betrag aus der Werkskantine, der zum Überwiesenen addiert das Netto ergibt. Ausgeblendet wird die Spalte nicht angezeigt und nicht mitgerechnet. Bereits eingetragene MIR-Werte bleiben gespeichert.</span></div>
       <p class="hint" style="grid-column:1/-1;margin:0">Echte Erhöhungen trägst du direkt in „Gehalt“ ein (Brutto des Monats). Ab diesem Monat rechnet die Prognose mit dem neuen Wert weiter. Erfasste Gehaltsmonate ändern sich durch diese Einstellungen nicht.</p>
     </div>
+    <h4 class="sh">Feiertage</h4>
+    <div class="fields wide">
+      <div class="field"><label for="c_rg">Bundesland</label><select id="c_rg" data-f="cfg:region">${Object.keys(REGION_NAMES).map(v => opt(v, REGION_NAMES[v], c.region || 'NW')).join('')}</select><span class="hint">Bestimmt die gesetzlichen Feiertage für Kalender, Soll, Zahltag und Urlaubsplanung, für alle Jahre. Örtliche Sonderfälle (z. B. Augsburger Friedensfest) sind nicht enthalten. Tage mit eigenem Eintrag bleiben unberührt.</span></div>
+    </div>
     <h4 class="sh">Zeiterfassung</h4>
     <div class="fields wide">
       <div class="field"><label for="c_ra">Uhrzeiten erfassen</label><select id="c_ra" data-f="cfg:raster">${opt('min', 'minutengenau', c.raster || 'min')}${opt('15', 'viertelstündlich', c.raster || 'min')}</select><span class="hint">Bei „viertelstündlich“ springen die Zeitfelder in 15-Minuten-Schritten, eingetippte Uhrzeiten und der Timer (Kommen/Gehen jetzt, Tätigkeiten) werden auf die nächste Viertelstunde auf- oder abgerundet. Bereits erfasste Zeiten bleiben unverändert.</span></div>
@@ -391,7 +395,7 @@ function viewEinst() {
       <li>Pause automatisch: ab 6 h Anwesenheit bis 6,5 h die Überschreitung, bis 9 h 30 min, darüber mindestens 30 min bis 45 min ab 9,75 h. Manuell überschreibbar.</li>
       <li>Angerechnet werden höchstens ${fmtDec(c.tagesMax, 0)} h pro Tag. Der Rest erscheint als „Über ${fmtDec(c.tagesMax, 0)} h“ in der Jahresübersicht.</li>
       <li>Saldo je Arbeitstag = Stunden − Soll. Wochenende zählt voll als Mehrarbeit. Urlaub, Feiertag und Krankheit ändern das Konto nicht. Zeitausgleich zieht ein Soll ab.</li>
-      <li>Feiertage für NRW werden automatisch gesetzt. Tage ohne Eintrag in der Zukunft gelten als Plan und belasten das Konto nicht.</li>
+      <li>Feiertage werden für das gewählte Bundesland automatisch gesetzt. Tage ohne Eintrag in der Zukunft gelten als Plan und belasten das Konto nicht.</li>
       <li>Die Erfassungsrate vergleicht die Summe der Tätigkeiten mit der Arbeitszeit.</li></ul>
   </section>
 `}`;

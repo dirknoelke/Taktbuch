@@ -6,6 +6,12 @@ const eq = (n, a, b) => { const ok = JSON.stringify(a) === JSON.stringify(b); if
 eq('Karfreitag 2026', E.holidays(2026)['2026-04-03'] != null, true);
 eq('Ostermontag 2031', E.holidays(2031)['2031-04-14'] != null, true);
 eq('Fronleichnam 2040', E.holidays(2040)['2040-05-31'] != null, true);
+E.setRegion('BY'); eq('BY: Heilige Drei Könige 2026', E.holidayName('2026-01-06') != null, true); eq('BY: Mariä Himmelfahrt', E.holidayName('2026-08-15') != null, true);
+E.setRegion('SN'); eq('SN: Buß- und Bettag 2026 (18.11.)', E.holidayName('2026-11-18'), 'Buß- und Bettag'); eq('SN: kein Fronleichnam', E.holidays(2026)['2026-06-04'], undefined);
+E.setRegion('BE'); eq('BE: Frauentag 2026', E.holidayName('2026-03-08') != null, true); eq('BE: kein Allerheiligen', E.holidayName('2026-11-01'), null);
+E.setRegion('HH'); eq('HH: Reformationstag 2026', E.holidayName('2026-10-31') != null, true);
+E.setRegion('DE'); eq('DE: nur bundesweit', Object.keys(E.holidays(2026)).length, 9);
+E.setRegion('NW'); eq('NW: 11 Feiertage', Object.keys(E.holidays(2026)).length, 11);
 eq('3. Oktober', E.holidayName('2026-10-03') != null, true);
 // Zahltag
 eq('Zahltag letzte4 Okt 2026', E.paydayMode(2026, 10, 'letzte4'), '2026-10-27');

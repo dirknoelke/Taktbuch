@@ -50,16 +50,28 @@
       da = ((h + l - 7 * m + 114) % 31) + 1;
     return key(y, mo, da);
   }
-  const holCache = {};
-  function holidays(y) { // NRW
-    if (holCache[y]) return holCache[y];
-    const e = easter(y), h = {};
+  /* Gesetzliche Feiertage je Bundesland (Kuerzel nach ISO 3166-2:DE). Regionale Sonderfaelle
+     (z. B. Augsburger Friedensfest, Fronleichnam in Teilen von Sachsen/Thueringen) sind nicht enthalten. */
+  const REGIONS = ['BW', 'BY', 'BE', 'BB', 'HB', 'HH', 'HE', 'MV', 'NI', 'NW', 'RP', 'SL', 'SN', 'ST', 'SH', 'TH'];
+  let region = 'NW'; const holCache = {};
+  const setRegion = r => { region = REGIONS.indexOf(r) >= 0 ? r : (r === 'DE' ? 'DE' : 'NW'); };
+  const getRegion = () => region;
+  function holidays(y) {
+    const ck = region + y; if (holCache[ck]) return holCache[ck];
+    const e = easter(y), h = {}, R = region, is = (...l) => l.indexOf(R) >= 0;
     h[key(y, 1, 1)] = 'Neujahr'; h[addDays(e, -2)] = 'Karfreitag'; h[addDays(e, 1)] = 'Ostermontag';
-    h[key(y, 5, 1)] = 'Tag der Arbeit'; h[addDays(e, 39)] = 'Christi Himmelfahrt';
-    h[addDays(e, 50)] = 'Pfingstmontag'; h[addDays(e, 60)] = 'Fronleichnam';
-    h[key(y, 10, 3)] = 'Tag der Deutschen Einheit'; h[key(y, 11, 1)] = 'Allerheiligen';
-    h[key(y, 12, 25)] = '1. Weihnachtstag'; h[key(y, 12, 26)] = '2. Weihnachtstag';
-    return (holCache[y] = h);
+    h[key(y, 5, 1)] = 'Tag der Arbeit'; h[addDays(e, 39)] = 'Christi Himmelfahrt'; h[addDays(e, 50)] = 'Pfingstmontag';
+    h[key(y, 10, 3)] = 'Tag der Deutschen Einheit'; h[key(y, 12, 25)] = '1. Weihnachtstag'; h[key(y, 12, 26)] = '2. Weihnachtstag';
+    if (is('BW', 'BY', 'ST')) h[key(y, 1, 6)] = 'Heilige Drei Könige';
+    if ((is('BE') && y >= 2019) || (is('MV') && y >= 2023)) h[key(y, 3, 8)] = 'Internationaler Frauentag';
+    if (is('BE') && y === 2020) h[key(y, 5, 8)] = 'Tag der Befreiung';
+    if (is('BW', 'BY', 'HE', 'NW', 'RP', 'SL')) h[addDays(e, 60)] = 'Fronleichnam';
+    if (is('BY', 'SL')) h[key(y, 8, 15)] = 'Mariä Himmelfahrt';
+    if (is('TH') && y >= 2019) h[key(y, 9, 20)] = 'Weltkindertag';
+    if (is('BB', 'MV', 'SN', 'ST', 'TH') || (is('HB', 'HH', 'NI', 'SH') && y >= 2018)) h[key(y, 10, 31)] = 'Reformationstag';
+    if (is('BW', 'BY', 'NW', 'RP', 'SL')) h[key(y, 11, 1)] = 'Allerheiligen';
+    if (is('SN')) { let d = key(y, 11, 22); while (weekday(d) !== 3) d = addDays(d, -1); h[d] = 'Buß- und Bettag'; }
+    return (holCache[ck] = h);
   }
   const holidayName = k => holidays(+k.slice(0, 4))[k] || null;
 
@@ -183,6 +195,6 @@
     }
     return payday(y, m, true);
   }
-  const api = { paydayMode, isWerktag, sollAt, payday, DEFAULTS, TYPES, key, parse, addDays, weekday, isoWeek, easter, holidays, holidayName, autoPause, defaultType, run, summarize, fromUTC, toUTC };
+  const api = { paydayMode, isWerktag, sollAt, payday, DEFAULTS, TYPES, key, parse, addDays, weekday, isoWeek, easter, holidays, holidayName, setRegion, getRegion, REGIONS, autoPause, defaultType, run, summarize, fromUTC, toUTC };
   if (typeof module !== 'undefined') module.exports = api; else root.StundenEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);
