@@ -22,15 +22,15 @@ const actions = {
     const s = f.s || (acts.length ? acts[acts.length - 1].e : d.s) || '';
     if (!s || !f.e) { toast('Von und Bis eintragen. Mit „Timer“ startet die Zeit ab jetzt.'); return; }
     if (H(f.e) <= H(s)) { toast('Bis muss nach Von liegen.'); return; }
-    S.acts.push({ id: newId(), d: k, s, e: f.e, u: f.u, cat: f.cat, w: f.w, sys: f.sys, th: f.th });
-    UI.form = { s: '', e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, th: '' };
+    S.acts.push({ id: newId(), d: k, s, e: f.e, u: f.u, cat: f.cat, w: f.w, sys: f.sys, pn: f.pn || '', th: f.th });
+    UI.form = { s: '', e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, pn: f.pn || '', th: '' };
     commit(); setTimeout(() => { const el = $('#f_e'); if (el) el.focus(); }, 0);
   },
   timerStart: () => {
     const f = UI.form, k = todayKey();
     if (S.acts.some(a => !a.e)) { toast('Es läuft schon ein Timer.'); return; }
-    S.acts.push({ id: newId(), d: k, s: nowStr(), e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, th: f.th });
-    UI.date = k; UI.form = { s: '', e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, th: '' }; commit();
+    S.acts.push({ id: newId(), d: k, s: nowStr(), e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, pn: f.pn || '', th: f.th });
+    UI.date = k; UI.form = { s: '', e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, pn: f.pn || '', th: '' }; commit();
   },
   timerStop: el => { const a = S.acts.find(x => x.id === el.dataset.id); if (a) { a.e = nowStr(); if (H(a.e) <= H(a.s)) { S.acts = S.acts.filter(x => x !== a); toast(S.cfg.raster === '15' ? 'Timer unter einer Viertelstunde verworfen.' : 'Timer unter einer Minute verworfen.'); } commit(); } },
   delAct: el => { S.acts = S.acts.filter(a => a.id !== el.dataset.id); commit(); },
@@ -81,13 +81,14 @@ function autofillForm(a, v) {
   if (a === 'w' && isFocus(v)) { const d = focusDefaults(v); setFormField('sys', d.sys); setFormField('th', d.th); }
   else if (a === 'th' && v) {
     const prev = S.acts.slice().sort((x, y) => (y.d + y.s).localeCompare(x.d + x.s)).find(x => x.th === v);
-    if (prev) { setFormField('cat', prev.cat); setFormField('w', prev.w); setFormField('sys', prev.sys); }
+    if (prev) { setFormField('cat', prev.cat); setFormField('w', prev.w); setFormField('sys', prev.sys); setFormField('pn', prev.pn || ''); }
   }
 }
 function fieldChange(el, final) {
   const [scope, a, b] = el.dataset.f.split(':');
   let v = el.value;
   if (el.type === 'time' && /^(form:[se]|day:[se]|act:[^:]+:[se])$/.test(el.dataset.f) && v) { const sv = snap(v); if (sv !== v) { v = sv; el.value = sv; } }
+  if (scope === 'colv') { if (!final) return; const show = v === 'true'; if (a === 'pn') S.cfg.pnAn = show; else S.cfg.spaltenAus = Object.assign({}, S.cfg.spaltenAus, { [a]: !show }); commit(); return; }
   if (scope === 'col') { if (!final) return; S.cfg.spalten = Object.assign({}, S.cfg.spalten, { [a]: v.trim() }); commit(); return; }
   if (scope === 'form') { UI.form[a] = v; if (final) autofillForm(a, v); return; }
   if (!final) return;
