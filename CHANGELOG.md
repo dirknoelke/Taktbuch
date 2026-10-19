@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.4
+
+- Quarter-hour mode: Arrive, Leave, From and To are now text fields with a dropdown listing the whole day in 15-minute steps (the browser's own time picker cannot be limited to quarter hours). Typing works too: `9`, `930`, `09:30` all become 09:30, rounded to the nearest quarter hour.
+
 ## 1.4.3
 
 - The **Install** button now verifies the written file and restores the previous version if the result is incomplete (a 0 KB file after installing was reported).
