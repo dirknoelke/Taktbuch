@@ -225,7 +225,7 @@ async function checkUpdate(manual) {
     ls.set('zeitwerk-upd-info', JSON.stringify(info)); ls.set('zeitwerk-upd-last', String(Date.now()));
     if (manual) { ls.set('zeitwerk-upd-skip', ''); say(isNewer(info.tag, VERSION) ? 'Neue Version ' + info.tag.replace(/^v/, '') + ' verfügbar.' : 'Du hast die aktuelle Version.'); }
     showUpdate(info);
-  } catch (e) { say(manual ? 'Prüfung nicht möglich (offline oder Zugriff gesperrt).' : ''); if (!manual) ls.set('zeitwerk-upd-last', String(Date.now())); showUpdate(info); }
+  } catch (e) { say(manual ? 'Prüfung nicht möglich (offline oder Zugriff gesperrt).' : ''); if (!manual) ls.set('zeitwerk-upd-last', String(Date.now() - 864e5 + 36e5));   // nach Fehler in 1 Stunde erneut versuchen showUpdate(info); }
 }
 
 /* ---------- Start ---------- */

@@ -18,7 +18,6 @@ assert '//@@ENGINE@@' in html and '//@@APP@@' in html
 html = html.replace('//@@ENGINE@@', read('src/engine.js'))
 meta = f"window.__ZW_VERSION={version!r};window.__ZW_REPO={repo!r};\n"
 html = html.replace('//@@APP@@', meta + app)
-html = re.sub(r'<title>.*?</title>', f'<title>Zeitwerk {version}</title>', html, count=1)
 
 out = root / 'dist'
 out.mkdir(exist_ok=True)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+- The browser tab title is just “Zeitwerk”, the version is shown only under **Data**.
+- If the update check fails (offline, blocked, no release yet), it retries after one hour instead of one day.
+
 ## 1.1.0
 
 - The app is now available in English and German. Switch with DE / EN in the top right. The browser language is preselected on first start.
