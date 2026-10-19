@@ -94,8 +94,8 @@ function viewHeute() {
       <div class="card-h"><h3>Arbeitszeit</h3>
         <div class="seg" role="group" aria-label="Tagesart">${TYPE_OPTS.map(([v, l]) => `<button data-a="setType" data-v="${esc(v)}" aria-pressed="${effType === v || (v === '' && effType === 'arbeit')}">${l}</button>`).join('')}</div></div>
       <div class="stamp">
-        <div class="field"><label for="d_s">Kommen</label><input id="d_s" type="time"${tstep()} value="${esc(d.s || '')}" data-f="day:s"></div>
-        <div class="field"><label for="d_e">Gehen</label><input id="d_e" type="time"${tstep()} value="${esc(d.e || '')}" data-f="day:e"></div>
+        <div class="field"><label for="d_s">Kommen</label><input id="d_s" ${tAttr()} value="${esc(d.s || '')}" data-f="day:s"></div>
+        <div class="field"><label for="d_e">Gehen</label><input id="d_e" ${tAttr()} value="${esc(d.e || '')}" data-f="day:e"></div>
         ${isToday && !d.s ? '<button class="btn primary" data-a="stampIn">Kommen jetzt</button>' : ''}
         ${isToday && d.s && !d.e ? '<button class="btn primary" data-a="stampOut">Gehen jetzt</button>' : ''}
       </div>
@@ -127,8 +127,8 @@ function viewHeute() {
       <thead><tr><th>Von</th><th>Bis</th><th>Unterbr.</th><th class="r">Netto</th>${['cat', 'w', 'sys', 'pn'].filter(colOn).map(f => `<th>${esc(colN(f))}</th>`).join('')}<th>${esc(colN('th'))}</th><th></th></tr></thead>
       <tbody>
       ${acts.map(a => `<tr>
-        <td><input type="time"${tstep()} value="${esc(a.s)}" data-f="act:${a.id}:s" aria-label="Von"></td>
-        <td>${a.e ? `<input type="time"${tstep()} value="${esc(a.e)}" data-f="act:${a.id}:e" aria-label="Bis">` : `<span class="clock">läuft</span>`}</td>
+        <td><input ${tAttr()} value="${esc(a.s)}" data-f="act:${a.id}:s" aria-label="Von"></td>
+        <td>${a.e ? `<input ${tAttr()} value="${esc(a.e)}" data-f="act:${a.id}:e" aria-label="Bis">` : `<span class="clock">läuft</span>`}</td>
         <td><input type="time" value="${esc(a.u || '')}" data-f="act:${a.id}:u" aria-label="Unterbrechung"></td>
         <td class="r num">${a.e ? fmtT(netto(a)) : '–'}</td>
         ${colOn('cat') ? `<td><input list="dl-cat" value="${esc(a.cat)}" data-f="act:${a.id}:cat" style="min-width:70px" aria-label="${esc(colN('cat'))}"></td>` : ''}
@@ -138,8 +138,8 @@ function viewHeute() {
         <td><input list="dl-th" value="${esc(a.th)}" data-f="act:${a.id}:th" style="min-width:110px;width:100%" aria-label="${esc(colN('th'))}"></td>
         <td>${a.e ? '' : `<button class="btn sm primary" data-a="timerStop" data-id="${a.id}">Stopp</button> `}<button class="btn sm ghost" data-a="delAct" data-id="${a.id}" aria-label="Eintrag löschen">✕</button></td></tr>`).join('')}
       <tr id="addRow" style="background:var(--surface2)">
-        <td><input type="time"${tstep()} id="f_s" value="${esc(f.s || sugS)}" data-f="form:s" aria-label="Neu: Von"></td>
-        <td><input type="time"${tstep()} id="f_e" value="${esc(f.e)}" data-f="form:e" aria-label="Neu: Bis"></td>
+        <td><input ${tAttr()} id="f_s" value="${esc(f.s || sugS)}" data-f="form:s" aria-label="Neu: Von"></td>
+        <td><input ${tAttr()} id="f_e" value="${esc(f.e)}" data-f="form:e" aria-label="Neu: Bis"></td>
         <td><input type="time" id="f_u" value="${esc(f.u)}" data-f="form:u" aria-label="Neu: Unterbrechung"></td>
         <td></td>
         ${colOn('cat') ? `<td><input id="f_cat" list="dl-cat" value="${esc(f.cat)}" data-f="form:cat" placeholder="${esc(colN('cat'))}" aria-label="Neu: ${esc(colN('cat'))}"></td>` : ''}
@@ -170,8 +170,8 @@ function viewWoche() {
       return `<tr class="${r.k === todayKey() ? 'sel' : ''} ${we && !r.stunden ? 'dim' : ''}">
         <td><a href="#" data-a="goto" data-k="${r.k}" style="color:inherit;font-weight:600">${fmtShort(r.k)}</a> ${r.hol ? `<span class="hint">${esc(r.hol)}</span>` : ''}</td>
         <td><select data-f="day:t" data-k="${r.k}" aria-label="Art ${r.k}">${TYPE_OPTS.map(([v, l]) => opt(v, l, d.t === 'arbeit' ? '' : (d.t || (E.defaultType(r.k, S.cfg) !== 'arbeit' ? E.defaultType(r.k, S.cfg) : '')))).join('')}</select>${r.planned ? ' <span class="chip ty-WE">Plan</span>' : ''}</td>
-        <td><input type="time"${tstep()} value="${esc(d.s || '')}" data-f="day:s" data-k="${r.k}" aria-label="Kommen ${r.k}"></td>
-        <td><input type="time"${tstep()} value="${esc(d.e || '')}" data-f="day:e" data-k="${r.k}" aria-label="Gehen ${r.k}"></td>
+        <td><input ${tAttr()} value="${esc(d.s || '')}" data-f="day:s" data-k="${r.k}" aria-label="Kommen ${r.k}"></td>
+        <td><input ${tAttr()} value="${esc(d.e || '')}" data-f="day:e" data-k="${r.k}" aria-label="Gehen ${r.k}"></td>
         <td class="r num">${d.s && d.e ? fmtT(r.pause) : ''}</td>
         <td class="r num"><b>${r.stunden ? fmtT(r.stunden) : ''}</b></td>
         <td class="r num ${r.planned ? 'muted' : cls(r.za - r.zagen)}">${r.planned || (we && !r.stunden) ? '' : fmtT(r.za - r.zagen, true)}</td>
