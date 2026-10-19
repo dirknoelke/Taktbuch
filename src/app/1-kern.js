@@ -11,6 +11,7 @@ const nowH = () => { const d = new Date(); return d.getHours() + d.getMinutes() 
 /* Zeitraster: 'min' = minutengenau, '15' = Viertelstunden (Uhrzeiten und Timer werden auf die nächste Viertelstunde gerundet) */
 const snap = v => { if (!v || !S.cfg || S.cfg.raster !== '15' || !/^\d{2}:\d{2}$/.test(v)) return v; const m = Math.min(23 * 60 + 45, Math.round((+v.slice(0, 2) * 60 + +v.slice(3)) / 15) * 15); return pad2(Math.floor(m / 60)) + ':' + pad2(m % 60); };
 const tstep = () => (S.cfg && S.cfg.raster === '15' ? ' step="900"' : '');
+const REGION_NAMES = { DE: 'Nur bundesweite Feiertage', BW: 'Baden-Württemberg', BY: 'Bayern', BE: 'Berlin', BB: 'Brandenburg', HB: 'Bremen', HH: 'Hamburg', HE: 'Hessen', MV: 'Mecklenburg-Vorpommern', NI: 'Niedersachsen', NW: 'Nordrhein-Westfalen', RP: 'Rheinland-Pfalz', SL: 'Saarland', SN: 'Sachsen', ST: 'Sachsen-Anhalt', SH: 'Schleswig-Holstein', TH: 'Thüringen' };
 const COLD = { cat: 'Kategorie', w: 'Art', sys: 'System', th: 'Thema' };
 const colN = c => (S.cfg && S.cfg.spalten && S.cfg.spalten[c]) || COLD[c];
 const nowStr = () => { const d = new Date(); return snap(pad2(d.getHours()) + ':' + pad2(d.getMinutes())); };
@@ -35,9 +36,9 @@ const PROFILES = { voll: { db: 'stundenkonto', name: 'Mit Urlaubsverfall und Kap
 let PROFILE = 'voll', DEFAULT_CFG = {};
 function applyProfile(p) {
   PROFILE = PROFILES[p] ? p : 'voll';
-  DEFAULT_CFG = Object.assign({}, E.DEFAULTS, { anzeige: 'dez', standardThema: I18N.lang === 'en' ? 'Work' : 'Arbeit', nettoAb: '9999-12-31', payRise: 0.025, payRiseMonat: 4, mirAn: true, raster: 'min', spalten: {}, payRiseArt: 'pct', payRiseEur: 0, zahltagModus: 'letzte4' },
+  DEFAULT_CFG = Object.assign({}, E.DEFAULTS, { anzeige: 'dez', standardThema: I18N.lang === 'en' ? 'Work' : 'Arbeit', nettoAb: '9999-12-31', payRise: 0.025, payRiseMonat: 4, mirAn: true, raster: 'min', spalten: {}, region: 'NW', payRiseArt: 'pct', payRiseEur: 0, zahltagModus: 'letzte4' },
     PROFILE === 'einfach' ? { urlaubVerfall: '', kappungTag: '', halbeTage: false, lzkMax: 0, payRiseMonat: 0, mirAn: false } : {});
-  S.cfg = Object.assign({}, DEFAULT_CFG);
+  S.cfg = Object.assign({}, DEFAULT_CFG); E.setRegion(S.cfg.region);
 }
 let S = { v: 1, cfg: {}, days: {}, acts: [], pay: {}, demo: false };
 const UI = { sub: 'einst', uy: new Date().getFullYear(), payYear: new Date().getFullYear(), brush: 'Urlaub', tab: 'heute', date: todayKey(), year: new Date().getFullYear(), month: new Date().getMonth() + 1,
@@ -77,6 +78,7 @@ function ensureSoll() {
   c.soll = E.sollAt(c, todayKey());
 }
 function recompute() {
+  E.setRegion(S.cfg.region);
   ensureSoll();
   const days = {};
   for (const k in S.days) {

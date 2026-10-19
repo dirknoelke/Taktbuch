@@ -54,7 +54,7 @@ async def main():
             for v in txt:
                 ws = re.findall(r'[A-Za-zÄÖÜäöüß]+', v)
                 if re.search(r'[äöüÄÖÜß]', v) or any(w.lower() in STOP for w in ws):
-                    if 'ab 20' in v or 'Zeiterfassung' in v or 'Stunden.xlsm' in v: continue   # Blattnamen der Excel
+                    if 'Baden-W' in v or 'ab 20' in v or 'Zeiterfassung' in v or 'Stunden.xlsm' in v: continue   # Blattnamen der Excel
                     left.append(v[:80])
         check('keine deutschen Texte im englischen UI ' + (str(left[:5]) if left else ''), not left)
         await pg3.click('[data-a=lang][data-v=de]'); await pg3.wait_for_timeout(200)
@@ -69,6 +69,10 @@ async def main():
         check('Zeitfeld step=900', await pg3.get_attribute('#f_s', 'step') == '900')
         check('Spalte umbenannt', 'projekt' in (await pg3.inner_text('#view')).lower())
         await pg3.evaluate("()=>{S.cfg.raster='min';S.cfg.spalten={};commit()}")
+        await pg3.click('button[data-v=einst]'); await pg3.click('button[data-a=sub][data-v=einst]')
+        await pg3.select_option('#c_rg', 'SN'); await pg3.wait_for_timeout(300)
+        check('Bundesland Sachsen: Buß- und Bettag', await pg3.evaluate("()=>E.holidayName('2026-11-18')==='Buß- und Bettag'&&S.cfg.region==='SN'"))
+        await pg3.select_option('#c_rg', 'NW')
         await b.close()
     sys.exit(0 if ok else 1)
 asyncio.run(main())

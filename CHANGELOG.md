@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- New setting **Federal state** (Settings → Public holidays): holidays for all 16 German states or nationwide holidays only. Default stays North Rhine-Westphalia. Affects calendar, target hours, payday and vacation planning.
+
 ## 1.2.0
 
 - The **Data** tab is now **Settings**, with *Data* (import, backup, version, reset) as a sub-section.
