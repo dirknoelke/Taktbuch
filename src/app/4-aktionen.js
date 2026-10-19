@@ -208,25 +208,26 @@ function showUpdate(info) {
   $('#updDl').href = info.asset || info.url;
   $('#updPre').textContent = info.notes || 'Keine Hinweise hinterlegt.';
   $('#updInst').onclick = () => installUpdate(info);
-  if (!window.showSaveFilePicker || !info.aid) $('#updInst').hidden = true;
+  if (!window.showSaveFilePicker) $('#updInst').hidden = true;
   $('#updNotes').onclick = () => { const p = $('#updPre'); p.hidden = !p.hidden; };
   $('#updSkip').onclick = () => { ls.set('zeitwerk-upd-skip', info.tag); el.innerHTML = ''; };
 }
-/* Neue Version direkt über die bestehende Datei schreiben (Chrome/Edge): Datei wählen, bestätigen, fertig */
+/* Neue Version direkt über die bestehende Datei schreiben (Chrome/Edge): Datei wählen, bestätigen, fertig.
+   Die Datei kommt von raw.githubusercontent.com (Branch "dist", wird beim Release gebaut), weil GitHubs
+   Release-Download im Browser wegen CORS nicht lesbar ist. Der Dateidialog kommt zuerst (Klick-Berechtigung). */
 async function installUpdate(info) {
-  const st = $('#updState');
+  const fallback = msg => { alert(I18N.tx('Direktes Überschreiben ging nicht. Die Datei wird stattdessen heruntergeladen.') + (msg ? ' (' + msg + ')' : '')); window.open(info.asset || info.url, '_blank'); };
+  let h;
+  try { h = await window.showSaveFilePicker({ suggestedName: 'zeitwerk.html', types: [{ description: 'HTML', accept: { 'text/html': ['.html'] } }] }); }
+  catch (e) { if (e && e.name === 'AbortError') return; fallback(e && e.message); return; }
   try {
-    const r = await fetch('https://api.github.com/repos/' + REPO + '/releases/assets/' + info.aid, { headers: { Accept: 'application/octet-stream' } });
+    const r = await fetch('https://raw.githubusercontent.com/' + REPO + '/dist/zeitwerk.html?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const blob = await r.blob();
-    const h = await window.showSaveFilePicker({ suggestedName: 'zeitwerk.html', types: [{ description: 'HTML', accept: { 'text/html': ['.html'] } }] });
-    const w = await h.createWritable(); await w.write(blob); await w.close();
+    const txt = await r.text();
+    if (!txt.includes("__ZW_VERSION='" + info.tag.replace(/^v/, '') + "'")) throw new Error(I18N.tx('Die neue Datei ist noch nicht bereit, bitte in ein paar Minuten erneut versuchen.'));
+    const w = await h.createWritable(); await w.write(txt); await w.close();
     alert(I18N.tx('Aktualisiert. Die Seite wird jetzt neu geladen.')); location.reload();
-  } catch (e) {
-    if (e && e.name === 'AbortError') return;
-    alert(I18N.tx('Direktes Überschreiben ging nicht. Die Datei wird stattdessen heruntergeladen.') + ' (' + (e && e.message || e) + ')');
-    window.open(info.asset || info.url, '_blank');
-  }
+  } catch (e) { fallback(e && e.message); }
 }
 async function checkUpdate(manual) {
   const st = $('#updState');

@@ -1,6 +1,8 @@
 /* Englisches Wörterbuch. Schlüssel: deutscher Text, Zahlen als #, Wochentag <WD>, Monat <MON>.
    Reihenfolge der # muss im englischen Text gleich bleiben. Geldbeträge: im Schlüssel "# €", im Wert "€#". */
 window.ZW_EN = {
+  'Die neue Datei ist noch nicht bereit, bitte in ein paar Minuten erneut versuchen.': 'The new file is not ready yet, please try again in a few minutes.',
+
   'Feiertage': 'Public holidays',
   'Bundesland': 'Federal state',
   'Bestimmt die gesetzlichen Feiertage für Kalender, Soll, Zahltag und Urlaubsplanung, für alle Jahre. Örtliche Sonderfälle (z. B. Augsburger Friedensfest) sind nicht enthalten. Tage mit eigenem Eintrag bleiben unberührt.': 'Sets the statutory public holidays for calendar, target hours, payday and vacation planning, for all years. Local special cases (e.g. Augsburg Peace Festival) are not included. Days with their own entry stay unchanged.',

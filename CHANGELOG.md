@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Fix: the **Install** button in the update banner failed with “Failed to fetch” (GitHub release downloads are not readable from the browser). The installer now loads the build from the `dist` branch and asks for the target file first.
+
 ## 1.3.0
 
 - New setting **Federal state** (Settings → Public holidays): holidays for all 16 German states or nationwide holidays only. Default stays North Rhine-Westphalia. Affects calendar, target hours, payday and vacation planning.
