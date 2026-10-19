@@ -11,11 +11,11 @@ const nowH = () => { const d = new Date(); return d.getHours() + d.getMinutes() 
 /* Zeitraster: 'min' = minutengenau, '15' = Viertelstunden (Uhrzeiten und Timer werden auf die nächste Viertelstunde gerundet) */
 const snap = v => { if (!v || !S.cfg || S.cfg.raster !== '15' || !/^\d{2}:\d{2}$/.test(v)) return v; const m = Math.min(23 * 60 + 45, Math.round((+v.slice(0, 2) * 60 + +v.slice(3)) / 15) * 15); return pad2(Math.floor(m / 60)) + ':' + pad2(m % 60); };
 /* Viertelstunden-Modus: Textfeld mit Auswahlliste des ganzen Tages statt des Browser-Zeitfelds (dessen Minutenliste lässt sich nicht beschränken) */
-const tAttr = () => (S.cfg && S.cfg.raster === '15' ? ' type="text" class="tq" inputmode="numeric" autocomplete="off" placeholder="hh:mm" list="dl-t15"' : ' type="time"');
-function normT(v) {   // "9", "930", "09:30", "9:30" -> "09:30" (auf Raster gerundet), ungültig -> null
+const tAttr = dur => (S.cfg && S.cfg.raster === '15' ? (dur ? ' type="text" class="tq" data-dur="1" inputmode="numeric" autocomplete="off" list="dl-d15"' : ' type="text" class="tq" inputmode="numeric" autocomplete="off" placeholder="hh:mm" list="dl-t15"') : ' type="time"');
+function normT(v, dur) {   // "9", "930", "09:30", "9:30" -> "09:30" (auf Raster gerundet), ungültig -> null. Bei Dauern (Pause usw.) sind 1-2 Ziffern Minuten: "30" -> "00:30"
   v = String(v == null ? '' : v).trim(); if (!v) return '';
   let h, m; const c = /^(\d{1,2})[:.](\d{1,2})$/.exec(v), d = /^(\d{1,4})$/.exec(v);
-  if (c) { h = +c[1]; m = +c[2]; } else if (d) { const s = d[1]; if (s.length <= 2) { h = +s; m = 0; } else { h = +s.slice(0, s.length - 2); m = +s.slice(-2); } } else return null;
+  if (c) { h = +c[1]; m = +c[2]; } else if (d) { const s = d[1]; if (s.length <= 2) { if (dur) { h = Math.floor(+s / 60); m = +s % 60; } else { h = +s; m = 0; } } else { h = +s.slice(0, s.length - 2); m = +s.slice(-2); } } else return null;
   if (h > 23 || m > 59) return null;
   return snap(pad2(h) + ':' + pad2(m));
 }
