@@ -94,8 +94,8 @@ function viewHeute() {
       <div class="card-h"><h3>Arbeitszeit</h3>
         <div class="seg" role="group" aria-label="Tagesart">${TYPE_OPTS.map(([v, l]) => `<button data-a="setType" data-v="${esc(v)}" aria-pressed="${effType === v || (v === '' && effType === 'arbeit')}">${l}</button>`).join('')}</div></div>
       <div class="stamp">
-        <div class="field"><label for="d_s">Kommen</label><input id="d_s" type="time" value="${esc(d.s || '')}" data-f="day:s"></div>
-        <div class="field"><label for="d_e">Gehen</label><input id="d_e" type="time" value="${esc(d.e || '')}" data-f="day:e"></div>
+        <div class="field"><label for="d_s">Kommen</label><input id="d_s" type="time"${tstep()} value="${esc(d.s || '')}" data-f="day:s"></div>
+        <div class="field"><label for="d_e">Gehen</label><input id="d_e" type="time"${tstep()} value="${esc(d.e || '')}" data-f="day:e"></div>
         ${isToday && !d.s ? '<button class="btn primary" data-a="stampIn">Kommen jetzt</button>' : ''}
         ${isToday && d.s && !d.e ? '<button class="btn primary" data-a="stampOut">Gehen jetzt</button>' : ''}
       </div>
@@ -124,27 +124,27 @@ function viewHeute() {
   <section class="card">
     <div class="card-h"><h3>Tätigkeiten am ${fmtShort(k)}</h3><span class="hint">${acts.length} Einträge · ${fmtT(acts.reduce((a, x) => a + netto(x), 0))} h</span></div>
     <div class="tablewrap"><table>
-      <thead><tr><th>Von</th><th>Bis</th><th>Unterbr.</th><th class="r">Netto</th><th>Kategorie</th><th>Art</th><th>System</th><th>Thema</th><th></th></tr></thead>
+      <thead><tr><th>Von</th><th>Bis</th><th>Unterbr.</th><th class="r">Netto</th><th>${esc(colN('cat'))}</th><th>${esc(colN('w'))}</th><th>${esc(colN('sys'))}</th><th>${esc(colN('th'))}</th><th></th></tr></thead>
       <tbody>
       ${acts.map(a => `<tr>
-        <td><input type="time" value="${esc(a.s)}" data-f="act:${a.id}:s" aria-label="Von"></td>
-        <td>${a.e ? `<input type="time" value="${esc(a.e)}" data-f="act:${a.id}:e" aria-label="Bis">` : `<span class="clock">läuft</span>`}</td>
+        <td><input type="time"${tstep()} value="${esc(a.s)}" data-f="act:${a.id}:s" aria-label="Von"></td>
+        <td>${a.e ? `<input type="time"${tstep()} value="${esc(a.e)}" data-f="act:${a.id}:e" aria-label="Bis">` : `<span class="clock">läuft</span>`}</td>
         <td><input type="time" value="${esc(a.u || '')}" data-f="act:${a.id}:u" aria-label="Unterbrechung"></td>
         <td class="r num">${a.e ? fmtT(netto(a)) : '–'}</td>
-        <td><input list="dl-cat" value="${esc(a.cat)}" data-f="act:${a.id}:cat" style="min-width:70px" aria-label="Kategorie"></td>
-        <td><input list="dl-w" value="${esc(a.w)}" data-f="act:${a.id}:w" style="min-width:90px" aria-label="Art"></td>
-        <td><input list="dl-sys" value="${esc(a.sys)}" data-f="act:${a.id}:sys" style="min-width:90px" aria-label="System"></td>
-        <td><input list="dl-th" value="${esc(a.th)}" data-f="act:${a.id}:th" style="min-width:110px;width:100%" aria-label="Thema"></td>
+        <td><input list="dl-cat" value="${esc(a.cat)}" data-f="act:${a.id}:cat" style="min-width:70px" aria-label="${esc(colN('cat'))}"></td>
+        <td><input list="dl-w" value="${esc(a.w)}" data-f="act:${a.id}:w" style="min-width:90px" aria-label="${esc(colN('w'))}"></td>
+        <td><input list="dl-sys" value="${esc(a.sys)}" data-f="act:${a.id}:sys" style="min-width:90px" aria-label="${esc(colN('sys'))}"></td>
+        <td><input list="dl-th" value="${esc(a.th)}" data-f="act:${a.id}:th" style="min-width:110px;width:100%" aria-label="${esc(colN('th'))}"></td>
         <td>${a.e ? '' : `<button class="btn sm primary" data-a="timerStop" data-id="${a.id}">Stopp</button> `}<button class="btn sm ghost" data-a="delAct" data-id="${a.id}" aria-label="Eintrag löschen">✕</button></td></tr>`).join('')}
       <tr id="addRow" style="background:var(--surface2)">
-        <td><input type="time" id="f_s" value="${esc(f.s || sugS)}" data-f="form:s" aria-label="Neu: Von"></td>
-        <td><input type="time" id="f_e" value="${esc(f.e)}" data-f="form:e" aria-label="Neu: Bis"></td>
+        <td><input type="time"${tstep()} id="f_s" value="${esc(f.s || sugS)}" data-f="form:s" aria-label="Neu: Von"></td>
+        <td><input type="time"${tstep()} id="f_e" value="${esc(f.e)}" data-f="form:e" aria-label="Neu: Bis"></td>
         <td><input type="time" id="f_u" value="${esc(f.u)}" data-f="form:u" aria-label="Neu: Unterbrechung"></td>
         <td></td>
-        <td><input id="f_cat" list="dl-cat" value="${esc(f.cat)}" data-f="form:cat" placeholder="Kategorie" aria-label="Neu: Kategorie"></td>
-        <td><input id="f_w" list="dl-w" value="${esc(f.w)}" data-f="form:w" placeholder="Art" aria-label="Neu: Art"></td>
-        <td><input id="f_sys" list="dl-sys" value="${esc(f.sys)}" data-f="form:sys" placeholder="System" aria-label="Neu: System"></td>
-        <td><input id="f_th" list="dl-th" value="${esc(f.th)}" data-f="form:th" placeholder="Was wurde gemacht?" aria-label="Neu: Thema"></td>
+        <td><input id="f_cat" list="dl-cat" value="${esc(f.cat)}" data-f="form:cat" placeholder="${esc(colN('cat'))}" aria-label="Neu: ${esc(colN('cat'))}"></td>
+        <td><input id="f_w" list="dl-w" value="${esc(f.w)}" data-f="form:w" placeholder="${esc(colN('w'))}" aria-label="Neu: ${esc(colN('w'))}"></td>
+        <td><input id="f_sys" list="dl-sys" value="${esc(f.sys)}" data-f="form:sys" placeholder="${esc(colN('sys'))}" aria-label="Neu: ${esc(colN('sys'))}"></td>
+        <td><input id="f_th" list="dl-th" value="${esc(f.th)}" data-f="form:th" placeholder="Was wurde gemacht?" aria-label="Neu: ${esc(colN('th'))}"></td>
         <td><button class="btn sm primary" data-a="addAct">Hinzufügen</button> <button class="btn sm" data-a="timerStart" title="Startet einen Timer ab jetzt">Timer</button></td></tr>
       </tbody></table></div>
     ${dl('dl-cat', L.cat)}${dl('dl-w', L.w)}${dl('dl-sys', L.sys, 200)}${dl('dl-th', L.thr, 400)}${dl('dl-dayth', L.dayth)}
@@ -168,8 +168,8 @@ function viewWoche() {
       return `<tr class="${r.k === todayKey() ? 'sel' : ''} ${we && !r.stunden ? 'dim' : ''}">
         <td><a href="#" data-a="goto" data-k="${r.k}" style="color:inherit;font-weight:600">${fmtShort(r.k)}</a> ${r.hol ? `<span class="hint">${esc(r.hol)}</span>` : ''}</td>
         <td><select data-f="day:t" data-k="${r.k}" aria-label="Art ${r.k}">${TYPE_OPTS.map(([v, l]) => opt(v, l, d.t === 'arbeit' ? '' : (d.t || (E.defaultType(r.k, S.cfg) !== 'arbeit' ? E.defaultType(r.k, S.cfg) : '')))).join('')}</select>${r.planned ? ' <span class="chip ty-WE">Plan</span>' : ''}</td>
-        <td><input type="time" value="${esc(d.s || '')}" data-f="day:s" data-k="${r.k}" aria-label="Kommen ${r.k}"></td>
-        <td><input type="time" value="${esc(d.e || '')}" data-f="day:e" data-k="${r.k}" aria-label="Gehen ${r.k}"></td>
+        <td><input type="time"${tstep()} value="${esc(d.s || '')}" data-f="day:s" data-k="${r.k}" aria-label="Kommen ${r.k}"></td>
+        <td><input type="time"${tstep()} value="${esc(d.e || '')}" data-f="day:e" data-k="${r.k}" aria-label="Gehen ${r.k}"></td>
         <td class="r num">${d.s && d.e ? fmtT(r.pause) : ''}</td>
         <td class="r num"><b>${r.stunden ? fmtT(r.stunden) : ''}</b></td>
         <td class="r num ${r.planned ? 'muted' : cls(r.za - r.zagen)}">${r.planned || (we && !r.stunden) ? '' : fmtT(r.za - r.zagen, true)}</td>
@@ -227,9 +227,9 @@ function viewTaet() {
   <section class="card"><div class="fields" style="margin-bottom:14px">
     ${sel('fl_y', 'Jahr', years, F.y, 'y')}
     <div class="field"><label for="fl_m">Monat</label><select id="fl_m" data-f="filt:m"><option value="">alle</option>${MONL.map((n, i) => opt(pad2(i + 1), n, F.m)).join('')}</select></div>
-    ${sel('fl_c', 'Kategorie', L.cat, F.cat, 'cat')}${sel('fl_w', 'Art', L.w, F.w, 'w')}${sel('fl_s', 'System', L.sys, F.sys, 'sys')}
-    <div class="field"><label for="fl_q">Suche</label><input id="fl_q" type="search" value="${esc(F.q)}" data-f="filt:q" placeholder="Thema, System …"></div></div>
-    ${list.length ? `<div class="tablewrap"><table><thead><tr><th>Datum</th><th>Von</th><th>Bis</th><th class="r">Netto</th><th>Kategorie</th><th>Art</th><th>System</th><th>Thema</th></tr></thead><tbody>
+    ${sel('fl_c', esc(colN('cat')), L.cat, F.cat, 'cat')}${sel('fl_w', esc(colN('w')), L.w, F.w, 'w')}${sel('fl_s', esc(colN('sys')), L.sys, F.sys, 'sys')}
+    <div class="field"><label for="fl_q">Suche</label><input id="fl_q" type="search" value="${esc(F.q)}" data-f="filt:q" placeholder="${esc(colN('th'))}, ${esc(colN('sys'))} …"></div></div>
+    ${list.length ? `<div class="tablewrap"><table><thead><tr><th>Datum</th><th>Von</th><th>Bis</th><th class="r">Netto</th><th>${esc(colN('cat'))}</th><th>${esc(colN('w'))}</th><th>${esc(colN('sys'))}</th><th>${esc(colN('th'))}</th></tr></thead><tbody>
     ${list.slice(0, F.limit).map(a => `<tr class="click" data-a="goto" data-k="${a.d}"><td class="num">${fmtShort(a.d)}${a.d.slice(2, 4)}</td><td class="num">${esc(a.s)}</td><td class="num">${esc(a.e)}</td><td class="r num">${fmtT(netto(a))}</td>
       <td><span class="legend"><i style="background:${catColor(a.cat)};margin:0 5px 0 0"></i></span>${esc(a.cat)}</td><td>${esc(a.w)}</td><td>${esc(a.sys)}</td><td class="wrapc">${esc(a.th)}</td></tr>`).join('')}</tbody></table></div>
     ${list.length > F.limit ? `<p style="margin:12px 0 0"><button class="btn" data-a="more">Weitere ${Math.min(300, list.length - F.limit)} anzeigen</button> <span class="hint">${list.length - F.limit} ausgeblendet</span></p>` : ''}`
@@ -251,7 +251,7 @@ function viewAuswertung() {
   const refKey = isCur ? t : y + '-12-31', ref = R.map[refKey] || R.rows[R.rows.length - 1];
   const nowM = isCur ? +t.slice(5, 7) : 13;
   const years = yrs.filter(v => v <= curYear + 1);
-  const pv = pivot(UI.dim, UI.pivotYear), dimName = { cat: 'Kategorie', w: 'Art', sys: 'System' }[UI.dim];
+  const pv = pivot(UI.dim, UI.pivotYear), dimName = colN(UI.dim);
   // Prognose bis Jahresende / Kappung
   let prog = '';
   if (isCur) {
@@ -289,8 +289,8 @@ function viewAuswertung() {
       <td class="r num ${cls(M.gebucht - M.soll)}">${fmtT(M.gebucht - M.soll, true)}</td><td class="r num">${fmtT(M.konto)}</td><td class="r num">${fmtDec(M.urlaub, M.urlaub % 1 ? 1 : 0)}</td><td class="r num">${fmtDec(M.krank, M.krank % 1 ? 1 : 0)}</td><td class="r num">${M.arbeitstage}</td><td class="r num">${fmtT(M.netto)}</td><td class="r num">${M.rate == null ? '' : Math.round(M.rate * 100) + ' %'}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td>Jahr</td><td class="r num">${fmtT(T.stunden)}</td><td class="r num">${fmtT(T.soll)}</td><td class="r num ${cls(T.gebucht - T.soll)}">${fmtT(T.gebucht - T.soll, true)}</td><td class="r num">${fmtT(T.konto)}</td><td class="r num">${fmtDec(T.urlaub, T.urlaub % 1 ? 1 : 0)}</td><td class="r num">${fmtDec(T.krank, 1)}</td><td class="r num">${T.arbeitstage}</td><td class="r num">${fmtT(T.netto)}</td><td class="r num">${T.rate == null ? '' : Math.round(T.rate * 100) + ' %'}</td></tr></tfoot></table></div>
     <p class="hint" style="margin:10px 0 0">Differenz = Stunden + Urlaub + Krank − Soll, wie „+- Rechnung“ in der Excel. Künftige Monate zeigen nur Plan.</p></section>
-  <section class="card"><div class="card-h"><h3>${I18N.tx('Tätigkeiten nach')} ${I18N.tx(dimName)}</h3>
-    <div class="nav"><div class="seg" role="group" aria-label="Gruppierung">${[['cat', 'Kategorie'], ['w', 'Art'], ['sys', 'System']].map(([v, l]) => `<button data-a="dim" data-v="${v}" aria-pressed="${UI.dim === v}">${l}</button>`).join('')}</div>
+  <section class="card"><div class="card-h"><h3>${I18N.tx('Tätigkeiten nach')} ${esc(I18N.tx(dimName))}</h3>
+    <div class="nav"><div class="seg" role="group" aria-label="Gruppierung">${[['cat', colN('cat')], ['w', colN('w')], ['sys', colN('sys')]].map(([v, l]) => `<button data-a="dim" data-v="${v}" aria-pressed="${UI.dim === v}">${l}</button>`).join('')}</div>
     <select data-f="ui:pivotYear" aria-label="Zeitraum" style="width:auto">${opt('alle', 'Alle Jahre', UI.pivotYear)}${[...new Set(S.acts.map(a => a.d.slice(0, 4)))].sort().reverse().map(v => opt(v, v, UI.pivotYear)).join('')}</select></div></div>
     ${pv.arr.length ? `<div class="bars">${pv.arr.slice(0, 14).map(([n, v]) => `<div class="barrow"><span class="nm" title="${esc(n)}">${esc(n)}</span><span class="tr"><i style="width:${(v / pv.arr[0][1]) * 100}%;background:${UI.dim === 'cat' ? catColor(n === '(leer)' ? '' : n) : 'var(--c1)'}"></i></span><span class="num" style="text-align:right">${fmtT(v)} <span class="muted">${Math.round((v / pv.tot) * 100)}%</span></span></div>`).join('')}</div>
     <p class="hint" style="margin:10px 0 0">${pv.arr.length > 14 ? `Weitere ${pv.arr.length - 14} Einträge ausgeblendet. ` : ''}Summe ${fmtT(pv.tot)} h.</p>` : '<div class="empty">Noch keine Tätigkeiten erfasst.</div>'}</section>
@@ -299,13 +299,14 @@ function viewAuswertung() {
     <tbody>${years.map(v => { const q = R.years[v].tot; return `<tr class="click" data-a="year" data-v="${v}"><td>${v}</td><td class="r num">${fmtT(q.stunden)}</td><td class="r num">${fmtT(q.soll)}</td><td class="r num">${fmtT(q.konto)}</td><td class="r num">${fmtDec(q.urlaub, q.urlaub % 1 ? 1 : 0)}</td><td class="r num">${fmtDec(q.krank, 1)}</td><td class="r num">${fmtT(q.ueber10)}</td><td class="r num">${q.rate == null ? '' : Math.round(q.rate * 100) + ' %'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
 }
 
+/* ---------- Einstellungen (mit Unterpunkt Daten) ---------- */
 /* ---------- Einstellungen & Daten ---------- */
-function viewDaten() {
+function viewEinst() {
   const c = S.cfg, r = UI.report;
   const num = (id, label, f, step = '0.25', hint = '') => `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="number" step="${step}" value="${c[f]}" data-f="cfg:${f}" data-num="1">${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
   return `
-  <div class="nav"><h2>Daten &amp; Einstellungen</h2></div>
-  <div class="grid2">
+  <div class="nav"><h2>Einstellungen</h2><div class="seg" role="group" aria-label="Bereich">${[['einst', 'Einstellungen'], ['daten', 'Daten']].map(([v, l]) => `<button data-a="sub" data-v="${v}" aria-pressed="${UI.sub === v}">${l}</button>`).join('')}</div></div>
+  ${UI.sub === 'daten' ? `<div class="grid2">
   <section class="card"><div class="card-h"><h3>Aus der Excel übernehmen</h3></div>
     <p style="margin:0 0 12px">Wähle deine <b>Stunden.xlsm</b>. Gelesen werden die Blätter „ab 2020“ (bei älteren Dateien „Zeiterfassung“), „Tätigkeiten“ und „Gehalt“. Die Datei verlässt deinen Browser nicht. Vorhandene Daten in dieser App werden ersetzt.</p>
     <input type="file" id="fileX" accept=".xlsx,.xlsm,.xls" data-f="file:xlsx" aria-label="Excel-Datei wählen">
@@ -318,22 +319,15 @@ function viewDaten() {
     <p class="hint" style="margin:0 0 10px">Die Daten liegen nur in diesem Browser. Speichere regelmäßig eine Sicherung, auch um auf ein anderes Gerät zu wechseln.</p>
     <div class="nav"><button class="btn primary" data-a="exportJson">Sicherung speichern (.json)</button><button class="btn" data-a="exportCsv">Tätigkeiten als CSV</button></div>
     <div class="field" style="margin-top:12px"><label for="fileJ">Sicherung einlesen</label><input type="file" id="fileJ" accept=".json,application/json" data-f="file:json"></div>
-    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+  </section>
+  <section class="card">
     <div class="card-h"><h3>Version</h3></div>
     <p class="hint" style="margin:0 0 10px"><b>Version ${esc(VERSION)}</b>. ${REPO ? 'Die App prüft höchstens einmal am Tag, ob es eine neue Version gibt. Dabei wird nur die Versionsnummer abgefragt, keine deiner Daten gesendet.' : ''}</p>
     <div class="nav"><button class="btn" data-a="chkUpd">Nach Updates suchen</button><span class="hint" id="updState"></span></div>
     <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
     <div class="nav">${UI.confirm === 'reset' ? `<span>Alle Daten in diesem Browser löschen?</span><button class="btn danger" data-a="resetAll">Ja, löschen</button><button class="btn" data-a="cancelConfirm">Abbrechen</button>` : '<button class="btn danger" data-a="askReset">Alle Daten löschen</button><button class="btn" data-a="loadDemo">Beispieldaten laden</button>'}</div>
   </section>
-  <section class="card"><div class="card-h"><h3>So wird gerechnet</h3></div>
-    <ul class="hint" style="margin:0;padding-left:18px;line-height:1.6">
-      <li>Pause automatisch: ab 6 h Anwesenheit bis 6,5 h die Überschreitung, bis 9 h 30 min, darüber mindestens 30 min bis 45 min ab 9,75 h. Manuell überschreibbar.</li>
-      <li>Angerechnet werden höchstens ${fmtDec(c.tagesMax, 0)} h pro Tag. Der Rest erscheint als „Über ${fmtDec(c.tagesMax, 0)} h“ in der Jahresübersicht.</li>
-      <li>Saldo je Arbeitstag = Stunden − Soll. Wochenende zählt voll als Mehrarbeit. Urlaub, Feiertag und Krankheit ändern das Konto nicht. Zeitausgleich zieht ein Soll ab.</li>
-      <li>Feiertage für NRW werden automatisch gesetzt. Tage ohne Eintrag in der Zukunft gelten als Plan und belasten das Konto nicht.</li>
-      <li>Die Erfassungsrate vergleicht die Summe der Tätigkeiten mit der Arbeitszeit.</li></ul>
-  </section></div>
-  <section class="card" style="margin-top:16px"><div class="card-h"><h3>Einstellungen</h3><span class="hint">Jede Änderung rechnet alles sofort neu. Davor am besten eine Sicherung speichern.</span></div>
+  </div>` : `  <section class="card"><div class="card-h"><h3>Einstellungen</h3><span class="hint">Jede Änderung rechnet alles sofort neu. Davor am besten eine Sicherung speichern.</span></div>
     <h4 class="sh">Arbeitszeit</h4>
     <div class="sollv"><table><thead><tr><th>Gültig ab</th><th class="r">Soll pro Arbeitstag (h)</th><th class="r">Pro Woche (h)</th><th></th></tr></thead><tbody>
       ${(c.sollVerlauf || []).map((x, i) => `<tr><td>${i === 0 ? `<span class="hint">Startdatum ${esc(fmtDate(x.ab))}</span>` : `<input type="date" value="${esc(x.ab)}" data-f="sv:${i}:ab" aria-label="Gültig ab">`}</td>
@@ -377,21 +371,39 @@ function viewDaten() {
       <div class="field"><label for="c_mir">Spalte MIR (z. B. Werkskantine)</label><select id="c_mir" data-f="cfg:mirAn" data-bool="1">${opt('true', 'anzeigen', String(c.mirAn !== false))}${opt('false', 'ausblenden', String(c.mirAn !== false))}</select><span class="hint">MIR ist der Abzug bzw. Betrag aus der Werkskantine, der zum Überwiesenen addiert das Netto ergibt. Ausgeblendet wird die Spalte nicht angezeigt und nicht mitgerechnet. Bereits eingetragene MIR-Werte bleiben gespeichert.</span></div>
       <p class="hint" style="grid-column:1/-1;margin:0">Echte Erhöhungen trägst du direkt in „Gehalt“ ein (Brutto des Monats). Ab diesem Monat rechnet die Prognose mit dem neuen Wert weiter. Erfasste Gehaltsmonate ändern sich durch diese Einstellungen nicht.</p>
     </div>
+    <h4 class="sh">Zeiterfassung</h4>
+    <div class="fields wide">
+      <div class="field"><label for="c_ra">Uhrzeiten erfassen</label><select id="c_ra" data-f="cfg:raster">${opt('min', 'minutengenau', c.raster || 'min')}${opt('15', 'viertelstündlich', c.raster || 'min')}</select><span class="hint">Bei „viertelstündlich“ springen die Zeitfelder in 15-Minuten-Schritten, eingetippte Uhrzeiten und der Timer (Kommen/Gehen jetzt, Tätigkeiten) werden auf die nächste Viertelstunde auf- oder abgerundet. Bereits erfasste Zeiten bleiben unverändert.</span></div>
+    </div>
+    <h4 class="sh">Spaltennamen der Tätigkeiten</h4>
+    <div class="fields wide">
+      ${['cat', 'w', 'sys', 'th'].map(x => `<div class="field"><label for="c_col_${x}">${esc(COLD[x])}</label><input id="c_col_${x}" value="${esc((c.spalten && c.spalten[x]) || '')}" placeholder="${esc(COLD[x])}" data-f="col:${x}"></div>`).join('')}
+      <span class="hint" style="grid-column:1/-1">Eigene Namen für die vier Spalten bei Tätigkeiten, in Auswertung und CSV-Export. Leer lassen für den Standardnamen. Die erfassten Einträge bleiben unverändert.</span>
+    </div>
     <h4 class="sh">Anzeige</h4>
     <div class="fields wide">
       <div class="field"><label for="c_th">Standard-Thema</label><input id="c_th" value="${esc(c.standardThema)}" data-f="cfg:standardThema"><span class="hint">Thema, das bei normalen Arbeitstagen als Vorgabe gilt. Nur Anzeige.</span></div>
       <div class="field"><label for="c_an">Zahlenanzeige</label><select id="c_an" data-f="cfg:anzeige">${opt('dez', 'Dezimal (7,50)', c.anzeige)}${opt('hm', 'Stunden:Minuten (7:30)', c.anzeige)}</select><span class="hint">Nur die Darstellung, nichts wird umgerechnet.</span></div>
     </div>
-  </section>`;
+  </section>
+  <section class="card" style="margin-top:16px"><div class="card-h"><h3>So wird gerechnet</h3></div>
+    <ul class="hint" style="margin:0;padding-left:18px;line-height:1.6">
+      <li>Pause automatisch: ab 6 h Anwesenheit bis 6,5 h die Überschreitung, bis 9 h 30 min, darüber mindestens 30 min bis 45 min ab 9,75 h. Manuell überschreibbar.</li>
+      <li>Angerechnet werden höchstens ${fmtDec(c.tagesMax, 0)} h pro Tag. Der Rest erscheint als „Über ${fmtDec(c.tagesMax, 0)} h“ in der Jahresübersicht.</li>
+      <li>Saldo je Arbeitstag = Stunden − Soll. Wochenende zählt voll als Mehrarbeit. Urlaub, Feiertag und Krankheit ändern das Konto nicht. Zeitausgleich zieht ein Soll ab.</li>
+      <li>Feiertage für NRW werden automatisch gesetzt. Tage ohne Eintrag in der Zukunft gelten als Plan und belasten das Konto nicht.</li>
+      <li>Die Erfassungsrate vergleicht die Summe der Tätigkeiten mit der Arbeitszeit.</li></ul>
+  </section>
+`}`;
 }
 
 /* ---------- Rahmen ---------- */
-const TABS = [['heute', 'Heute'], ['woche', 'Woche'], ['monat', 'Monat'], ['urlaub', 'Urlaub'], ['taet', 'Tätigkeiten'], ['auswertung', 'Auswertung'], ['gehalt', 'Gehalt'], ['daten', 'Daten']];
+const TABS = [['heute', 'Heute'], ['woche', 'Woche'], ['monat', 'Monat'], ['urlaub', 'Urlaub'], ['taet', 'Tätigkeiten'], ['auswertung', 'Auswertung'], ['gehalt', 'Gehalt'], ['einst', 'Einstellungen']];
 function render() {
   if (!R) recompute();
   $('#tabs').innerHTML = TABS.map(([id, l]) => `<button class="tab" data-a="tab" data-v="${id}"${UI.tab === id ? ' aria-current="page"' : ''}>${l}</button>`).join('');
-  $('#banner').innerHTML = S.demo ? `<div class="banner"><span><b>Beispieldaten.</b> Diese Einträge sind erfunden. Lade deine Excel unter „Daten“, um mit deinen Zahlen zu arbeiten.</span><button class="btn sm primary" data-a="tab" data-v="daten">Excel importieren</button></div>` : '';
-  const v = { heute: viewHeute, woche: viewWoche, monat: viewMonat, urlaub: viewUrlaub, taet: viewTaet, auswertung: viewAuswertung, gehalt: viewGehalt, daten: viewDaten }[UI.tab];
+  $('#banner').innerHTML = S.demo ? `<div class="banner"><span><b>Beispieldaten.</b> Diese Einträge sind erfunden. Lade deine Excel unter „Einstellungen“ → „Daten“, um mit deinen Zahlen zu arbeiten.</span><button class="btn sm primary" data-a="tab" data-v="daten">Excel importieren</button></div>` : '';
+  const v = { heute: viewHeute, woche: viewWoche, monat: viewMonat, urlaub: viewUrlaub, taet: viewTaet, auswertung: viewAuswertung, gehalt: viewGehalt, einst: viewEinst }[UI.tab];
   const sy = window.scrollY;
   $('#view').innerHTML = v();
   window.scrollTo(0, sy);

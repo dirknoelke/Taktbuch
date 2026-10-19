@@ -8,10 +8,10 @@ A personal time account as a single file: time tracking, activities, reports, sa
 
 1. Download `zeitwerk.html` from the [latest release](../../releases/latest).
 2. Open it by double-click in a browser (Chrome or Edge). The local file is enough, no web access is needed.
-3. On first start choose a template (with or without vacation expiry and time-balance cap). Every rule can be changed individually later under **Daten / Data**.
-4. Optional: import an existing hours Excel file under **Daten / Data**.
+3. On first start choose a template (with or without vacation expiry and time-balance cap). Every rule can be changed individually later under **Settings** (section **Data**).
+4. Optional: import an existing hours Excel file under **Settings** (section **Data**).
 
-Always open the file in the same browser, otherwise your data is not there. Under **Data** you can save a JSON backup (also to move to another device).
+Always open the file in the same browser, otherwise your data is not there. Under **Settings → Data** you can save a JSON backup (also to move to another device).
 
 ## Language
 

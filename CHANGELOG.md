@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- The **Data** tab is now **Settings**, with *Data* (import, backup, version, reset) as a sub-section.
+- New setting **Record times**: to the minute or every quarter hour. In quarter-hour mode time fields step by 15 minutes and typed times, “Arrive/Leave now” and the activity timer are rounded to the nearest quarter hour.
+- Activity columns (Category, Type, System, Topic) can be renamed under Settings. Names apply to the activity tables, filters, reports and CSV export.
+
 ## 1.1.1
 
 - The browser tab title is just “Zeitwerk”, the version is shown only under **Data**.

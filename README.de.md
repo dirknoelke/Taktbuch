@@ -8,10 +8,10 @@ Persönliches Stundenkonto als Einzeldatei: Zeiterfassung, Tätigkeiten, Auswert
 
 1. Auf der Seite [Releases](../../releases/latest) die Datei `zeitwerk.html` herunterladen.
 2. Per Doppelklick im Browser öffnen (Chrome oder Edge). Auf dem Firmenrechner reicht die lokale Datei, es ist kein Zugriff auf Webseiten nötig.
-3. Beim ersten Start eine Vorlage wählen (mit oder ohne Urlaubsverfall und Kappung). Alle Regeln lassen sich unter **Daten** einzeln ändern.
-4. Optional: unter **Daten** eine bestehende Stunden-Excel importieren.
+3. Beim ersten Start eine Vorlage wählen (mit oder ohne Urlaubsverfall und Kappung). Alle Regeln lassen sich unter **Einstellungen** einzeln ändern.
+4. Optional: unter **Einstellungen → Daten** eine bestehende Stunden-Excel importieren.
 
-Wichtig: Immer im selben Browser und mit demselben Profil öffnen, sonst sind die Daten nicht da. Unter **Daten** gibt es eine Sicherung als JSON (auch zum Umzug auf ein anderes Gerät).
+Wichtig: Immer im selben Browser und mit demselben Profil öffnen, sonst sind die Daten nicht da. Unter **Einstellungen → Daten** gibt es eine Sicherung als JSON (auch zum Umzug auf ein anderes Gerät).
 
 ## Sprache
 

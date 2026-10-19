@@ -1,7 +1,8 @@
 /* ---------- Ereignisse ---------- */
 const go = k => { UI.date = k; UI.tab = 'heute'; render(); window.scrollTo(0, 0); };
 const actions = {
-  tab: el => { UI.tab = el.dataset.v; render(); window.scrollTo(0, 0); },
+  tab: el => { let v = el.dataset.v; if (v === 'daten') { v = 'einst'; UI.sub = 'daten'; } UI.tab = v; render(); window.scrollTo(0, 0); },
+  sub: el => { UI.sub = el.dataset.v; render(); },
   day: el => { UI.date = E.addDays(UI.date, +el.dataset.n); UI.year = +UI.date.slice(0, 4); render(); },
   today: () => { UI.date = todayKey(); render(); },
   goto: el => go(el.dataset.k),
@@ -31,7 +32,7 @@ const actions = {
     S.acts.push({ id: newId(), d: k, s: nowStr(), e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, th: f.th });
     UI.date = k; UI.form = { s: '', e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, th: '' }; commit();
   },
-  timerStop: el => { const a = S.acts.find(x => x.id === el.dataset.id); if (a) { a.e = nowStr(); if (H(a.e) <= H(a.s)) { S.acts = S.acts.filter(x => x !== a); toast('Timer unter einer Minute verworfen.'); } commit(); } },
+  timerStop: el => { const a = S.acts.find(x => x.id === el.dataset.id); if (a) { a.e = nowStr(); if (H(a.e) <= H(a.s)) { S.acts = S.acts.filter(x => x !== a); toast(S.cfg.raster === '15' ? 'Timer unter einer Viertelstunde verworfen.' : 'Timer unter einer Minute verworfen.'); } commit(); } },
   delAct: el => { S.acts = S.acts.filter(a => a.id !== el.dataset.id); commit(); },
   mon: el => { let m = UI.month + +el.dataset.n, y = UI.year; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; } UI.month = m; UI.year = y; render(); },
   todayMon: () => { const d = new Date(); UI.year = d.getFullYear(); UI.month = d.getMonth() + 1; render(); },
@@ -86,6 +87,8 @@ function autofillForm(a, v) {
 function fieldChange(el, final) {
   const [scope, a, b] = el.dataset.f.split(':');
   let v = el.value;
+  if (el.type === 'time' && /^(form:[se]|day:[se]|act:[^:]+:[se])$/.test(el.dataset.f) && v) { const sv = snap(v); if (sv !== v) { v = sv; el.value = sv; } }
+  if (scope === 'col') { if (!final) return; S.cfg.spalten = Object.assign({}, S.cfg.spalten, { [a]: v.trim() }); commit(); return; }
   if (scope === 'form') { UI.form[a] = v; if (final) autofillForm(a, v); return; }
   if (!final) return;
   if (scope === 'day') {
@@ -125,7 +128,7 @@ function fieldChange(el, final) {
         setTimeout(async () => {
           try {
             if (a === 'xlsx') await importWorkbook(rd.result); else importJSON(rd.result);
-            UI.tab = 'daten'; UI.date = todayKey(); render(); toast('Import abgeschlossen.');
+            UI.tab = 'einst'; UI.sub = 'daten'; UI.date = todayKey(); render(); toast('Import abgeschlossen.');
           } catch (e) { toast('Import fehlgeschlagen: ' + e.message); }
         }, 30);
       } catch (e) { toast('Import fehlgeschlagen: ' + e.message); }
@@ -256,7 +259,7 @@ async function checkUpdate(manual) {
     if (raw) { const o = JSON.parse(raw); if (o && o.v === 1) { S = Object.assign({ demo: false, pay: {} }, o); S.cfg = Object.assign({}, DEFAULT_CFG, o.cfg); loaded = true; } }
   } catch (e) { /* leer starten */ }
   if (!loaded) { makeDemo(); }
-  const t = ls.get('stundenkonto-tab-' + PROFILE); if (t && TABS.some(x => x[0] === t)) UI.tab = t;
+  let t = ls.get('stundenkonto-tab-' + PROFILE); if (t === 'daten') t = 'einst'; if (t && TABS.some(x => x[0] === t)) UI.tab = t;
   recompute(); render(); I18N.apply();
   $('#saveState').textContent = loaded ? 'geladen' : 'Beispiel';
   setInterval(timerTick, 30000);
