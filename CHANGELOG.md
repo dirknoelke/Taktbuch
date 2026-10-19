@@ -3,6 +3,7 @@
 ## 1.1.1
 
 - The browser tab title is just “Zeitwerk”, the version is shown only under **Data**.
+- New **Install** button in the update banner (Chrome/Edge): pick your existing zeitwerk.html and the new version is written over it, no stray copy in Downloads. Falls back to a normal download.
 - If the update check fails (offline, blocked, no release yet), it retries after one hour instead of one day.
 
 ## 1.1.0
