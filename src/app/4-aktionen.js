@@ -42,6 +42,7 @@ const actions = {
   applyRange: () => rangeApply(false),
   clearRange: () => rangeApply(true),
   chkUpd: () => checkUpdate(true),
+  lang: el => { I18N.set(el.dataset.v, true); render(); I18N.apply(); },
   exportJson: () => saveFile('stundenkonto-sicherung-' + todayKey() + '.json', exportJSON(), 'application/json'),
   exportCsv: () => saveFile('taetigkeiten-' + todayKey() + '.csv', exportCSV(), 'text/csv'),
   askReset: () => { UI.confirm = 'reset'; render(); },
@@ -58,7 +59,7 @@ function rangeApply(clear) {
     if (clear) delete d.t; else d.t = g.t;
     if (isEmptyDay(d)) delete S.days[k]; else S.days[k] = d; n++;
   }
-  commit(); toast(`${n} Tage ${clear ? 'zurückgesetzt' : 'als ' + tyLabel(g.t) + ' eingetragen'}${skip ? `, ${skip} Wochenend-/Feiertage übersprungen` : ''}.`);
+  commit(); toast((clear ? I18N.tx('# Tage zurückgesetzt') : I18N.tx('# Tage eingetragen als') + ' ' + I18N.tx(tyLabel(g.t))).replace('#', n) + (skip ? ', ' + I18N.tx('# Wochenend-/Feiertage übersprungen').replace('#', skip) : '') + '.');
 }
 document.addEventListener('click', ev => {
   const el = ev.target.closest('[data-a]'); if (!el) return;
@@ -120,7 +121,7 @@ function fieldChange(el, final) {
     rd.onerror = () => toast('Datei konnte nicht gelesen werden.');
     rd.onload = () => {
       try {
-        toast('Lese ' + f.name + ' …');
+        toast(I18N.tx('Lese') + ' ' + f.name + ' …');
         setTimeout(async () => {
           try {
             if (a === 'xlsx') await importWorkbook(rd.result); else importJSON(rd.result);
@@ -172,10 +173,15 @@ document.addEventListener('pointercancel', paintEnd);
 const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
 function chooseProfile() {
   return new Promise(res => {
-    $('#view').innerHTML = `<section class="card" style="max-width:640px;margin:40px auto"><div class="card-h"><h3>Willkommen bei Zeitwerk</h3></div>
-      <p class="hint" style="margin:0 0 14px">Wähle eine Vorlage. Alle Regeln lassen sich später unter „Daten“ einzeln ändern. Hast du Zeitwerk oder das frühere „Stundenkonto“ schon benutzt, wähle dieselbe Vorlage wie damals, damit deine Daten gefunden werden.</p>
-      <div style="display:grid;gap:10px">${Object.entries(PROFILES).map(([k, p]) => `<button class="btn ${k === 'voll' ? 'primary' : ''}" data-pf="${k}" style="text-align:left;padding:12px 14px"><b>${esc(p.name)}</b><br><span class="hint">${k === 'voll' ? 'Resturlaub verfällt am 1.5., Zeitkonto wird am 31.10. gekappt, 24.12. und 31.12. sind halbe Urlaubstage.' : 'Kein Verfall, keine Kappung, 24.12. und 31.12. sind normale Arbeitstage.'}</span></button>`).join('')}</div></section>`;
-    $('#view').querySelectorAll('[data-pf]').forEach(b => b.addEventListener('click', () => { ls.set('zeitwerk-profile', b.dataset.pf); res(b.dataset.pf); }));
+    const draw = () => {
+      $('#view').innerHTML = `<section class="card" style="max-width:640px;margin:40px auto"><div class="card-h"><h3>Willkommen bei Zeitwerk</h3><div class="seg" role="group" aria-label="Language" data-nt>${['de', 'en'].map(l => `<button data-lg="${l}" aria-pressed="${I18N.lang === l}">${l === 'de' ? 'Deutsch' : 'English'}</button>`).join('')}</div></div>
+        <p class="hint" style="margin:0 0 14px">Wähle eine Vorlage. Alle Regeln lassen sich später unter „Daten“ einzeln ändern. Hast du Zeitwerk oder das frühere „Stundenkonto“ schon benutzt, wähle dieselbe Vorlage wie damals, damit deine Daten gefunden werden.</p>
+        <div style="display:grid;gap:10px">${Object.entries(PROFILES).map(([k, p]) => `<button class="btn ${k === 'voll' ? 'primary' : ''}" data-pf="${k}" style="text-align:left;padding:12px 14px"><b>${esc(p.name)}</b><br><span class="hint">${k === 'voll' ? 'Resturlaub verfällt am 1.5., Zeitkonto wird am 31.10. gekappt, 24.12. und 31.12. sind halbe Urlaubstage.' : 'Kein Verfall, keine Kappung, 24.12. und 31.12. sind normale Arbeitstage.'}</span></button>`).join('')}</div></section>`;
+      I18N.apply();
+      $('#view').querySelectorAll('[data-lg]').forEach(b => b.addEventListener('click', () => { I18N.set(b.dataset.lg, true); draw(); }));
+      $('#view').querySelectorAll('[data-pf]').forEach(b => b.addEventListener('click', () => { ls.set('zeitwerk-profile', b.dataset.pf); I18N.set(I18N.lang, true); res(b.dataset.pf); }));
+    };
+    draw();
   });
 }
 async function detectProfile() {
@@ -183,6 +189,7 @@ async function detectProfile() {
   try { if (indexedDB.databases) names = (await indexedDB.databases()).map(d => d.name); } catch (e) { }
   if (names) { if (names.includes(PROFILES.voll.db)) return 'voll'; if (names.includes(PROFILES.einfach.db)) return 'einfach'; }
   const p = ls.get('zeitwerk-profile'); if (PROFILES[p]) return p;
+  if (!I18N.stored()) I18N.set(I18N.browserDefault(), false);   // erster Start: Browsersprache vorwählen
   return chooseProfile();
 }
 
@@ -223,6 +230,7 @@ async function checkUpdate(manual) {
 
 /* ---------- Start ---------- */
 (async function boot() {
+  I18N.start();
   applyProfile(await detectProfile());
   let loaded = false;
   try {
@@ -231,7 +239,7 @@ async function checkUpdate(manual) {
   } catch (e) { /* leer starten */ }
   if (!loaded) { makeDemo(); }
   const t = ls.get('stundenkonto-tab-' + PROFILE); if (t && TABS.some(x => x[0] === t)) UI.tab = t;
-  recompute(); render();
+  recompute(); render(); I18N.apply();
   $('#saveState').textContent = loaded ? 'geladen' : 'Beispiel';
   setInterval(timerTick, 30000);
   setTimeout(() => checkUpdate(false), 1500);

@@ -20,7 +20,7 @@ async def main():
         await pg.click('[data-pf=einfach]'); await pg.wait_for_selector('#tabs .tab')
         check('Profil einfach: kein Verfall', await pg.evaluate("()=>S.cfg.urlaubVerfall===''&&S.cfg.mirAn===false"))
         await pg.wait_for_selector('#updbanner .banner', timeout=8000)
-        check('Update-Banner bei neuerer Version', 'Neue Version 9.9.9' in await pg.inner_text('#updbanner'))
+        bt = await pg.inner_text('#updbanner'); check('Update-Banner bei neuerer Version', 'Neue Version 9.9.9' in bt or 'New version 9.9.9' in bt)
         check('Download-Link zeigt auf Asset', (await pg.get_attribute('#updDl', 'href')).endswith('zeitwerk.html'))
         await pg.click('#updSkip'); check('Später blendet aus', await pg.inner_text('#updbanner') == '')
         await pg.click('button[data-v=daten]'); await pg.click('[data-a=chkUpd]'); await pg.wait_for_function("()=>document.querySelector('#updState').textContent.includes('9.9.9')")
@@ -37,6 +37,26 @@ async def main():
         await pg2.goto(url); await pg2.click('[data-pf=voll]'); await pg2.wait_for_selector('#tabs .tab'); await pg2.wait_for_timeout(2500)
         check('offline: kein Banner, keine Fehler', await pg2.inner_text('#updbanner') == '' and not e2)
         check('Profil voll hat Verfall', await pg2.evaluate("()=>S.cfg.urlaubVerfall==='05-01'"))
+
+        # 4) Englisch: Umschalten, Namen, keine deutschen Reste in allen Ansichten
+        pg3 = await (await b.new_context()).new_page()
+        await pg3.goto(url); await pg3.click('[data-pf=voll]'); await pg3.wait_for_selector('#tabs .tab')
+        await pg3.click('[data-a=lang][data-v=en]'); await pg3.wait_for_timeout(300)
+        check('Tabs englisch', await pg3.inner_text('#tabs') == 'Today\nWeek\nMonth\nVacation\nActivities\nReports\nSalary\nData')
+        STOP = set('der die das und oder für mit von zu im am ist nicht wird werden ein eine einen dem den des auf bei als auch nur wenn dann nach vor über unter alle noch schon bis aus wie sich sind kann keine kein dein deine deiner deinen du ab pro je ohne sowie'.split())
+        left = []
+        for t in ['heute', 'woche', 'monat', 'urlaub', 'taet', 'auswertung', 'gehalt', 'daten']:
+            await pg3.click(f'button[data-v={t}]'); await pg3.wait_for_timeout(200)
+            txt = await pg3.evaluate("()=>{const o=[];const w=document.createTreeWalker(document.getElementById('view'),NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){const v=n.nodeValue.trim();if(v)o.push(v)}document.querySelectorAll('#view [placeholder],#view [aria-label],#view [title]').forEach(e=>['placeholder','aria-label','title'].forEach(a=>{const v=e.getAttribute(a);if(v)o.push(v)}));return o}")
+            import re
+            for v in txt:
+                ws = re.findall(r'[A-Za-zÄÖÜäöüß]+', v)
+                if re.search(r'[äöüÄÖÜß]', v) or any(w.lower() in STOP for w in ws):
+                    if 'ab 20' in v or 'Zeiterfassung' in v or 'Stunden.xlsm' in v: continue   # Blattnamen der Excel
+                    left.append(v[:80])
+        check('keine deutschen Texte im englischen UI ' + (str(left[:5]) if left else ''), not left)
+        await pg3.click('[data-a=lang][data-v=de]'); await pg3.wait_for_timeout(200)
+        check('zurück auf Deutsch', await pg3.inner_text('#tabs') == 'Heute\nWoche\nMonat\nUrlaub\nTätigkeiten\nAuswertung\nGehalt\nDaten')
         await b.close()
     sys.exit(0 if ok else 1)
 asyncio.run(main())

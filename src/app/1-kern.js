@@ -2,9 +2,6 @@
 const E = window.StundenEngine;
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const WD = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-const MON = ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-const MONL = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const pad2 = n => (n < 10 ? '0' : '') + n;
 
 /* ---------- Zeit- und Zahlenformate ---------- */
@@ -13,7 +10,7 @@ const HM = h => { if (!h && h !== 0) return ''; const t = Math.round(h * 60); re
 const nowH = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60; };
 const nowStr = () => { const d = new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); };
 const todayKey = () => { const d = new Date(); return E.key(d.getFullYear(), d.getMonth() + 1, d.getDate()); };
-function fmtDec(x, dp = 2) { return (Math.round(x * Math.pow(10, dp)) / Math.pow(10, dp)).toFixed(dp).replace('.', ',').replace(/^-0,0+$/, '0,00'); }
+function fmtDec(x, dp = 2) { return (Math.round(x * Math.pow(10, dp)) / Math.pow(10, dp)).toFixed(dp).replace(/^-0\.0+$/, '0.' + '0'.repeat(dp)).replace('.', I18N.lang === 'en' ? '.' : ','); }
 function fmtT(x, signed) { // Stunden gemaess Einstellung
   if (x == null || isNaN(x)) return '–';
   const sg = signed ? (x > 0.0049 ? '+' : x < -0.0049 ? '−' : '') : (x < 0 ? '−' : '');
@@ -33,7 +30,7 @@ const PROFILES = { voll: { db: 'stundenkonto', name: 'Mit Urlaubsverfall und Kap
 let PROFILE = 'voll', DEFAULT_CFG = {};
 function applyProfile(p) {
   PROFILE = PROFILES[p] ? p : 'voll';
-  DEFAULT_CFG = Object.assign({}, E.DEFAULTS, { anzeige: 'dez', standardThema: 'Arbeit', nettoAb: '9999-12-31', payRise: 0.025, payRiseMonat: 4, mirAn: true, payRiseArt: 'pct', payRiseEur: 0, zahltagModus: 'letzte4' },
+  DEFAULT_CFG = Object.assign({}, E.DEFAULTS, { anzeige: 'dez', standardThema: I18N.lang === 'en' ? 'Work' : 'Arbeit', nettoAb: '9999-12-31', payRise: 0.025, payRiseMonat: 4, mirAn: true, payRiseArt: 'pct', payRiseEur: 0, zahltagModus: 'letzte4' },
     PROFILE === 'einfach' ? { urlaubVerfall: '', kappungTag: '', halbeTage: false, lzkMax: 0, payRiseMonat: 0, mirAn: false } : {});
   S.cfg = Object.assign({}, DEFAULT_CFG);
 }
@@ -270,7 +267,7 @@ function importJSON(txt) {
 }
 const csvCell = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
 function exportCSV() {
-  const head = ['Datum', 'KW', 'Von', 'Bis', 'Unterbrechung', 'Netto h', 'Kategorie', 'Art', 'System', 'Thema'];
+  const head = ['Datum', 'KW', 'Von', 'Bis', 'Unterbrechung', 'Netto h', 'Kategorie', 'Art', 'System', 'Thema'].map(h => I18N.tx(h));
   const lines = [head.join(';')];
   for (const a of S.acts.slice().sort((x, y) => (x.d + x.s).localeCompare(y.d + y.s))) {
     const net = a.e ? (H(a.e) - H(a.s) - H(a.u)) : 0;
