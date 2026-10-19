@@ -23,7 +23,7 @@ async def main():
         bt = await pg.inner_text('#updbanner'); check('Update-Banner bei neuerer Version', 'Neue Version 9.9.9' in bt or 'New version 9.9.9' in bt)
         check('Download-Link zeigt auf Asset', (await pg.get_attribute('#updDl', 'href')).endswith('zeitwerk.html'))
         await pg.click('#updSkip'); check('Später blendet aus', await pg.inner_text('#updbanner') == '')
-        await pg.click('button[data-v=daten]'); await pg.click('[data-a=chkUpd]'); await pg.wait_for_function("()=>document.querySelector('#updState').textContent.includes('9.9.9')")
+        await pg.click('button[data-v=einst]'); await pg.click('button[data-a=sub][data-v=daten]'); await pg.click('[data-a=chkUpd]'); await pg.wait_for_function("()=>document.querySelector('#updState').textContent.includes('9.9.9')")
         check('manuelle Prüfung meldet Version', True)
         await pg.evaluate("()=>{S.cfg.standardThema='Testthema';save()}"); await pg.wait_for_timeout(900)
         # 2) Neuladen im selben Kontext: Profil wird erkannt, keine Wahl
@@ -42,11 +42,13 @@ async def main():
         pg3 = await (await b.new_context()).new_page()
         await pg3.goto(url); await pg3.click('[data-pf=voll]'); await pg3.wait_for_selector('#tabs .tab')
         await pg3.click('[data-a=lang][data-v=en]'); await pg3.wait_for_timeout(300)
-        check('Tabs englisch', await pg3.inner_text('#tabs') == 'Today\nWeek\nMonth\nVacation\nActivities\nReports\nSalary\nData')
+        check('Tabs englisch', await pg3.inner_text('#tabs') == 'Today\nWeek\nMonth\nVacation\nActivities\nReports\nSalary\nSettings')
         STOP = set('der die das und oder für mit von zu im am ist nicht wird werden ein eine einen dem den des auf bei als auch nur wenn dann nach vor über unter alle noch schon bis aus wie sich sind kann keine kein dein deine deiner deinen du ab pro je ohne sowie'.split())
         left = []
-        for t in ['heute', 'woche', 'monat', 'urlaub', 'taet', 'auswertung', 'gehalt', 'daten']:
-            await pg3.click(f'button[data-v={t}]'); await pg3.wait_for_timeout(200)
+        for t in ['heute', 'woche', 'monat', 'urlaub', 'taet', 'auswertung', 'gehalt', 'einst', 'daten']:
+            await pg3.click(f'button[data-v={"einst" if t == "daten" else t}]')
+            if t in ('einst', 'daten'): await pg3.click(f'button[data-a=sub][data-v={t}]')
+            await pg3.wait_for_timeout(200)
             txt = await pg3.evaluate("()=>{const o=[];const w=document.createTreeWalker(document.getElementById('view'),NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){const v=n.nodeValue.trim();if(v)o.push(v)}document.querySelectorAll('#view [placeholder],#view [aria-label],#view [title]').forEach(e=>['placeholder','aria-label','title'].forEach(a=>{const v=e.getAttribute(a);if(v)o.push(v)}));return o}")
             import re
             for v in txt:
@@ -56,7 +58,17 @@ async def main():
                     left.append(v[:80])
         check('keine deutschen Texte im englischen UI ' + (str(left[:5]) if left else ''), not left)
         await pg3.click('[data-a=lang][data-v=de]'); await pg3.wait_for_timeout(200)
-        check('zurück auf Deutsch', await pg3.inner_text('#tabs') == 'Heute\nWoche\nMonat\nUrlaub\nTätigkeiten\nAuswertung\nGehalt\nDaten')
+        check('zurück auf Deutsch', await pg3.inner_text('#tabs') == 'Heute\nWoche\nMonat\nUrlaub\nTätigkeiten\nAuswertung\nGehalt\nEinstellungen')
+        # Zeitraster und Spaltennamen
+        await pg3.click('button[data-v=heute]')
+        await pg3.evaluate("()=>{S.cfg.raster='15';S.cfg.spalten={cat:'Projekt'};commit()}"); await pg3.wait_for_timeout(200)
+        r = await pg3.evaluate("()=>[snap('09:07'),snap('09:08'),snap('09:22'),snap('09:23'),snap('23:58'),snap('00:03')]")
+        check('Raster rundet auf/ab', r == ['09:00', '09:15', '09:15', '09:30', '23:45', '00:00'])
+        await pg3.fill('#f_s', '08:07'); await pg3.dispatch_event('#f_s', 'change')
+        check('Eingabe wird auf Viertelstunde gerundet', await pg3.input_value('#f_s') == '08:00')
+        check('Zeitfeld step=900', await pg3.get_attribute('#f_s', 'step') == '900')
+        check('Spalte umbenannt', 'projekt' in (await pg3.inner_text('#view')).lower())
+        await pg3.evaluate("()=>{S.cfg.raster='min';S.cfg.spalten={};commit()}")
         await b.close()
     sys.exit(0 if ok else 1)
 asyncio.run(main())

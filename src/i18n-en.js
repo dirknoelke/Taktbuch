@@ -1,12 +1,22 @@
 /* Englisches Wörterbuch. Schlüssel: deutscher Text, Zahlen als #, Wochentag <WD>, Monat <MON>.
    Reihenfolge der # muss im englischen Text gleich bleiben. Geldbeträge: im Schlüssel "# €", im Wert "€#". */
 window.ZW_EN = {
+  'Zeiterfassung': 'Time tracking',
+  'Uhrzeiten erfassen': 'Record times',
+  'minutengenau': 'to the minute',
+  'viertelstündlich': 'every quarter hour',
+  'Bei „viertelstündlich“ springen die Zeitfelder in 15-Minuten-Schritten, eingetippte Uhrzeiten und der Timer (Kommen/Gehen jetzt, Tätigkeiten) werden auf die nächste Viertelstunde auf- oder abgerundet. Bereits erfasste Zeiten bleiben unverändert.': 'With “every quarter hour”, time fields step in 15-minute increments, typed times and the timer (arrive/leave now, activities) are rounded up or down to the nearest quarter hour. Times already recorded stay unchanged.',
+  'Spaltennamen der Tätigkeiten': 'Activity column names',
+  'Eigene Namen für die vier Spalten bei Tätigkeiten, in Auswertung und CSV-Export. Leer lassen für den Standardnamen. Die erfassten Einträge bleiben unverändert.': 'Custom names for the four activity columns, also used in reports and CSV export. Leave empty for the default name. Recorded entries stay unchanged.',
+  'Timer unter einer Viertelstunde verworfen.': 'Timer under a quarter hour discarded.',
+  'Bereich': 'Section',
+
   /* Navigation und Kopf */
   'Heute': 'Today', 'Woche': 'Week', 'Monat': 'Month', 'Urlaub': 'Vacation', 'Tätigkeiten': 'Activities',
   'Auswertung': 'Reports', 'Gehalt': 'Salary', 'Daten': 'Data', 'Zeitwerk': 'Zeitwerk',
   'Bereiche': 'Sections', 'lokal': 'local', 'gespeichert': 'saved', 'speichert …': 'saving …', 'geladen': 'loaded', 'Beispiel': 'Sample', 'nur Sitzung': 'session only',
   'Zeitkonto heute': 'Time balance today', 'Zeitkonto': 'Time balance',
-  'Beispieldaten.': 'Sample data.', 'Diese Einträge sind erfunden. Lade deine Excel unter „Daten“, um mit deinen Zahlen zu arbeiten.': 'These entries are made up. Load your Excel file under “Data” to work with your own numbers.',
+  'Beispieldaten.': 'Sample data.', 'Diese Einträge sind erfunden. Lade deine Excel unter „Einstellungen“ → „Daten“, um mit deinen Zahlen zu arbeiten.': 'These entries are made up. Load your Excel under “Settings” → “Data” to work with your own numbers.',
   'Beispieldaten laden': 'Load sample data',
   /* Tagesarten */
   'Arbeit': 'Work', 'Urlaub halb': 'Half vacation day', 'Sonderurlaub': 'Special leave', 'Zeitausgleich': 'Time off in lieu', 'Krank': 'Sick',
