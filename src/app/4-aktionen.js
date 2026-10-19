@@ -200,12 +200,30 @@ function showUpdate(info) {
   const el = $('#updbanner'); if (!el) return;
   if (!info || !isNewer(info.tag, VERSION) || ls.get('zeitwerk-upd-skip') === info.tag) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="banner"><span><b>Neue Version ${esc(info.tag.replace(/^v/, ''))} verfügbar</b> (du hast ${esc(VERSION)}). Speichere vorher unter „Daten“ eine Sicherung. Deine Daten bleiben im Browser erhalten, wenn du die neue Datei im selben Browser öffnest.</span>
-    <a class="btn primary" id="updDl" target="_blank" rel="noopener">Herunterladen</a><button class="btn" id="updNotes">Was ist neu?</button><button class="btn" id="updSkip">Später</button>
+    <button class="btn primary" id="updInst">Installieren</button><a class="btn" id="updDl" target="_blank" rel="noopener">Herunterladen</a><button class="btn" id="updNotes">Was ist neu?</button><button class="btn" id="updSkip">Später</button>
     <pre id="updPre" hidden style="flex-basis:100%;margin:6px 0 0;white-space:pre-wrap;font:inherit;font-size:13px"></pre></div>`;
   $('#updDl').href = info.asset || info.url;
   $('#updPre').textContent = info.notes || 'Keine Hinweise hinterlegt.';
+  $('#updInst').onclick = () => installUpdate(info);
+  if (!window.showSaveFilePicker || !info.aid) $('#updInst').hidden = true;
   $('#updNotes').onclick = () => { const p = $('#updPre'); p.hidden = !p.hidden; };
   $('#updSkip').onclick = () => { ls.set('zeitwerk-upd-skip', info.tag); el.innerHTML = ''; };
+}
+/* Neue Version direkt über die bestehende Datei schreiben (Chrome/Edge): Datei wählen, bestätigen, fertig */
+async function installUpdate(info) {
+  const st = $('#updState');
+  try {
+    const r = await fetch('https://api.github.com/repos/' + REPO + '/releases/assets/' + info.aid, { headers: { Accept: 'application/octet-stream' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const h = await window.showSaveFilePicker({ suggestedName: 'zeitwerk.html', types: [{ description: 'HTML', accept: { 'text/html': ['.html'] } }] });
+    const w = await h.createWritable(); await w.write(blob); await w.close();
+    alert(I18N.tx('Aktualisiert. Die Seite wird jetzt neu geladen.')); location.reload();
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    alert(I18N.tx('Direktes Überschreiben ging nicht. Die Datei wird stattdessen heruntergeladen.') + ' (' + (e && e.message || e) + ')');
+    window.open(info.asset || info.url, '_blank');
+  }
 }
 async function checkUpdate(manual) {
   const st = $('#updState');
@@ -221,11 +239,11 @@ async function checkUpdate(manual) {
     clearTimeout(to);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json(), as = (j.assets || []).find(a => /\.html$/i.test(a.name));
-    info = { tag: j.tag_name, url: j.html_url, asset: as ? as.browser_download_url : '', notes: String(j.body || '').slice(0, 4000) };
+    info = { tag: j.tag_name, url: j.html_url, asset: as ? as.browser_download_url : '', aid: as ? as.id : 0, notes: String(j.body || '').slice(0, 4000) };
     ls.set('zeitwerk-upd-info', JSON.stringify(info)); ls.set('zeitwerk-upd-last', String(Date.now()));
     if (manual) { ls.set('zeitwerk-upd-skip', ''); say(isNewer(info.tag, VERSION) ? 'Neue Version ' + info.tag.replace(/^v/, '') + ' verfügbar.' : 'Du hast die aktuelle Version.'); }
     showUpdate(info);
-  } catch (e) { say(manual ? 'Prüfung nicht möglich (offline oder Zugriff gesperrt).' : ''); if (!manual) ls.set('zeitwerk-upd-last', String(Date.now() - 864e5 + 36e5));   // nach Fehler in 1 Stunde erneut versuchen showUpdate(info); }
+  } catch (e) { say(manual ? 'Prüfung nicht möglich (offline oder Zugriff gesperrt).' : ''); if (!manual) ls.set('zeitwerk-upd-last', String(Date.now() - 864e5 + 36e5)); /* nach Fehler in 1 Stunde erneut versuchen */ showUpdate(info); }
 }
 
 /* ---------- Start ---------- */
