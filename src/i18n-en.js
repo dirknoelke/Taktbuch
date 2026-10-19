@@ -1,6 +1,8 @@
 /* Englisches Wörterbuch. Schlüssel: deutscher Text, Zahlen als #, Wochentag <WD>, Monat <MON>.
    Reihenfolge der # muss im englischen Text gleich bleiben. Geldbeträge: im Schlüssel "# €", im Wert "€#". */
 window.ZW_EN = {
+  'Schreiben unvollständig, die alte Version wurde wiederhergestellt.': 'Writing was incomplete, the old version was restored.',
+
   'Spalte Projektnummer': 'Project number column', 'Projektnummer': 'Project number', 'anzeigen': 'show', 'ausblenden': 'hide',
   'Eigene Namen und Sichtbarkeit der Spalten bei Tätigkeiten, in Filtern, Auswertung und CSV-Export. Leer lassen für den Standardnamen. Die Projektnummer ist standardmäßig ausgeblendet und wird beim Excel-Import eingeschaltet, wenn die Datei eine solche Spalte hat. Ausgeblendete Spalten behalten ihre erfassten Werte.': 'Custom names and visibility of the activity columns, also in filters, reports and CSV export. Leave empty for the default name. Project number is hidden by default and switched on by the Excel import if the file has such a column. Hidden columns keep their recorded values.',
   'Tipp:': 'Tip:', 'Spalten': 'Columns', 'enthält fast nur einen Wert. Unter „Einstellungen“ kannst du die Spalte ausblenden.': 'contains almost only one value. You can hide the column under “Settings”.',
