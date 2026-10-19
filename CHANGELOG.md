@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2
+
+- Fix (quarter-hour mode): typing an hour no longer resets the minutes to 00. Times are rounded when you leave the field, not while typing.
+
 ## 1.4.1
 
 - Quarter-hour mode: the time fields (arrive, leave, from, to) now show a list of all quarter hours as a dropdown. Before, only the browser’s own minute picker appeared.

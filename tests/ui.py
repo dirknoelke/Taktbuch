@@ -65,6 +65,7 @@ async def main():
         r = await pg3.evaluate("()=>[snap('09:07'),snap('09:08'),snap('09:22'),snap('09:23'),snap('23:58'),snap('00:03')]")
         check('Raster rundet auf/ab', r == ['09:00', '09:15', '09:15', '09:30', '23:45', '00:00'])
         await pg3.fill('#f_s', '08:07'); await pg3.dispatch_event('#f_s', 'change')
+        check('beim Tippen keine Rundung', await pg3.input_value('#f_s') == '08:07'); await pg3.dispatch_event('#f_s', 'focusout')
         check('Eingabe wird auf Viertelstunde gerundet', await pg3.input_value('#f_s') == '08:00')
         check('Zeitfeld step=900', await pg3.get_attribute('#f_s', 'step') == '900')
         check('Auswahlliste mit 96 Viertelstunden', await pg3.get_attribute('#f_s', 'list') == 'dl-t15' and await pg3.evaluate("()=>document.querySelectorAll('#dl-t15 option').length") == 96)
