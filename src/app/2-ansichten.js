@@ -1,5 +1,26 @@
 /* ---------- Hilfen für Ansichten ---------- */
-const ZAHLTAG_OPTS = [['letzte4', '4. letzter Werktag im Monat'], ['letzte4raw', '4. letzter Werktag im Monat (Mo bis Fr, auch Feiertage)'], ['tag15', 'Am 15. jeden Monats'], ['erster', 'Zum Monatsanfang (erster Werktag)'], ['letzter', 'Zum Monatsende (letzter Werktag)']];
+const ZAHLTAG_OPTS = [['erster', 'Zum Monatsanfang (erster Werktag)'], ['letzter', 'Zum Monatsende (letzter Werktag)'], ['tag15', 'Am 15. jeden Monats'], ['letzte4', '4. letzter Werktag im Monat']];
+const ZAHLTAG_ALT = ['letzte4raw', '4. letzter Werktag im Monat (Mo bis Fr, auch Feiertage)']; // nur sichtbar, wenn schon gewählt
+/* Regeln mit Gültig-ab-Datum: erster Block = Basiswerte ab Startdatum, weitere = c.regeln */
+function ruleBlocks(c) {
+  const blk = (r, i) => {
+    const id = i < 0 ? 'cfg:' : 'rg:' + i + ':', pre = 'r' + (i + 1) + '_', f = n => 'data-f="' + id + n + '"';
+    const nf = (n, label, step, hint) => `<div class="field"><label for="${pre}${n}">${label}</label><input id="${pre}${n}" type="number" step="${step}" value="${r[n]}" ${f(n)} data-num="1">${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+    const bf = (n, label, a, b, cur, hint) => `<div class="field"><label for="${pre}${n}">${label}</label><select id="${pre}${n}" ${f(n)} data-bool="1">${opt('true', a, String(cur))}${opt('false', b, String(cur))}</select>${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+    const kOn = r.kappungAn !== false;
+    return `<div class="rgb"><div class="rgh">${i < 0 ? `<b>Ab Startdatum ${esc(fmtDate(c.startDatum))}</b>` : `<label for="${pre}ab"><b>Gültig ab</b></label><input id="${pre}ab" type="date" value="${esc(r.ab)}" data-f="rg:${i}:ab" style="width:auto"><button class="btn sm ghost" data-a="rgDel" data-i="${i}" aria-label="Regeländerung entfernen">✕</button>`}</div>
+      <div class="fields wide">
+        ${nf('urlaubJahr', 'Urlaubstage pro Jahr', '0.5')}
+        ${bf('halbeTage', '24.12. und 31.12.', 'halber Urlaubstag', 'normaler Arbeitstag', r.halbeTage, 'Tage mit eigenem Eintrag oder gewählter Art bleiben unberührt.')}
+        <div class="field"><label for="${pre}urlaubVerfall">Verfall Vorjahresurlaub (MM-TT)</label><input id="${pre}urlaubVerfall" value="${esc(r.urlaubVerfall)}" placeholder="05-01" ${f('urlaubVerfall')}><span class="hint">Stichtag, an dem nicht genommener Vorjahresurlaub verfällt. Leer = nie.</span></div>
+        ${nf('lzkMax', 'Urlaub ins Langzeitkonto (Tage, max.)', '0.5', 'So viele Tage des Rests gehen am Verfallstag ins Langzeitkonto, der Rest verfällt.')}
+        ${bf('kappungAn', 'Kappung des Zeitkontos', 'aktiv', 'aus', kOn, 'Aus = das Zeitkonto wird nicht gekappt.')}
+        <div class="field"><label for="${pre}kappungTag">Stichtag Kappung (MM-TT)</label><input id="${pre}kappungTag" value="${esc(r.kappungTag)}" placeholder="10-31" ${f('kappungTag')}${kOn ? '' : ' disabled'}></div>
+        ${nf('kappungMax', 'Saldo nach Kappung (h)', '0.25', 'Höchstwert des Zeitkontos nach dem Stichtag.').replace('<input ', '<input ' + (kOn ? '' : 'disabled '))}
+      </div></div>`;
+  };
+  return [blk(c, -1)].concat((c.regeln || []).map((r, i) => blk(r, i))).join('');
+}
 const TYPE_OPTS = [['', 'Arbeit'], ['Urlaub', 'Urlaub'], ['Urlaub - halb', 'Urlaub halb'], ['Sonderurlaub', 'Sonderurlaub'], ['Zeitausgleich', 'Zeitausgleich'], ['Dienstreise', 'Dienstreise'], ['krank', 'Krank'], ['Feiertag', 'Feiertag'], ['Betriebsfrei', 'Betriebsfrei'], ['WE', 'Wochenende']];
 const tyClass = t => (E.TYPES[t] && t !== 'arbeit' ? 'ty-' + t.replace(/[^A-Za-z]+/g, '-') : '');
 const tyLabel = t => (E.TYPES[t] ? E.TYPES[t].label : t);
@@ -265,12 +286,13 @@ function viewAuswertung() {
       else if (r.t === 'Urlaub' || r.t === 'Sonderurlaub') ur++; else if (r.t === 'Urlaub - halb') ur += 0.5; else if (r.t === 'Zeitausgleich') za++;
     }
     const tage = rem.length - we - fe - ur, fr = v => fmtDec(v, v % 1 ? 1 : 0);
-    const [km, kd] = S.cfg.kappungTag ? S.cfg.kappungTag.split('-') : [0, 0];
-    let capKey = S.cfg.kappungTag ? y + '-' + S.cfg.kappungTag : ''; if (capKey && capKey < t) capKey = (y + 1) + '-' + S.cfg.kappungTag;
+    const kcfg = E.cfgAt(S.cfg, y + '-12-31'), kTag = kcfg.kappungAn !== false ? kcfg.kappungTag : '';
+    const [km, kd] = kTag ? kTag.split('-') : [0, 0];
+    let capKey = kTag ? y + '-' + kTag : ''; if (capKey && capKey < t) capKey = (y + 1) + '-' + kTag;
     const cr = capKey && R.map[capKey];
     prog = `<section class="card"><div class="card-h"><h3>Ausblick ${y}</h3></div><div class="grid3">
       <div><div class="lbl">Restliche Arbeitstage</div><div class="num" style="font-size:22px;font-weight:600">${fr(tage)}</div><div class="hint">${rem.length} Tage bis Jahresende − ${we} Wochenendtage − ${fe} Feiertage − ${fr(ur)} geplante Urlaubstage · ${fmtT(tage * S.cfg.soll)} h Soll${za ? ` · davon ${za} Tage Zeitausgleich eingeplant` : ''}</div></div>
-      ${cr ? `<div><div class="lbl">Zeitkonto am ${pad2(+kd)}.${pad2(+km)}.${cr.k.slice(0, 4)}</div><div class="num" style="font-size:22px;font-weight:600">${fmtT(cr.konto + cr.loss)}</div><div class="hint">${cr.loss > 0.01 ? `<span class="warn">Kappung auf ${fmtT(S.cfg.kappungMax)} h: ${fmtT(cr.loss)} h würden verfallen. Zeitausgleich früher einplanen.</span>` : 'Kein Verfall nach aktuellem Plan.'}</div></div>` : ''}
+      ${cr ? `<div><div class="lbl">Zeitkonto am ${pad2(+kd)}.${pad2(+km)}.${cr.k.slice(0, 4)}</div><div class="num" style="font-size:22px;font-weight:600">${fmtT(cr.konto + cr.loss)}</div><div class="hint">${cr.loss > 0.01 ? `<span class="warn">Kappung auf ${fmtT(kcfg.kappungMax)} h: ${fmtT(cr.loss)} h würden verfallen. Zeitausgleich früher einplanen.</span>` : 'Kein Verfall nach aktuellem Plan.'}</div></div>` : ''}
       <div><div class="lbl">Resturlaub zum Jahresende</div><div class="num" style="font-size:22px;font-weight:600">${fmtDec(T.rest, T.rest % 1 ? 1 : 0)} Tage</div><div class="hint">inklusive bereits eingetragener Planung</div></div></div></section>`;
   }
   return `
@@ -342,30 +364,21 @@ function viewEinst() {
     <div class="fields wide">
       ${num('c_max', 'Max. Stunden pro Tag', 'tagesMax', '0.25', 'Alles darüber zählt als Überzeit und nicht fürs Konto. Wirkt auf alle Tage, auch vergangene.')}
     </div>
-    <h4 class="sh">Urlaub</h4>
-    <div class="fields wide">
-      ${num('c_uj', 'Urlaubstage pro Jahr', 'urlaubJahr', '0.5', 'Wird am 01.01. gutgeschrieben. Wirkt auf alle Jahre ab Startdatum: der Resturlaub vergangener Jahre ändert sich mit.')}
-      <div class="field"><label for="c_ht">24.12. und 31.12.</label><select id="c_ht" data-f="cfg:halbeTage" data-bool="1">${opt('true', 'halber Urlaubstag', String(c.halbeTage))}${opt('false', 'normaler Arbeitstag', String(c.halbeTage))}</select><span class="hint">Gilt für alle Jahre. Tage mit eigenem Eintrag oder gewählter Art bleiben unberührt.</span></div>
-      <div class="field"><label for="c_uv">Verfall Vorjahresurlaub (MM-TT)</label><input id="c_uv" value="${esc(c.urlaubVerfall)}" placeholder="05-01" data-f="cfg:urlaubVerfall"><span class="hint">Stichtag, an dem nicht genommener Vorjahresurlaub verfällt. Leer = nie. Gilt ab dem Jahr unten.</span></div>
-      ${num('c_uva', 'Verfall gilt ab Jahr', 'urlaubVerfallAb', '1', 'Frühere Jahre bleiben ohne Verfall.')}
-      ${num('c_lm', 'Urlaub ins Langzeitkonto (Tage)', 'lzkMax', '0.5', 'So viele Tage des Rests gehen am Verfallstag ins Langzeitkonto, der Rest verfällt. Wirkt ab dem Jahr oben.')}
-      ${num('c_sl', 'Langzeitkonto zum Startdatum (Tage)', 'startLzk', '0.5', 'Startwert, vor allem nach einem Import.')}
-    </div>
-    <h4 class="sh">Zeitkonto</h4>
-    <div class="fields wide">
-      <div class="field"><label for="c_kt">Stichtag Kappung (MM-TT)</label><input id="c_kt" value="${esc(c.kappungTag)}" placeholder="10-31" data-f="cfg:kappungTag"><span class="hint">An diesem Tag wird das Zeitkonto auf den Wert unten gekappt. Leer = keine Kappung. Wirkt auf alle Jahre, das Zeitkonto vergangener Jahre ändert sich.</span></div>
-      ${num('c_km', 'Saldo nach Kappung (h)', 'kappungMax', '0.25', 'Höchstwert nach dem Stichtag.')}
-    </div>
+    <h4 class="sh">Urlaub und Zeitkonto</h4>
+    <p class="hint" style="margin:0 0 10px">Diese Regeln gelten jeweils ab einem Datum. Eine Änderung wirkt nur ab ihrem Datum, Urlaub, Zeitkonto und Auswertungen davor bleiben wie erfasst. Lege für eine neue Regel eine Änderung mit Datum an und ändere nicht die alte Zeile. Urlaubstage pro Jahr werden am 01.01. gutgeschrieben, eine Änderung mitten im Jahr greift also ab dem nächsten 01.01.</p>
+    ${ruleBlocks(c)}
+    <button class="btn sm" data-a="rgAdd">Regeländerung hinzufügen</button>
     <h4 class="sh">Startwerte</h4>
     <div class="fields wide">
       <div class="field"><label for="c_sd">Startdatum</label><input id="c_sd" type="date" value="${c.startDatum}" data-f="cfg:startDatum"><span class="hint">Erster Tag der Rechnung. Frühere Einträge werden nicht gewertet.</span></div>
       ${num('c_ks', 'Zeitkonto zum Startdatum (h)', 'startSaldo', '0.01', 'Verschiebt das gesamte Zeitkonto um den Betrag.')}
       ${num('c_ku', 'Resturlaub zum Startdatum', 'startUrlaub', '0.5', 'Verschiebt den gesamten Resturlaub um den Betrag.')}
+      ${num('c_sl', 'Langzeitkonto zum Startdatum (Tage)', 'startLzk', '0.5', 'Startwert, vor allem nach einem Import.')}
     </div>
     <p class="hint" style="margin:6px 0 14px">Nach einem Excel-Import stehen bei einigen Tagen Korrekturen („Korrektur Zeitkonto“ am Tag). Sie gleichen Handänderungen aus der Excel aus und bleiben bei Regeländerungen als feste Stundenwerte erhalten. Nach einer Regeländerung kannst du sie unter Heute pro Tag prüfen.</p>
     <h4 class="sh">Gehalt</h4>
     <div class="fields wide">
-      <div class="field"><label for="c_zf">Zahltag</label><select id="c_zf" data-f="cfg:zahltagModus">${ZAHLTAG_OPTS.map(([v, l]) => opt(v, l, c.zahltagModus)).join('')}</select><span class="hint">Nur das Datum der Auszahlung (Kalender und Gehalt), betrifft keine Stunden. Werktag heißt Mo bis Fr ohne Feiertage, 24.12. und 31.12. (außer bei „Mo bis Fr“). Fällt ein Termin auf einen freien Tag, wird der 15. und der Monatsletzte auf den Werktag davor gezogen, der Monatsanfang auf den nächsten Werktag.</span></div>
+      <div class="field"><label for="c_zf">Zahltag</label><select id="c_zf" data-f="cfg:zahltagModus">${ZAHLTAG_OPTS.concat(c.zahltagModus === ZAHLTAG_ALT[0] ? [ZAHLTAG_ALT] : []).map(([v, l]) => opt(v, l, c.zahltagModus)).join('')}</select><span class="hint">Nur das Datum der Auszahlung (Kalender und Gehalt), betrifft keine Stunden. Werktag heißt Mo bis Fr ohne Feiertage, 24.12. und 31.12. (außer bei „Mo bis Fr“). Fällt ein Termin auf einen freien Tag, wird der 15. und der Monatsletzte auf den Werktag davor gezogen, der Monatsanfang auf den nächsten Werktag.</span></div>
       <div class="field"><label for="c_pm">Erhöhung in der Prognose: Monat</label><select id="c_pm" data-f="cfg:payRiseMonat" data-int="1">${opt('0', 'keine Erhöhung annehmen', String(c.payRiseMonat || 0))}${MONL.map((n, i) => opt(String(i + 1), n, String(c.payRiseMonat || 0))).join('')}</select><span class="hint">Nur für künftige Monate. Bei „keine“ bleibt das Brutto in der Prognose gleich.</span></div>
       <div class="field"><label for="c_pa">Erhöhung in der Prognose: Art</label><select id="c_pa" data-f="cfg:payRiseArt">${opt('pct', 'Prozent', c.payRiseArt || 'pct')}${opt('eur', 'Betrag in € (Brutto pro Monat)', c.payRiseArt || 'pct')}</select><span class="hint">Wie die erwartete Erhöhung angegeben wird.</span></div>
       ${c.payRiseArt === 'eur'
@@ -383,7 +396,7 @@ function viewEinst() {
       <div class="field"><label for="c_ra">Uhrzeiten erfassen</label><select id="c_ra" data-f="cfg:raster">${opt('min', 'minutengenau', c.raster || 'min')}${opt('15', 'viertelstündlich', c.raster || 'min')}</select><span class="hint">Bei „viertelstündlich“ bieten die Zeitfelder (Kommen, Gehen, Von, Bis) eine Auswahlliste in 15-Minuten-Schritten an und springen in 15-Minuten-Schritten, eingetippte Uhrzeiten und der Timer (Kommen/Gehen jetzt, Tätigkeiten) werden auf die nächste Viertelstunde auf- oder abgerundet. Bereits erfasste Zeiten bleiben unverändert.</span></div>
     </div>
     <h4 class="sh">Spaltennamen der Tätigkeiten</h4>
-    <div class="fields wide">
+    <div class="fields cols">
       ${['cat', 'w', 'sys', 'pn', 'th'].map(x => `<div class="field"><label for="c_col_${x}">${esc(COLD[x])}</label><input id="c_col_${x}" value="${esc((c.spalten && c.spalten[x]) || '')}" placeholder="${esc(COLD[x])}" data-f="col:${x}">${x === 'th' ? '' : `<select aria-label="${esc(COLD[x])}" data-f="colv:${x}" style="margin-top:6px">${opt('true', 'anzeigen', String(colOn(x)))}${opt('false', 'ausblenden', String(colOn(x)))}</select>`}</div>`).join('')}
       <span class="hint" style="grid-column:1/-1">Eigene Namen und Sichtbarkeit der Spalten bei Tätigkeiten, in Filtern, Auswertung und CSV-Export. Leer lassen für den Standardnamen. Die Projektnummer ist standardmäßig ausgeblendet und wird beim Excel-Import eingeschaltet, wenn die Datei eine solche Spalte hat. Ausgeblendete Spalten behalten ihre erfassten Werte.</span>
     </div>

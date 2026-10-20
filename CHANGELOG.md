@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0
+
+- Settings (GitHub issue #4): **Vacation days per year, 24.12./31.12., expiry date, days into the long-term account, and cap (date and balance after cap) now apply from a date.** Add a "rule change" with a "Valid from" date; earlier periods keep their old rules. The cap can be switched off per rule. "Expiry applies from year" is replaced by this: existing settings are converted automatically.
+- Payday dropdown reordered: start of month, end of month, middle of month, 4th last working day. The old "Mon to Fri" variant only shows if it was already selected.
+- Activity column names are laid out in one row.
+
 ## 1.5.0
 
 - New day type **Business trip** (Dienstreise), next to Vacation and Time off in lieu (GitHub issue #3). It is only a marker in the calendar, vacation planner and day view: the day is calculated exactly like a normal working day, so hours, target and balance are unaffected. Its own colour in the calendars.

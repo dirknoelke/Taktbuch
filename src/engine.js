@@ -12,7 +12,8 @@
     startUrlaub: 0,       // Resturlaub vor erstem Datum
     startDatum: '2020-01-01',
     urlaubVerfall: '05-01', // MM-TT: nicht genommener Vorjahresurlaub verfällt
-    urlaubVerfallAb: 2025,  // gilt ab diesem Jahr (wie in der Excel)
+    urlaubVerfallAb: 2025,  // alt: wird beim Laden in eine Regel mit Datum umgewandelt
+    regeln: [],             // Regeln ab Datum: urlaubJahr, halbeTage, urlaubVerfall, lzkMax, kappungAn, kappungTag, kappungMax
     lzkMax: 10,             // Urlaubstage, die am Stichtag ins Langzeitkonto gehen (Rest verfällt)
     startLzk: 0,            // Langzeitkonto in Tagen vor dem Startdatum
     halbeTage: true         // 24.12. und 31.12. zählen als halber Urlaubstag
@@ -89,20 +90,44 @@
   function defaultType(k, cfg) {
     if (weekday(k) >= 6) return 'WE';
     if (holidayName(k)) return 'Feiertag';
-    if ((cfg ? cfg.halbeTage : DEFAULTS.halbeTage) && (k.slice(5) === '12-24' || k.slice(5) === '12-31')) return 'Urlaub - halb';
+    if ((cfg ? cfgAt(cfg, k).halbeTage : DEFAULTS.halbeTage) && (k.slice(5) === '12-24' || k.slice(5) === '12-31')) return 'Urlaub - halb';
     return 'arbeit';
   }
 
+  // Regeln mit Gueltig-ab-Datum: Basiswerte gelten ab Startdatum, cfg.regeln ersetzen sie ab ihrem Datum.
+  const RULE_KEYS = ['urlaubJahr', 'halbeTage', 'urlaubVerfall', 'lzkMax', 'kappungAn', 'kappungTag', 'kappungMax'];
+  function migrate(cfgIn) {
+    const c = Object.assign({}, DEFAULTS, cfgIn || {});
+    c.regeln = Array.isArray(c.regeln) ? c.regeln.filter(x => x && x.ab).sort((x, y) => x.ab.localeCompare(y.ab)) : [];
+    const y0 = +String(c.startDatum).slice(0, 4);
+    if (c.urlaubVerfallAb) {
+      if (c.urlaubVerfall && c.urlaubVerfallAb > y0 && c.urlaubVerfallAb < 9999) {
+        const r = { ab: c.urlaubVerfallAb + '-01-01' }; RULE_KEYS.forEach(f => { r[f] = c[f]; });
+        c.regeln.push(r); c.regeln.sort((x, y) => x.ab.localeCompare(y.ab)); c.urlaubVerfall = '';
+      } else if (c.urlaubVerfall && c.urlaubVerfallAb >= 9999) { c.urlaubVerfall = ''; }
+      c.urlaubVerfallAb = 0;
+    }
+    return c;
+  }
+  function cfgAt(cfg, k) {
+    let r = cfg;
+    if (cfg.regeln && cfg.regeln.length) {
+      r = Object.assign({}, cfg);
+      for (const x of cfg.regeln) { if (x.ab > k) break; RULE_KEYS.forEach(f => { if (x[f] !== undefined) r[f] = x[f]; }); }
+    }
+    return r;
+  }
   // Lauf ueber alle Tage von cfg.startDatum bis endKey.
   // days: { 'YYYY-MM-DD': {s,e,a,t,p} } ; actsByDay: { 'YYYY-MM-DD': netto-summe }
   // todayKey: Tage ab heute ohne Zeiten gelten als Plan (Soll erfuellt).
   function run(days, actsByDay, cfgIn, endKey, todayKey) {
-    const cfg = Object.assign({}, DEFAULTS, cfgIn || {});
+    const cfg = migrate(cfgIn);
     const out = []; let konto = cfg.startSaldo, rest = cfg.startUrlaub, lzk = cfg.startLzk || 0;
     const nettoAb = cfg.nettoAb || '2021-02-18';
     for (let k = cfg.startDatum; k <= endKey; k = addDays(k, 1)) {
       const inp = days[k] || {};
-      const dt = defaultType(k, cfg);
+      const rc = cfgAt(cfg, k);
+      const dt = defaultType(k, rc);
       let t = inp.t || (dt === 'arbeit' ? (cfg.standardThema || 'Arbeit') : dt);
       const isWorkType = !(t in TYPES) || !!TYPES[t].work;
       const s = inp.s || 0, e = inp.e || 0, a = inp.a || 0;
@@ -125,14 +150,14 @@
       const adj = +inp.z || 0;
       konto = konto + za - zagen + adj;
       let loss = 0;
-      if (cfg.kappungTag && k.slice(5) === cfg.kappungTag && konto > cfg.kappungMax) { loss = konto - cfg.kappungMax; konto = cfg.kappungMax; }
+      if (rc.kappungAn !== false && rc.kappungTag && k.slice(5) === rc.kappungTag && konto > rc.kappungMax) { loss = konto - rc.kappungMax; konto = rc.kappungMax; }
       const ugen = t === 'Urlaub' ? 1 : t === 'Urlaub - halb' ? 0.5 : 0;
       let lzkIn = 0, verfall = 0;
-      if (k.slice(5) === '01-01') rest = rest + cfg.urlaubJahr;
+      if (k.slice(5) === '01-01') rest = rest + rc.urlaubJahr;
       else {
-        if (cfg.urlaubVerfall && k.slice(5) === cfg.urlaubVerfall && +k.slice(0, 4) >= cfg.urlaubVerfallAb) {
-          const surplus = Math.max(0, rest - cfg.urlaubJahr); // Vorjahresurlaub, der nicht genommen wurde
-          lzkIn = Math.min(cfg.lzkMax, surplus); verfall = surplus - lzkIn; rest -= surplus; lzk += lzkIn;
+        if (rc.urlaubVerfall && k.slice(5) === rc.urlaubVerfall) {
+          const surplus = Math.max(0, rest - rc.urlaubJahr); // Vorjahresurlaub, der nicht genommen wurde
+          lzkIn = Math.min(rc.lzkMax, surplus); verfall = surplus - lzkIn; rest -= surplus; lzk += lzkIn;
         }
         rest -= ugen;
       }
@@ -196,6 +221,6 @@
     }
     return payday(y, m, true);
   }
-  const api = { paydayMode, isWerktag, sollAt, payday, DEFAULTS, TYPES, key, parse, addDays, weekday, isoWeek, easter, holidays, holidayName, setRegion, getRegion, REGIONS, autoPause, defaultType, run, summarize, fromUTC, toUTC };
+  const api = { migrate, cfgAt, paydayMode, isWerktag, sollAt, payday, DEFAULTS, TYPES, key, parse, addDays, weekday, isoWeek, easter, holidays, holidayName, setRegion, getRegion, REGIONS, autoPause, defaultType, run, summarize, fromUTC, toUTC };
   if (typeof module !== 'undefined') module.exports = api; else root.StundenEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);
