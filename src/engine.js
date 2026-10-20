@@ -117,6 +117,15 @@
     }
     return r;
   }
+  // Jobwechsel: Regel mit .wechsel = {rest, konto, lzk}. Alter Job im Wechseljahr: anteilig in Halbmonaten, auf halbe Tage aufgerundet.
+  function monthsBefore(ab) { // Monate im alten Job vor dem Wechseltag ab (1.-15. = halber Monat)
+    const m = +ab.slice(5, 7), ed = +ab.slice(8, 10) - 1;
+    return (m - 1) + (ed <= 0 ? 0 : ed >= 16 ? 1 : 0.5);
+  }
+  function creditAt(cfg, y, urlaubJahr) { // Gutschrift am 01.01. des Jahres y
+    const w = (cfg.regeln || []).find(r => r.wechsel && r.ab.slice(0, 4) === String(y) && r.ab > y + '-01-01');
+    return w ? Math.ceil(urlaubJahr * monthsBefore(w.ab) / 12 * 2) / 2 : urlaubJahr;
+  }
   // Lauf ueber alle Tage von cfg.startDatum bis endKey.
   // days: { 'YYYY-MM-DD': {s,e,a,t,p} } ; actsByDay: { 'YYYY-MM-DD': netto-summe }
   // todayKey: Tage ab heute ohne Zeiten gelten als Plan (Soll erfuellt).
@@ -124,9 +133,11 @@
     const cfg = migrate(cfgIn);
     const out = []; let konto = cfg.startSaldo, rest = cfg.startUrlaub, lzk = cfg.startLzk || 0;
     const nettoAb = cfg.nettoAb || '2021-02-18';
+    const wz = {}; cfg.regeln.forEach(r => { if (r.wechsel) wz[r.ab] = r.wechsel; });
     for (let k = cfg.startDatum; k <= endKey; k = addDays(k, 1)) {
       const inp = days[k] || {};
       const rc = cfgAt(cfg, k);
+      const wj = wz[k]; if (wj) { konto = +wj.konto || 0; rest = +wj.rest || 0; lzk = +wj.lzk || 0; }
       const dt = defaultType(k, rc);
       let t = inp.t || (dt === 'arbeit' ? (cfg.standardThema || 'Arbeit') : dt);
       const isWorkType = !(t in TYPES) || !!TYPES[t].work;
@@ -153,7 +164,7 @@
       if (rc.kappungAn !== false && rc.kappungTag && k.slice(5) === rc.kappungTag && konto > rc.kappungMax) { loss = konto - rc.kappungMax; konto = rc.kappungMax; }
       const ugen = t === 'Urlaub' ? 1 : t === 'Urlaub - halb' ? 0.5 : 0;
       let lzkIn = 0, verfall = 0;
-      if (k.slice(5) === '01-01') rest = rest + rc.urlaubJahr;
+      if (k.slice(5) === '01-01') { if (!wj) rest = rest + creditAt(cfg, +k.slice(0, 4), rc.urlaubJahr); }
       else {
         if (rc.urlaubVerfall && k.slice(5) === rc.urlaubVerfall) {
           const surplus = Math.max(0, rest - rc.urlaubJahr); // Vorjahresurlaub, der nicht genommen wurde
@@ -221,6 +232,6 @@
     }
     return payday(y, m, true);
   }
-  const api = { migrate, cfgAt, paydayMode, isWerktag, sollAt, payday, DEFAULTS, TYPES, key, parse, addDays, weekday, isoWeek, easter, holidays, holidayName, setRegion, getRegion, REGIONS, autoPause, defaultType, run, summarize, fromUTC, toUTC };
+  const api = { monthsBefore, creditAt, migrate, cfgAt, paydayMode, isWerktag, sollAt, payday, DEFAULTS, TYPES, key, parse, addDays, weekday, isoWeek, easter, holidays, holidayName, setRegion, getRegion, REGIONS, autoPause, defaultType, run, summarize, fromUTC, toUTC };
   if (typeof module !== 'undefined') module.exports = api; else root.StundenEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

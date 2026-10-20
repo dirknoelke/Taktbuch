@@ -47,4 +47,12 @@ eq('1 Urlaubstag: Resturlaub 9', ru.rest, 9);
   const m = E.migrate(Object.assign({}, base, { urlaubVerfall: '05-01', urlaubVerfallAb: 2027, lzkMax: 10 }));
   eq('Migration: Basis ohne Verfall', m.urlaubVerfall, ''); eq('Migration: Regel ab 2027', m.regeln.length === 1 && m.regeln[0].ab === '2027-01-01' && m.regeln[0].urlaubVerfall === '05-01', true);
 }
+// Jobwechsel
+{
+  eq('Halbmonate: Wechsel 01.07. = 6', E.monthsBefore('2026-07-01'), 6); eq('Wechsel 15.07. = 6,5', E.monthsBefore('2026-07-15'), 6.5); eq('Wechsel 16.07. = 6,5', E.monthsBefore('2026-07-16'), 6.5); eq('Wechsel 17.07. = 7', E.monthsBefore('2026-07-17'), 7);
+  const c = { startDatum: '2026-01-01', startSaldo: 0, startUrlaub: 0, soll: 8, urlaubJahr: 30, kappungTag: '', urlaubVerfall: '', halbeTage: false, regeln: [{ ab: '2026-07-01', urlaubJahr: 24, wechsel: { rest: 12, konto: 0, lzk: 0 } }] };
+  const R = E.run({ '2026-01-02': { s: 8, e: 17, p: 0.5, z: 50 } }, {}, c, '2027-01-02', null), ix = {}; R.forEach(r => { ix[r.k] = r; });
+  eq('Jobwechsel: alter Job anteilig 15 Tage', ix['2026-06-30'].rest, 15); eq('Jobwechsel: Rest am Wechseltag 12', ix['2026-07-01'].rest, 12); eq('Jobwechsel: Zeitkonto zurueck auf Startwert', ix['2026-07-01'].konto, 0 + ix['2026-07-01'].za);
+  eq('Jobwechsel: 01.01. danach 24 neue Tage', ix['2027-01-01'].rest, 12 + 24);
+}
 console.log(fail ? fail + ' Fehler' : 'alle Tests bestanden'); process.exit(fail ? 1 : 0);

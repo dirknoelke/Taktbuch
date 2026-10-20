@@ -146,7 +146,7 @@ function viewUrlaub() {
   const y = UI.uy, Y = R.years[y], rc = E.cfgAt(S.cfg, y + '-12-31');
   if (!Y) return '<div class="empty">Für dieses Jahr gibt es keine Daten.</div>';
   const rows = R.rows.filter(r => r.k.slice(0, 4) === String(y)), prevEnd = R.map[(y - 1) + '-12-31'];
-  const carry = prevEnd ? prevEnd.rest : (y === startY ? S.cfg.startUrlaub : 0), anspruch = carry + rc.urlaubJahr;
+  const carry = prevEnd ? prevEnd.rest : (y === startY ? S.cfg.startUrlaub : 0), wj = (S.cfg.regeln || []).find(r => r.wechsel && r.ab.slice(0, 4) === String(y)), anspruch = wj ? (E.creditAt(S.cfg, y, E.cfgAt(S.cfg, y + '-01-01').urlaubJahr) + wj.wechsel.rest + (y === startY ? S.cfg.startUrlaub : prevEnd ? prevEnd.rest : 0)) : carry + rc.urlaubJahr;
   const sumU = f => rows.reduce((a, r) => a + (f(r) ? r.ugen : 0), 0);
   const genommen = sumU(r => r.k <= t), geplant = sumU(r => r.k > t);
   const zaTage = f => rows.filter(r => f(r) && r.zagen > 0).length;
