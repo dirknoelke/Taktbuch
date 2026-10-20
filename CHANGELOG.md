@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.6
+
+- Fix (quarter-hour mode): typing into the time text fields no longer inserts a leading `0` or `:00` while typing (GitHub issue #2). The value is normalised when you leave the field.
+
 ## 1.4.5
 
 - Quarter-hour mode: the same text-field-with-dropdown applies to Break, Absence and Interruption: text field with a dropdown (00:00 to 08:00 in 15-minute steps). For these, `30` means 30 minutes.
