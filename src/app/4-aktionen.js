@@ -11,6 +11,21 @@ const actions = {
   payYear: el => { UI.payYear = +el.dataset.v; render(); },
   svAdd: () => { ensureSoll(); const v = S.cfg.sollVerlauf, last = v[v.length - 1]; let ab = todayKey(); if (ab <= last.ab) ab = E.addDays(last.ab, 1); v.push({ ab, soll: last.soll }); commit(); },
   rgAdd: () => { const g = S.cfg.regeln = S.cfg.regeln || [], last = g.length ? g[g.length - 1] : null; const src = E.cfgAt(S.cfg, '9999-12-31'); let ab = todayKey(); if (last && ab <= last.ab) ab = E.addDays(last.ab, 1); const r = { ab }; ['urlaubJahr', 'halbeTage', 'urlaubVerfall', 'lzkMax', 'kappungAn', 'kappungTag', 'kappungMax'].forEach(f => { r[f] = src[f]; }); if (r.kappungAn === undefined) r.kappungAn = true; g.push(r); commit(); },
+  wizOpen: () => { const rc = E.cfgAt(S.cfg, todayKey()), ab = todayKey(); UI.wiz = { ab, urlaubJahr: rc.urlaubJahr, rest: wizDefaults(ab, rc.urlaubJahr), konto: 0, lzk: 0, soll: S.cfg.soll }; render(); },
+  wizCancel: () => { UI.wiz = null; render(); },
+  wizApply: () => {
+    const w = UI.wiz; if (!w) return; ensureSoll();
+    const last = (S.cfg.regeln || []).length ? S.cfg.regeln[S.cfg.regeln.length - 1].ab : S.cfg.startDatum;
+    if (!w.ab || w.ab <= S.cfg.startDatum || w.ab <= last) { toast('Das Datum muss nach dem Startdatum und nach der letzten Regeländerung liegen.'); return; }
+    if (!(w.soll > 0)) { toast('Das Soll pro Arbeitstag fehlt.'); return; }
+    const src = E.cfgAt(S.cfg, w.ab), r = { ab: w.ab };
+    ['urlaubJahr', 'halbeTage', 'urlaubVerfall', 'lzkMax', 'kappungAn', 'kappungTag', 'kappungMax'].forEach(f => { r[f] = src[f]; });
+    if (r.kappungAn === undefined) r.kappungAn = true;
+    r.urlaubJahr = w.urlaubJahr; r.wechsel = { rest: w.rest, konto: w.konto, lzk: w.lzk };
+    S.cfg.regeln = (S.cfg.regeln || []).concat(r);
+    S.cfg.sollVerlauf = S.cfg.sollVerlauf.filter(x => x.ab !== w.ab).concat({ ab: w.ab, soll: w.soll });
+    UI.wiz = null; commit(); toast('Jobwechsel eingetragen.');
+  },
   rgDel: el => { S.cfg.regeln.splice(+el.dataset.i, 1); commit(); },
   svDel: el => { S.cfg.sollVerlauf.splice(+el.dataset.i, 1); commit(); },
   uyear: el => { UI.uy = +el.dataset.v; render(); },
@@ -115,6 +130,14 @@ function fieldChange(el, final) {
     if (el.dataset.int) v = parseInt(v, 10) || 0;
     if (el.dataset.num) { v = parseFloat(String(v).replace(',', '.')); if (isNaN(v)) return; if (el.dataset.pct) v /= 100; }
     S.cfg[a] = v; commit();
+  } else if (scope === 'wiz') {
+    const w = UI.wiz; if (!w) return;
+    if (a === 'ab') { if (!v) return; w.ab = v; w.rest = wizDefaults(w.ab, w.urlaubJahr); render(); return; }
+    v = parseFloat(String(v).replace(',', '.')); if (isNaN(v)) return; w[a] = v;
+    if (a === 'urlaubJahr') { w.rest = wizDefaults(w.ab, v); render(); }
+  } else if (scope === 'rgw') {
+    const x = (S.cfg.regeln || [])[+a]; if (!x || !x.wechsel) return;
+    v = parseFloat(String(v).replace(',', '.')); if (isNaN(v)) { render(); return; } x.wechsel[b] = v; commit();
   } else if (scope === 'rg') {
     const x = (S.cfg.regeln || [])[+a]; if (!x) return;
     if (b === 'ab') { if (!v) { render(); return; } x.ab = v; S.cfg.regeln.sort((p, q) => p.ab.localeCompare(q.ab)); }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0
+
+- New **Job change** wizard in Settings. Asks for the first day in the new job, vacation days per year, vacation days until year end, starting time account, starting long-term account and target hours. The old job counts pro rata in half months (1st to 15th = half a month), rounded up to half days. On the change date remaining vacation, time account and long-term account are reset to the entered values; everything before stays unchanged. Expiry, cap and 24.12./31.12. are copied from the previous rules and editable in the new entry. Dated rule changes from 1.6.0 stay for changes within the same job.
+
 ## 1.6.0
 
 - Settings (GitHub issue #4): **Vacation days per year, 24.12./31.12., expiry date, days into the long-term account, and cap (date and balance after cap) now apply from a date.** Add a "rule change" with a "Valid from" date; earlier periods keep their old rules. The cap can be switched off per rule. "Expiry applies from year" is replaced by this: existing settings are converted automatically.

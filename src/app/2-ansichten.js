@@ -1,6 +1,24 @@
 /* ---------- Hilfen für Ansichten ---------- */
 const ZAHLTAG_OPTS = [['erster', 'Zum Monatsanfang (erster Werktag)'], ['letzter', 'Zum Monatsende (letzter Werktag)'], ['tag15', 'Am 15. jeden Monats'], ['letzte4', '4. letzter Werktag im Monat']];
 const ZAHLTAG_ALT = ['letzte4raw', '4. letzter Werktag im Monat (Mo bis Fr, auch Feiertage)']; // nur sichtbar, wenn schon gewählt
+/* Jobwechsel-Wizard (Werte in UI.wiz) */
+function wizDefaults(ab, uj) { const m = E.monthsBefore(ab); return Math.ceil(uj * (12 - m) / 12 * 2) / 2; }
+function wizardHtml() {
+  const w = UI.wiz, old = E.cfgAt(S.cfg, w.ab || todayKey()), m = w.ab ? E.monthsBefore(w.ab) : 0;
+  const f = (n, label, step, hint) => `<div class="field"><label for="w_${n}">${label}</label><input id="w_${n}" type="number" step="${step}" value="${w[n]}" data-f="wiz:${n}" data-num="1">${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
+  const alt = Math.ceil(old.urlaubJahr * m / 12 * 2) / 2;
+  return `<div class="rgb" style="margin-top:12px"><div class="rgh"><b>Jobwechsel</b></div>
+    <div class="fields wide">
+      <div class="field"><label for="w_ab">Erster Tag im neuen Job</label><input id="w_ab" type="date" value="${esc(w.ab)}" data-f="wiz:ab"><span class="hint">Der alte Job zählt bis zum Vortag.</span></div>
+      ${f('urlaubJahr', 'Urlaubstage pro Jahr im neuen Job', '0.5', 'Gilt ab dem nächsten 01.01.')}
+      ${f('rest', 'Urlaubstage im neuen Job bis Jahresende', '0.5', 'Vorbelegt anteilig nach Halbmonaten, zugunsten des Arbeitnehmers auf halbe Tage aufgerundet.')}
+      ${f('konto', 'Zeitkonto zu Beginn (h)', '0.25', 'Normalerweise 0.')}
+      ${f('lzk', 'Langzeitkonto zu Beginn (Tage)', '0.5', '')}
+      ${f('soll', 'Soll pro Arbeitstag im neuen Job (h)', '0.25', '')}
+    </div>
+    <p class="hint" style="margin:6px 0 10px">Alter Job im Wechseljahr: ${fmtDec(m, 1)} Monate, das sind ${fmtDec(alt, 1)} von ${fmtDec(old.urlaubJahr, 0)} Urlaubstagen. Resturlaub, Zeitkonto und Langzeitkonto des alten Jobs gelten am Wechseltag als abgerechnet. Alles davor bleibt unverändert. Verfall, Kappung und 24.12./31.12. übernimmst du aus den bisherigen Regeln und kannst sie danach beim neuen Eintrag ändern.</p>
+    <div class="nav"><button class="btn primary" data-a="wizApply">Jobwechsel übernehmen</button><button class="btn" data-a="wizCancel">Abbrechen</button></div></div>`;
+}
 /* Regeln mit Gültig-ab-Datum: erster Block = Basiswerte ab Startdatum, weitere = c.regeln */
 function ruleBlocks(c) {
   const blk = (r, i) => {
@@ -8,7 +26,7 @@ function ruleBlocks(c) {
     const nf = (n, label, step, hint) => `<div class="field"><label for="${pre}${n}">${label}</label><input id="${pre}${n}" type="number" step="${step}" value="${r[n]}" ${f(n)} data-num="1">${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
     const bf = (n, label, a, b, cur, hint) => `<div class="field"><label for="${pre}${n}">${label}</label><select id="${pre}${n}" ${f(n)} data-bool="1">${opt('true', a, String(cur))}${opt('false', b, String(cur))}</select>${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
     const kOn = r.kappungAn !== false;
-    return `<div class="rgb"><div class="rgh">${i < 0 ? `<b>Ab Startdatum ${esc(fmtDate(c.startDatum))}</b>` : `<label for="${pre}ab"><b>Gültig ab</b></label><input id="${pre}ab" type="date" value="${esc(r.ab)}" data-f="rg:${i}:ab" style="width:auto"><button class="btn sm ghost" data-a="rgDel" data-i="${i}" aria-label="Regeländerung entfernen">✕</button>`}</div>
+    return `<div class="rgb"><div class="rgh">${i < 0 ? `<b>Ab Startdatum ${esc(fmtDate(c.startDatum))}</b>` : `<label for="${pre}ab"><b>${r.wechsel ? 'Jobwechsel am' : 'Gültig ab'}</b></label><input id="${pre}ab" type="date" value="${esc(r.ab)}" data-f="rg:${i}:ab" style="width:auto"><button class="btn sm ghost" data-a="rgDel" data-i="${i}" aria-label="Regeländerung entfernen">✕</button>`}</div>
       <div class="fields wide">
         ${nf('urlaubJahr', 'Urlaubstage pro Jahr', '0.5')}
         ${bf('halbeTage', '24.12. und 31.12.', 'halber Urlaubstag', 'normaler Arbeitstag', r.halbeTage, 'Tage mit eigenem Eintrag oder gewählter Art bleiben unberührt.')}
@@ -17,7 +35,10 @@ function ruleBlocks(c) {
         ${bf('kappungAn', 'Kappung des Zeitkontos', 'aktiv', 'aus', kOn, 'Aus = das Zeitkonto wird nicht gekappt.')}
         <div class="field"><label for="${pre}kappungTag">Stichtag Kappung (MM-TT)</label><input id="${pre}kappungTag" value="${esc(r.kappungTag)}" placeholder="10-31" ${f('kappungTag')}${kOn ? '' : ' disabled'}></div>
         ${nf('kappungMax', 'Saldo nach Kappung (h)', '0.25', 'Höchstwert des Zeitkontos nach dem Stichtag.').replace('<input ', '<input ' + (kOn ? '' : 'disabled '))}
-      </div></div>`;
+      </div>${r.wechsel ? `<div class="fields wide" style="margin-top:10px">
+        <div class="field"><label for="${pre}wr">Urlaubstage im neuen Job bis Jahresende</label><input id="${pre}wr" type="number" step="0.5" value="${r.wechsel.rest}" data-f="rgw:${i}:rest" data-num="1"></div>
+        <div class="field"><label for="${pre}wk">Zeitkonto zu Beginn (h)</label><input id="${pre}wk" type="number" step="0.25" value="${r.wechsel.konto}" data-f="rgw:${i}:konto" data-num="1"></div>
+        <div class="field"><label for="${pre}wl">Langzeitkonto zu Beginn (Tage)</label><input id="${pre}wl" type="number" step="0.5" value="${r.wechsel.lzk}" data-f="rgw:${i}:lzk" data-num="1"></div></div>` : ''}</div>`;
   };
   return [blk(c, -1)].concat((c.regeln || []).map((r, i) => blk(r, i))).join('');
 }
@@ -367,7 +388,8 @@ function viewEinst() {
     <h4 class="sh">Urlaub und Zeitkonto</h4>
     <p class="hint" style="margin:0 0 10px">Diese Regeln gelten jeweils ab einem Datum. Eine Änderung wirkt nur ab ihrem Datum, Urlaub, Zeitkonto und Auswertungen davor bleiben wie erfasst. Lege für eine neue Regel eine Änderung mit Datum an und ändere nicht die alte Zeile. Urlaubstage pro Jahr werden am 01.01. gutgeschrieben, eine Änderung mitten im Jahr greift also ab dem nächsten 01.01.</p>
     ${ruleBlocks(c)}
-    <button class="btn sm" data-a="rgAdd">Regeländerung hinzufügen</button>
+    <div class="nav" style="justify-content:flex-start"><button class="btn sm" data-a="rgAdd">Regeländerung hinzufügen</button><button class="btn sm" data-a="wizOpen">Jobwechsel</button></div>
+    ${UI.wiz ? wizardHtml() : ''}
     <h4 class="sh">Startwerte</h4>
     <div class="fields wide">
       <div class="field"><label for="c_sd">Startdatum</label><input id="c_sd" type="date" value="${c.startDatum}" data-f="cfg:startDatum"><span class="hint">Erster Tag der Rechnung. Frühere Einträge werden nicht gewertet.</span></div>
