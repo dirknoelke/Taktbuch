@@ -21,6 +21,7 @@
     arbeit: { label: 'Arbeit', work: true },
     Urlaub: { label: 'Urlaub' }, 'Urlaub - halb': { label: 'Urlaub halb' }, Sonderurlaub: { label: 'Sonderurlaub' }, Betriebsfrei: { label: 'Betriebsfrei' },
     Zeitausgleich: { label: 'Zeitausgleich' }, krank: { label: 'Krank' },
+    Dienstreise: { label: 'Dienstreise', work: true },   // nur Markierung: rechnet wie ein normaler Arbeitstag
     Feiertag: { label: 'Feiertag' }, WE: { label: 'Wochenende' }
   };
 
@@ -103,7 +104,7 @@
       const inp = days[k] || {};
       const dt = defaultType(k, cfg);
       let t = inp.t || (dt === 'arbeit' ? (cfg.standardThema || 'Arbeit') : dt);
-      const isWorkType = !(t in TYPES) || t === 'arbeit';
+      const isWorkType = !(t in TYPES) || !!TYPES[t].work;
       const s = inp.s || 0, e = inp.e || 0, a = inp.a || 0;
       const d = e > s ? e - s : 0;
       const pause = inp.p != null && inp.p !== '' ? inp.p : autoPause(d);

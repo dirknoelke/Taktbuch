@@ -1,6 +1,8 @@
 /* Englisches Wörterbuch. Schlüssel: deutscher Text, Zahlen als #, Wochentag <WD>, Monat <MON>.
    Reihenfolge der # muss im englischen Text gleich bleiben. Geldbeträge: im Schlüssel "# €", im Wert "€#". */
 window.ZW_EN = {
+  'Dienstreise': 'Business trip',
+
   'Uhrzeit nicht erkannt, bitte so eingeben: 09:30': 'Time not recognised, please enter it like 09:30',
 
   'Schreiben unvollständig, die alte Version wurde wiederhergestellt.': 'Writing was incomplete, the old version was restored.',
