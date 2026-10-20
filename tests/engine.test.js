@@ -25,4 +25,11 @@ eq('2 Werktage ohne Eintrag', Math.round(last(E.run({}, {}, cfg, '2026-01-06', n
 const ru = last(E.run({ '2026-01-05': { t: 'Urlaub' } }, {}, cfg, '2026-01-06', null));
 eq('1 Urlaubstag: Konto nur 1 Tag Minus', Math.round(ru.konto * 100) / 100, -7.5);
 eq('1 Urlaubstag: Resturlaub 9', ru.rest, 9);
+// Dienstreise: Markierung, rechnet wie ein normaler Arbeitstag
+{
+  const cfg = { startDatum: '2026-03-02', startSaldo: 0, startUrlaub: 10, soll: 7.5 };
+  const mk = t => E.run({ '2026-03-04': Object.assign({ s: 8, e: 16.5, p: 0.5 }, t ? { t } : {}) }, {}, cfg, '2026-03-05', '2026-03-06');
+  const a = last(mk(null)), b = last(mk('Dienstreise'));
+  eq('Dienstreise: gleiches Zeitkonto wie Arbeit', b.konto, a.konto); eq('Dienstreise: gleicher Resturlaub', b.rest, a.rest); eq('Dienstreise: gleiche Stunden', b.stunden, a.stunden);
+}
 console.log(fail ? fail + ' Fehler' : 'alle Tests bestanden'); process.exit(fail ? 1 : 0);

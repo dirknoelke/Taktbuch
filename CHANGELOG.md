@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0
+
+- New day type **Business trip** (Dienstreise), next to Vacation and Time off in lieu (GitHub issue #3). It is only a marker in the calendar, vacation planner and day view: the day is calculated exactly like a normal working day, so hours, target and balance are unaffected. Its own colour in the calendars.
+
 ## 1.4.6
 
 - Fix (quarter-hour mode): typing into the time text fields no longer inserts a leading `0` or `:00` while typing (GitHub issue #2). The value is normalised when you leave the field.

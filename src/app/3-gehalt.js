@@ -140,7 +140,7 @@ function viewGehalt() {
 }
 
 /* ---------- Urlaubsplanung ---------- */
-const BRUSHES = [['Urlaub', 'Urlaub'], ['Urlaub - halb', 'Urlaub halb'], ['Zeitausgleich', 'Zeitausgleich'], ['arbeit', 'Arbeit (löschen)']];
+const BRUSHES = [['Urlaub', 'Urlaub'], ['Urlaub - halb', 'Urlaub halb'], ['Zeitausgleich', 'Zeitausgleich'], ['Dienstreise', 'Dienstreise'], ['arbeit', 'Arbeit (löschen)']];
 function viewUrlaub() {
   const t = todayKey(), curY = +t.slice(0, 4), startY = +S.cfg.startDatum.slice(0, 4);
   const y = UI.uy, Y = R.years[y];
@@ -165,7 +165,7 @@ function viewUrlaub() {
     for (let d = 1; d <= n; d++) {
       const k = E.key(y, m, d), r = R.map[k], paintable = r.wd < 6 && !r.hol;
       const half = r.t === 'Urlaub - halb';
-      c += `<button class="pd ${tyClass(r.t)} ${k > t && !isWorkType(r.t) && r.wd < 6 ? 'fut' : ''} ${k === t ? 'today' : ''}" data-k="${k}" ${paintable ? 'data-p="1"' : 'tabindex="-1"'} data-a="paintKey" title="${esc(fmtDate(k) + (r.hol ? ' · ' + r.hol : !isWorkType(r.t) && r.t !== 'WE' ? ' · ' + tyLabel(r.t) : ''))}" aria-label="${esc(fmtDate(k) + ' ' + tyLabel(r.t))}">${d}${half ? '<sup>½</sup>' : ''}</button>`;
+      c += `<button class="pd ${tyClass(r.t)} ${k > t && !isWorkType(r.t) && r.wd < 6 ? 'fut' : ''} ${k === t ? 'today' : ''}" data-k="${k}" ${paintable ? 'data-p="1"' : 'tabindex="-1"'} data-a="paintKey" title="${esc(fmtDate(k) + (r.hol ? ' · ' + r.hol : E.TYPES[r.t] && r.t !== 'arbeit' && r.t !== 'WE' ? ' · ' + tyLabel(r.t) : ''))}" aria-label="${esc(fmtDate(k) + ' ' + tyLabel(r.t))}">${d}${half ? '<sup>½</sup>' : ''}</button>`;
     }
     const uCount = M.urlaub, zCount = rows.filter(r => +r.k.slice(5, 7) === m && r.zagen > 0).length;
     return `<div class="pm"><div class="pmh"><b>${MONL[i]}</b><span class="hint">${uCount ? fmtDec(uCount, uCount % 1 ? 1 : 0) + ' U' : ''}${uCount && zCount ? ' · ' : ''}${zCount ? zCount + ' ZA' : ''}</span></div>
@@ -190,7 +190,7 @@ ${S.cfg.urlaubVerfall ? `    <div class="stat"><small>Langzeitkonto</small><b>${
       <div class="seg" role="group" aria-label="Pinsel">${BRUSHES.map(([v, l]) => `<button data-a="brush" data-v="${esc(v)}" aria-pressed="${UI.brush === v}">${l}</button>`).join('')}</div></div>
     <p class="hint" style="margin:0 0 12px">Tag anklicken oder mit gedrückter Maustaste darüberziehen. Ein zweiter Klick auf einen belegten Tag nimmt ihn zurück. Wochenenden und Feiertage sind gesperrt. 24.12. und 31.12. zählen automatisch als halber Urlaubstag.</p>
     <div class="pms" id="paintArea">${months}</div>
-    <div class="legend" style="margin-top:12px"><span><i class="ty-Urlaub"></i>Urlaub</span><span><i class="ty-Zeitausgleich"></i>Zeitausgleich</span><span><i class="ty-Feiertag"></i>Feiertag</span><span><i class="ty-WE"></i>Wochenende</span><span>Gestrichelt: noch geplant · ½ halber Tag</span></div>
+    <div class="legend" style="margin-top:12px"><span><i class="ty-Urlaub"></i>Urlaub</span><span><i class="ty-Zeitausgleich"></i>Zeitausgleich</span><span><i class="ty-Dienstreise"></i>Dienstreise</span><span><i class="ty-Feiertag"></i>Feiertag</span><span><i class="ty-WE"></i>Wochenende</span><span>Gestrichelt: noch geplant · ½ halber Tag</span></div>
   </section>
   <div class="grid2">
     <section class="card"><div class="card-h"><h3>Resturlaub im Jahresverlauf</h3><span class="hint">Tage</span></div><div class="chartbox" id="chRest"></div>

@@ -1,9 +1,9 @@
 /* ---------- Hilfen für Ansichten ---------- */
 const ZAHLTAG_OPTS = [['letzte4', '4. letzter Werktag im Monat'], ['letzte4raw', '4. letzter Werktag im Monat (Mo bis Fr, auch Feiertage)'], ['tag15', 'Am 15. jeden Monats'], ['erster', 'Zum Monatsanfang (erster Werktag)'], ['letzter', 'Zum Monatsende (letzter Werktag)']];
-const TYPE_OPTS = [['', 'Arbeit'], ['Urlaub', 'Urlaub'], ['Urlaub - halb', 'Urlaub halb'], ['Sonderurlaub', 'Sonderurlaub'], ['Zeitausgleich', 'Zeitausgleich'], ['krank', 'Krank'], ['Feiertag', 'Feiertag'], ['Betriebsfrei', 'Betriebsfrei'], ['WE', 'Wochenende']];
+const TYPE_OPTS = [['', 'Arbeit'], ['Urlaub', 'Urlaub'], ['Urlaub - halb', 'Urlaub halb'], ['Sonderurlaub', 'Sonderurlaub'], ['Zeitausgleich', 'Zeitausgleich'], ['Dienstreise', 'Dienstreise'], ['krank', 'Krank'], ['Feiertag', 'Feiertag'], ['Betriebsfrei', 'Betriebsfrei'], ['WE', 'Wochenende']];
 const tyClass = t => (E.TYPES[t] && t !== 'arbeit' ? 'ty-' + t.replace(/[^A-Za-z]+/g, '-') : '');
 const tyLabel = t => (E.TYPES[t] ? E.TYPES[t].label : t);
-const isWorkType = t => !E.TYPES[t] || t === 'arbeit';
+const isWorkType = t => !E.TYPES[t] || !!E.TYPES[t].work;
 const netto = a => (a.e ? Math.max(0, H(a.e) - H(a.s) - H(a.u)) : 0);
 const catColors = {};
 function catColor(c) { if (!c) return 'var(--c6)'; if (!(c in catColors)) catColors[c] = 'var(--c' + (1 + (Object.keys(catColors).length % 5)) + ')'; return catColors[c]; }
@@ -78,7 +78,7 @@ function viewHeute() {
     <button class="btn" data-a="day" data-n="1" aria-label="Nächster Tag">›</button>
     <input type="date" style="width:auto" value="${k}" data-f="ui:date" aria-label="Datum wählen">
     ${isToday ? '' : '<button class="btn" data-a="today">Heute</button>'}
-    ${row.t !== 'arbeit' && !isWorkType(row.t) ? `<span class="chip ${tyClass(row.t)}">${esc(tyLabel(row.t))}${typeHint && row.t !== typeHint ? ' · ' + esc(typeHint) : ''}</span>` : ''}
+    ${row.t !== 'arbeit' && E.TYPES[row.t] ? `<span class="chip ${tyClass(row.t)}">${esc(tyLabel(row.t))}${typeHint && row.t !== typeHint ? ' · ' + esc(typeHint) : ''}</span>` : ''}
     ${row.planned ? '<span class="chip ty-WE">Plan</span>' : ''}${isPay ? ' <span class="chip ty-Feiertag">Zahltag</span>' : ''}
   </div>
   <div class="stats">
@@ -205,12 +205,12 @@ function viewMonat() {
     <div class="stat"><small>Urlaub / Krank</small><b>${fmtDec(M.urlaub, M.urlaub % 1 ? 1 : 0)} / ${fmtDec(M.krank, M.krank % 1 ? 1 : 0)}</b><span>Tage · Rest ${fmtDec(M.rest, M.rest % 1 ? 1 : 0)}</span></div>
     <div class="stat"><small>Erfassungsrate</small><b>${M.rate == null ? '–' : Math.round(M.rate * 100) + ' %'}</b><span>${fmtT(M.netto)} h in Tätigkeiten</span></div></div>` : ''}
   <section class="card"><div class="cal">${cells}</div>
-    <div class="legend" style="margin-top:12px">${[['Urlaub', 'Urlaub'], ['Zeitausgleich', 'Zeitausgleich'], ['krank', 'Krank'], ['Feiertag', 'Feiertag'], ['WE', 'Wochenende']].map(([c, l]) => `<span><i class="${tyClass(c)}"></i>${l}</span>`).join('')}<span>Kursiv: Plan, noch nicht erfasst</span></div></section>
+    <div class="legend" style="margin-top:12px">${[['Urlaub', 'Urlaub'], ['Zeitausgleich', 'Zeitausgleich'], ['Dienstreise', 'Dienstreise'], ['krank', 'Krank'], ['Feiertag', 'Feiertag'], ['WE', 'Wochenende']].map(([c, l]) => `<span><i class="${tyClass(c)}"></i>${l}</span>`).join('')}<span>Kursiv: Plan, noch nicht erfasst</span></div></section>
   <section class="card"><div class="card-h"><h3>Zeitraum eintragen</h3><span class="hint">Wochenenden und Feiertage werden übersprungen.</span></div>
     <div class="fields" style="align-items:end">
       <div class="field"><label for="r_from">Von</label><input id="r_from" type="date" value="${rg.from}" data-f="range:from"></div>
       <div class="field"><label for="r_to">Bis</label><input id="r_to" type="date" value="${rg.to}" data-f="range:to"></div>
-      <div class="field"><label for="r_t">Art</label><select id="r_t" data-f="range:t">${TYPE_OPTS.slice(1, 7).map(([v, l]) => opt(v, l, rg.t)).join('')}</select></div>
+      <div class="field"><label for="r_t">Art</label><select id="r_t" data-f="range:t">${TYPE_OPTS.slice(1, 8).map(([v, l]) => opt(v, l, rg.t)).join('')}</select></div>
       <div><button class="btn primary" data-a="applyRange">Eintragen</button> <button class="btn" data-a="clearRange">Zurücksetzen</button></div>
     </div></section>`;
 }

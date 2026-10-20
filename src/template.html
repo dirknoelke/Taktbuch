@@ -9,7 +9,7 @@
   --bg:#EBEFF3; --surface:#FFFFFF; --surface2:#F4F6F9; --ink:#111B25; --muted:#586979; --line:#D3DAE2;
   --accent:#D9461C; --accent-ink:#FFFFFF; --accent-soft:#FBE6DF;
   --pos:#14773F; --neg:#B8321F; --warn:#9A6200;
-  --t-urlaub:#DCE9FB; --t-urlaub-ink:#1D4F96; --t-za:#E8E0F7; --t-za-ink:#5A3A9C;
+  --t-urlaub:#DCE9FB; --t-urlaub-ink:#1D4F96; --t-za:#E8E0F7; --t-za-ink:#5A3A9C; --t-dr:#FBEFCB; --t-dr-ink:#8A6410;
   --t-krank:#FADFE6; --t-krank-ink:#9B2447; --t-feier:#DDEEE6; --t-feier-ink:#1F6B4B; --t-we:#E3E8ED; --t-we-ink:#6A7B8B;
   --c1:#2F62C8; --c2:#C97F12; --c3:#17907A; --c4:#7C4FC0; --c5:#BF3F72; --c6:#66788A;
   --font-ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -21,14 +21,14 @@
   --bg:#0C1319; --surface:#141E27; --surface2:#1A2631; --ink:#E6ECF2; --muted:#8C9EB0; --line:#2A3946;
   --accent:#FF7B52; --accent-ink:#1B0B05; --accent-soft:#3A2018;
   --pos:#4FC98B; --neg:#FF8F7E; --warn:#E3B04B;
-  --t-urlaub:#1C3354; --t-urlaub-ink:#9CC1F5; --t-za:#2C2548; --t-za-ink:#C4B0F2;
+  --t-urlaub:#1C3354; --t-urlaub-ink:#9CC1F5; --t-za:#2C2548; --t-za-ink:#C4B0F2; --t-dr:#3D3317; --t-dr-ink:#E8C56B;
   --t-krank:#43202B; --t-krank-ink:#F2A3BA; --t-feier:#1B3A2E; --t-feier-ink:#8FDDB9; --t-we:#1F2B36; --t-we-ink:#7D8FA1;
   --c1:#6C9BF2; --c2:#E5A845; --c3:#4CC3A9; --c4:#AD8BE6; --c5:#E57BA6; --c6:#93A5B7; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0C1319; --surface:#141E27; --surface2:#1A2631; --ink:#E6ECF2; --muted:#8C9EB0; --line:#2A3946;
   --accent:#FF7B52; --accent-ink:#1B0B05; --accent-soft:#3A2018;
   --pos:#4FC98B; --neg:#FF8F7E; --warn:#E3B04B;
-  --t-urlaub:#1C3354; --t-urlaub-ink:#9CC1F5; --t-za:#2C2548; --t-za-ink:#C4B0F2;
+  --t-urlaub:#1C3354; --t-urlaub-ink:#9CC1F5; --t-za:#2C2548; --t-za-ink:#C4B0F2; --t-dr:#3D3317; --t-dr-ink:#E8C56B;
   --t-krank:#43202B; --t-krank-ink:#F2A3BA; --t-feier:#1B3A2E; --t-feier-ink:#8FDDB9; --t-we:#1F2B36; --t-we-ink:#7D8FA1;
   --c1:#6C9BF2; --c2:#E5A845; --c3:#4CC3A9; --c4:#AD8BE6; --c5:#E57BA6; --c6:#93A5B7; color-scheme:dark}
 
@@ -140,6 +140,7 @@ input.tq{font-family:var(--font-num)}
 .chip{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap}
 .ty-Urlaub,.ty-Sonderurlaub,.ty-Urlaub-halb{background:var(--t-urlaub);color:var(--t-urlaub-ink)}
 .ty-Zeitausgleich{background:var(--t-za);color:var(--t-za-ink)}
+.ty-Dienstreise{background:var(--t-dr);color:var(--t-dr-ink)}
 .ty-krank{background:var(--t-krank);color:var(--t-krank-ink)}
 .ty-Feiertag,.ty-Betriebsfrei{background:var(--t-feier);color:var(--t-feier-ink)}
 .ty-WE{background:var(--t-we);color:var(--t-we-ink)}
@@ -156,6 +157,7 @@ input.tq{font-family:var(--font-num)}
 .cell.planned .hv{opacity:.55;font-style:italic}
 .cell.ty-Urlaub,.cell.ty-Sonderurlaub,.cell.ty-Urlaub-halb{background:var(--t-urlaub);color:var(--t-urlaub-ink)}
 .cell.ty-Zeitausgleich{background:var(--t-za);color:var(--t-za-ink)}
+.cell.ty-Dienstreise{background:var(--t-dr);color:var(--t-dr-ink)}
 .cell.ty-krank{background:var(--t-krank);color:var(--t-krank-ink)}
 .cell.ty-Feiertag,.cell.ty-Betriebsfrei{background:var(--t-feier);color:var(--t-feier-ink)}
 .cell.ty-WE{background:var(--t-we);color:var(--t-we-ink)}
@@ -188,6 +190,7 @@ input.tq{font-family:var(--font-num)}
 .pd[class*="ty-"]{background:var(--surface2)}
 .pd.ty-Urlaub,.pd.ty-Sonderurlaub,.pd.ty-Urlaub-halb{background:var(--t-urlaub);color:var(--t-urlaub-ink)}
 .pd.ty-Zeitausgleich{background:var(--t-za);color:var(--t-za-ink)}
+.pd.ty-Dienstreise{background:var(--t-dr);color:var(--t-dr-ink)}
 .pd.ty-krank{background:var(--t-krank);color:var(--t-krank-ink)}
 .pd.ty-Feiertag,.pd.ty-Betriebsfrei{background:var(--t-feier);color:var(--t-feier-ink)}
 .pd.ty-WE{background:transparent;color:var(--t-we-ink)}
