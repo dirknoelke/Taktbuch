@@ -87,7 +87,7 @@ function autofillForm(a, v) {
 function fieldChange(el, final) {
   const [scope, a, b] = el.dataset.f.split(':');
   let v = el.value;
-  if (el.classList.contains('tq') && /^(form:[seu]|day:[seap]|act:[^:]+:[seu])$/.test(el.dataset.f)) {
+  if (final && el.classList.contains('tq') && /^(form:[seu]|day:[seap]|act:[^:]+:[seu])$/.test(el.dataset.f)) {
     const nv = normT(v, !!el.dataset.dur);
     if (nv === null) { toast('Uhrzeit nicht erkannt, bitte so eingeben: 09:30'); render(); return; }
     if (nv !== v) { v = nv; el.value = nv; }
