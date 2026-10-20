@@ -143,19 +143,19 @@ function viewGehalt() {
 const BRUSHES = [['Urlaub', 'Urlaub'], ['Urlaub - halb', 'Urlaub halb'], ['Zeitausgleich', 'Zeitausgleich'], ['Dienstreise', 'Dienstreise'], ['arbeit', 'Arbeit (löschen)']];
 function viewUrlaub() {
   const t = todayKey(), curY = +t.slice(0, 4), startY = +S.cfg.startDatum.slice(0, 4);
-  const y = UI.uy, Y = R.years[y];
+  const y = UI.uy, Y = R.years[y], rc = E.cfgAt(S.cfg, y + '-12-31');
   if (!Y) return '<div class="empty">Für dieses Jahr gibt es keine Daten.</div>';
   const rows = R.rows.filter(r => r.k.slice(0, 4) === String(y)), prevEnd = R.map[(y - 1) + '-12-31'];
-  const carry = prevEnd ? prevEnd.rest : (y === startY ? S.cfg.startUrlaub : 0), anspruch = carry + S.cfg.urlaubJahr;
+  const carry = prevEnd ? prevEnd.rest : (y === startY ? S.cfg.startUrlaub : 0), anspruch = carry + rc.urlaubJahr;
   const sumU = f => rows.reduce((a, r) => a + (f(r) ? r.ugen : 0), 0);
   const genommen = sumU(r => r.k <= t), geplant = sumU(r => r.k > t);
   const zaTage = f => rows.filter(r => f(r) && r.zagen > 0).length;
   const zaGen = zaTage(r => r.k <= t), zaPlan = zaTage(r => r.k > t);
-  const apr = R.map[y + '-04-30'], may = R.map[y + '-05-01'], cap = S.cfg.urlaubVerfall ? R.map[y + '-' + S.cfg.urlaubVerfall] : null;
-  const active = cap && y >= S.cfg.urlaubVerfallAb;
+  const apr = R.map[y + '-04-30'], may = R.map[y + '-05-01'], cap = rc.urlaubVerfall ? R.map[y + '-' + rc.urlaubVerfall] : null;
+  const active = !!cap;
   const surplus = active ? cap.lzkIn + cap.verfall : 0;
-  const kc = S.cfg.kappungTag ? R.map[y + '-' + S.cfg.kappungTag] : null;
-  const capMD = S.cfg.urlaubVerfall ? S.cfg.urlaubVerfall.split('-') : ['05', '01'];
+  const kc = rc.kappungAn !== false && rc.kappungTag ? R.map[y + '-' + rc.kappungTag] : null;
+  const capMD = rc.urlaubVerfall ? rc.urlaubVerfall.split('-') : ['05', '01'];
   const past = cap && cap.k <= t;
   const yearsBtn = []; for (let v = startY; v <= curY + 2; v++) yearsBtn.push(v);
   // Mini-Kalender
@@ -181,10 +181,10 @@ function viewUrlaub() {
   <div class="nav"><h2>Urlaubsplanung</h2><div class="seg" role="group" aria-label="Jahr">${yearsBtn.map(v => `<button data-a="uyear" data-v="${v}" aria-pressed="${v === y}">${v}</button>`).join('')}</div></div>
   ${warn ? `<div class="banner" style="margin:0"><span>${warn}</span></div>` : ''}
   <div class="stats">
-    <div class="stat"><small>Anspruch ${y}</small><b>${fmtDec(anspruch, anspruch % 1 ? 1 : 0)}</b><span>${fmtDec(carry, carry % 1 ? 1 : 0)} Vorjahr + ${fmtDec(S.cfg.urlaubJahr, 0)} neu am 1.1.</span></div>
+    <div class="stat"><small>Anspruch ${y}</small><b>${fmtDec(anspruch, anspruch % 1 ? 1 : 0)}</b><span>${fmtDec(carry, carry % 1 ? 1 : 0)} Vorjahr + ${fmtDec(rc.urlaubJahr, 0)} neu am 1.1.</span></div>
     <div class="stat"><small>Urlaub genommen / geplant</small><b>${fmtDec(genommen, genommen % 1 ? 1 : 0)} / ${fmtDec(geplant, geplant % 1 ? 1 : 0)}</b><span>Tage, inkl. halbe Tage</span></div>
     <div class="stat"><small>Rest zum Jahresende</small><b>${fmtDec(Y.tot.rest, Y.tot.rest % 1 ? 1 : 0)}</b><span>${active && may ? 'nach ' + capMD[1] + '.' + capMD[0] + '.: ' + fmtDec(may.rest, may.rest % 1 ? 1 : 0) + ' Tage' : 'Tage'}</span></div>
-${S.cfg.urlaubVerfall ? `    <div class="stat"><small>Langzeitkonto</small><b>${fmtDec(Y.tot.lzk, Y.tot.lzk % 1 ? 1 : 0)}</b><span>Tage am Jahresende${active && cap.lzkIn ? ' · +' + fmtDec(cap.lzkIn, 0) + ' am ' + capMD[1] + '.' + capMD[0] + '.' : ''}</span></div>` : ''}</div>
+${rc.urlaubVerfall ? `    <div class="stat"><small>Langzeitkonto</small><b>${fmtDec(Y.tot.lzk, Y.tot.lzk % 1 ? 1 : 0)}</b><span>Tage am Jahresende${active && cap.lzkIn ? ' · +' + fmtDec(cap.lzkIn, 0) + ' am ' + capMD[1] + '.' + capMD[0] + '.' : ''}</span></div>` : ''}</div>
   <section class="card">
     <div class="card-h"><h3>Abwesenheiten einplanen</h3>
       <div class="seg" role="group" aria-label="Pinsel">${BRUSHES.map(([v, l]) => `<button data-a="brush" data-v="${esc(v)}" aria-pressed="${UI.brush === v}">${l}</button>`).join('')}</div></div>
@@ -194,11 +194,11 @@ ${S.cfg.urlaubVerfall ? `    <div class="stat"><small>Langzeitkonto</small><b>${
   </section>
   <div class="grid2">
     <section class="card"><div class="card-h"><h3>Resturlaub im Jahresverlauf</h3><span class="hint">Tage</span></div><div class="chartbox" id="chRest"></div>
-      ${S.cfg.urlaubVerfall ? `<p class="hint" style="margin:8px 0 0">Am ${capMD[1]}.${capMD[0]}. fällt der Vorjahresurlaub über ${fmtDec(S.cfg.urlaubJahr, 0)} Tage weg. Bis zu ${fmtDec(S.cfg.lzkMax, 0)} Tage davon gehen ins Langzeitkonto, der Rest verfällt.</p>` : ''}</section>
+      ${rc.urlaubVerfall ? `<p class="hint" style="margin:8px 0 0">Am ${capMD[1]}.${capMD[0]}. fällt der Vorjahresurlaub über ${fmtDec(rc.urlaubJahr, 0)} Tage weg. Bis zu ${fmtDec(rc.lzkMax, 0)} Tage davon gehen ins Langzeitkonto, der Rest verfällt.</p>` : ''}</section>
     <section class="card"><div class="card-h"><h3>Zeitausgleich ${y}</h3></div>
       <div class="calc" style="margin-top:0;border:0;padding-top:0"><div><small>Genommen</small><b>${zaGen} Tage</b></div><div><small>Geplant</small><b>${zaPlan} Tage</b></div><div><small>Stunden gesamt</small><b>${fmtT((zaGen + zaPlan) * S.cfg.soll)}</b></div></div>
       ${kc ? `<p style="margin:14px 0 0">Zeitkonto am ${kc.k.slice(8)}.${kc.k.slice(5, 7)}.: <b class="num">${fmtT(kc.konto + kc.loss)} h</b> vor der Kappung.</p>
-      <p class="${kc.loss > 0.01 ? 'warn' : 'hint'}" style="margin:4px 0 0">${kc.loss > 0.01 ? `Auf ${fmtT(S.cfg.kappungMax)} h gekappt: ${fmtT(kc.loss)} h verfallen. Das sind ${fmtDec(kc.loss / S.cfg.soll, 1)} Tage Zeitausgleich, die du vorher noch einplanen kannst.` : 'Nach aktueller Planung verfällt nichts.'}</p>` : ''}
+      <p class="${kc.loss > 0.01 ? 'warn' : 'hint'}" style="margin:4px 0 0">${kc.loss > 0.01 ? `Auf ${fmtT(rc.kappungMax)} h gekappt: ${fmtT(kc.loss)} h verfallen. Das sind ${fmtDec(kc.loss / S.cfg.soll, 1)} Tage Zeitausgleich, die du vorher noch einplanen kannst.` : 'Nach aktueller Planung verfällt nichts.'}</p>` : ''}
     </section>
   </div>`;
 }

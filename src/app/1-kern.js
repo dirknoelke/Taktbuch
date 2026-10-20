@@ -87,6 +87,7 @@ function ensureSoll() {
   if (!c.sollVerlauf.length) c.sollVerlauf = [{ ab: c.startDatum, soll: 7.5 }];
   c.sollVerlauf[0].ab = c.startDatum;
   c.soll = E.sollAt(c, todayKey());
+  if (c.urlaubVerfallAb || !Array.isArray(c.regeln)) { const m = E.migrate(c); c.regeln = m.regeln; c.urlaubVerfall = m.urlaubVerfall; c.urlaubVerfallAb = 0; }
 }
 function recompute() {
   E.setRegion(S.cfg.region);
@@ -250,11 +251,13 @@ async function importWorkbook(buf) {
   S = { v: 1, cfg, days, acts: [], pay: {}, demo: false };
   const tKonto = {}, tRest = {}; dRows.forEach(r => { const k = xlDate(r[1]); tKonto[k] = n(r[9]); tRest[k] = n(r[13]); });
   const score = () => { recompute(); let bad = 0, pk = null; for (const row of R.rows) { if (tKonto[row.k] == null) continue; if (row.k.slice(5) === '10-31' || row.k.slice(5) === '11-01') continue; if (pk) { if (Math.abs((row.konto - pk.konto) - (tKonto[row.k] - tKonto[pk.k])) > 0.02) bad++; if (Math.abs((row.rest - pk.rest) - (tRest[row.k] - tRest[pk.k])) > 0.02) bad += 3; } pk = row; } return bad; };
-  const baseV = cfg.urlaubVerfall, baseK = cfg.kappungTag; let best = null;
-  for (const [uv, kt] of [[baseV, baseK], ['', baseK], [baseV, ''], ['', '']]) {
-    cfg.urlaubVerfall = uv; cfg.kappungTag = kt; const sc = score(); if (!best || sc < best.sc - 2.5) best = { sc, uv, kt };
+  recompute(); // wandelt „Verfall ab Jahr“ in eine Regel mit Datum um
+  const rules = [cfg].concat(cfg.regeln || []), orig = rules.map(r => [r.urlaubVerfall, r.kappungTag]); let best = null;
+  const setV = (fv, fk) => rules.forEach((r, i) => { r.urlaubVerfall = fv ? orig[i][0] : ''; r.kappungTag = fk ? orig[i][1] : ''; });
+  for (const [fv, fk] of [[1, 1], [0, 1], [1, 0], [0, 0]]) {
+    setV(fv, fk); const sc = score(); if (!best || sc < best.sc - 2.5) best = { sc, fv, fk };
   }
-  cfg.urlaubVerfall = best.uv; cfg.kappungTag = best.kt;
+  setV(best.fv, best.fk);
   // Excel-Handkorrekturen als Tageskorrektur übernehmen, damit das Zeitkonto exakt passt
   const pay = {}, gs = sh['Gehalt'] || [], gh = gs[0] || [], lindaPay = gh.indexOf('variabler Anteil') >= 0;
   const gRows = gs.slice(1).filter(r => typeof r[0] === 'number'), c2 = x => Math.round(x * 100) / 100;

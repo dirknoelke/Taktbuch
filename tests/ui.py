@@ -36,7 +36,7 @@ async def main():
         await ctx2.route('https://api.github.com/**', lambda r: r.abort())
         await pg2.goto(url); await pg2.click('[data-pf=voll]'); await pg2.wait_for_selector('#tabs .tab'); await pg2.wait_for_timeout(2500)
         check('offline: kein Banner, keine Fehler', await pg2.inner_text('#updbanner') == '' and not e2)
-        check('Profil voll hat Verfall', await pg2.evaluate("()=>S.cfg.urlaubVerfall==='05-01'"))
+        check('Profil voll hat Verfall', await pg2.evaluate("()=>DEFAULT_CFG.urlaubVerfall==='05-01'"))
 
         # 4) Englisch: Umschalten, Namen, keine deutschen Reste in allen Ansichten
         pg3 = await (await b.new_context()).new_page()
@@ -85,6 +85,14 @@ async def main():
         await pg3.select_option('#c_rg', 'SN'); await pg3.wait_for_timeout(300)
         check('Bundesland Sachsen: Buß- und Bettag', await pg3.evaluate("()=>E.holidayName('2026-11-18')==='Buß- und Bettag'&&S.cfg.region==='SN'"))
         await pg3.select_option('#c_rg', 'NW')
+        await pg3.click('[data-a=rgAdd]'); await pg3.wait_for_timeout(200)
+        await pg3.select_option('#r1_kappungAn', 'false'); await pg3.fill('#r1_urlaubJahr', '28'); await pg3.dispatch_event('#r1_urlaubJahr', 'change')
+        check('Regeländerung ab Datum angelegt', await pg3.evaluate("()=>S.cfg.regeln.length===1&&S.cfg.regeln[0].kappungAn===false&&S.cfg.regeln[0].urlaubJahr===28&&S.cfg.urlaubJahr!==28"))
+        check('Zahltag: Reihenfolge und 4 Optionen', await pg3.evaluate("()=>[...document.querySelectorAll('#c_zf option')].map(o=>o.value).join()") == 'erster,letzter,tag15,letzte4')
+        ys = await pg3.evaluate("()=>[...document.querySelectorAll('#c_col_cat,#c_col_w,#c_col_sys,#c_col_pn,#c_col_th')].map(e=>Math.round(e.getBoundingClientRect().top))")
+        check('Spaltennamen in einer Reihe', len(set(ys)) == 1)
+        await pg3.click('[data-a=rgDel]'); await pg3.wait_for_timeout(200)
+        check('Regeländerung entfernt', await pg3.evaluate("()=>S.cfg.regeln.length===0"))
         await pg3.select_option('[data-f="colv:pn"]', 'true'); await pg3.select_option('[data-f="colv:sys"]', 'false')
         await pg3.click('button[data-v=taet]'); hd = (await pg3.inner_text('#view thead')).lower()
         check('Spalten ein-/ausblendbar', 'projektnummer' in hd and 'system' not in hd and 'kategorie' in hd)

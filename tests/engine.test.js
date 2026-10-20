@@ -32,4 +32,19 @@ eq('1 Urlaubstag: Resturlaub 9', ru.rest, 9);
   const a = last(mk(null)), b = last(mk('Dienstreise'));
   eq('Dienstreise: gleiches Zeitkonto wie Arbeit', b.konto, a.konto); eq('Dienstreise: gleicher Resturlaub', b.rest, a.rest); eq('Dienstreise: gleiche Stunden', b.stunden, a.stunden);
 }
+// Regeln ab Datum: Aenderungen wirken nur ab ihrem Tag
+{
+  const base = { startDatum: '2025-01-01', startSaldo: 0, startUrlaub: 0, soll: 8, urlaubJahr: 30, halbeTage: true, urlaubVerfall: '', kappungTag: '10-31', kappungMax: 10, urlaubVerfallAb: 0 };
+  const jetzt = { regeln: [{ ab: '2026-01-01', urlaubJahr: 28, halbeTage: false, urlaubVerfall: '05-01', lzkMax: 5, kappungAn: false, kappungTag: '10-31', kappungMax: 10 }] };
+  const A = E.run({ '2025-02-03': { s: 8, e: 17, p: 0.5, z: 2000 } }, {}, Object.assign({}, base, jetzt), '2026-12-31', null), idx = {}; A.forEach(r => { idx[r.k] = r; });
+  eq('Regel: 24.12.2025 halber Tag (alte Regel)', idx['2025-12-24'].t, 'Urlaub - halb');
+  eq('Regel: 24.12.2026 normaler Arbeitstag (neue Regel)', idx['2026-12-24'].t !== 'Urlaub - halb', true);
+  eq('Regel: Urlaub 2025 mit 30 Tagen', idx['2025-12-31'].rest <= 30 && idx['2025-12-31'].rest > 28, true);
+  eq('Regel: Kappung 2025 aktiv', idx['2025-10-31'].loss > 0, true);
+  eq('Regel: Kappung 2026 ausgeschaltet', idx['2026-10-31'].loss, 0);
+  eq('Regel: Verfall 2025 nicht, 2026 ja', idx['2025-05-01'].verfall === 0 && idx['2026-05-01'].verfall > 0 || idx['2026-05-01'].lzkIn > 0, true);
+  // altes Verfall-ab-Jahr wird zur Regel
+  const m = E.migrate(Object.assign({}, base, { urlaubVerfall: '05-01', urlaubVerfallAb: 2027, lzkMax: 10 }));
+  eq('Migration: Basis ohne Verfall', m.urlaubVerfall, ''); eq('Migration: Regel ab 2027', m.regeln.length === 1 && m.regeln[0].ab === '2027-01-01' && m.regeln[0].urlaubVerfall === '05-01', true);
+}
 console.log(fail ? fail + ' Fehler' : 'alle Tests bestanden'); process.exit(fail ? 1 : 0);
