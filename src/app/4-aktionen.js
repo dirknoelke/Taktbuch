@@ -6,6 +6,9 @@ const actions = {
   day: el => { UI.date = E.addDays(UI.date, +el.dataset.n); UI.year = +UI.date.slice(0, 4); render(); },
   today: () => { UI.date = todayKey(); render(); },
   goto: el => go(el.dataset.k),
+  setOrt: el => setDay(UI.date, { o: el.dataset.v }),
+  applyRangeOrt: () => rangeOrt(false),
+  clearRangeOrt: () => rangeOrt(true),
   setType: el => setDay(UI.date, { t: normType(UI.date, el.dataset.v) }),
   payStart: () => { S.pay = S.pay || {}; S.pay[todayKey().slice(0, 7)] = { b: 0 }; save(); render(); },
   payYear: el => { UI.payYear = +el.dataset.v; render(); },
@@ -68,6 +71,17 @@ const actions = {
   resetAll: () => { S = { v: 1, cfg: Object.assign({}, DEFAULT_CFG), days: {}, acts: [], pay: {}, demo: false }; UI.confirm = ''; UI.report = null; commit(); toast('Alle Daten gelöscht.'); },
   loadDemo: () => { makeDemo(); UI.report = null; commit(); }
 };
+function rangeOrt(clear) {
+  const g = UI.range; if (!g.from || !g.to || g.to < g.from) { toast('Von und Bis prüfen.'); return; }
+  let n = 0;
+  for (let k = g.from; k <= g.to; k = E.addDays(k, 1)) {
+    if (E.weekday(k) >= 6 || E.holidayName(k)) continue;
+    const d = Object.assign({}, S.days[k] || {});
+    if (clear) { delete d.o; delete d.hoAb; } else d.o = g.o || 'ho';
+    if (isEmptyDay(d)) delete S.days[k]; else S.days[k] = d; n++;
+  }
+  commit(); toast(n + ' ' + I18N.tx('Tage aktualisiert') + '.');
+}
 function rangeApply(clear) {
   const g = UI.range; if (!g.from || !g.to || g.to < g.from) { toast('Von und Bis prüfen.'); return; }
   let n = 0, skip = 0;
@@ -104,7 +118,7 @@ function autofillForm(a, v) {
 function fieldChange(el, final) {
   const [scope, a, b] = el.dataset.f.split(':');
   let v = el.value;
-  if (final && el.classList.contains('tq') && /^(form:[seu]|day:[seap]|act:[^:]+:[seu])$/.test(el.dataset.f)) {
+  if (final && el.classList.contains('tq') && /^(form:[seu]|day:([seap]|hoAb)|act:[^:]+:[seu])$/.test(el.dataset.f)) {
     const nv = normT(v, !!el.dataset.dur);
     if (nv === null) { toast('Uhrzeit nicht erkannt, bitte so eingeben: 09:30'); render(); return; }
     if (nv !== v) { v = nv; el.value = nv; }
@@ -124,6 +138,8 @@ function fieldChange(el, final) {
     act[b] = v;
     if (b === 'w' && isFocus(v)) { const d = focusDefaults(v); if (!act.sys) act.sys = d.sys; if (!act.th) act.th = d.th; }
     commit();
+  } else if (scope === 'cfg' && a === 'hoWd') {
+    const wd = +b, l = (S.cfg.hoWochentage || []).filter(x => x !== wd); if (el.checked) l.push(wd); S.cfg.hoWochentage = l.sort(); commit();
   } else if (scope === 'cfg') {
     if (el.dataset.bool) v = v === 'true';
     if (el.dataset.nullable && String(v).trim() === '') { S.cfg[a] = null; commit(); return; }

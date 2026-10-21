@@ -13,6 +13,10 @@
     startDatum: '2020-01-01',
     urlaubVerfall: '05-01', // MM-TT: nicht genommener Vorjahresurlaub verfällt
     urlaubVerfallAb: 2025,  // alt: wird beim Laden in eine Regel mit Datum umgewandelt
+    ortAn: false,           // Arbeitsort (Buero/Homeoffice) erfassen
+    standardOrt: 'buero',   // 'buero' | 'ho'
+    hoWochentage: [],       // feste Homeoffice-Wochentage (1=Mo ... 5=Fr)
+    auszahlAn: false,       // Auszahlung von Ueberstunden erfassen
     regeln: [],             // Regeln ab Datum: urlaubJahr, halbeTage, urlaubVerfall, lzkMax, kappungAn, kappungTag, kappungMax
     lzkMax: 10,             // Urlaubstage, die am Stichtag ins Langzeitkonto gehen (Rest verfällt)
     startLzk: 0,            // Langzeitkonto in Tagen vor dem Startdatum
@@ -159,7 +163,8 @@
       else za = planned ? 0 : stunden - so;
       const zagen = t === 'Zeitausgleich' ? (stunden > 0 ? 0 : so) : 0;
       const adj = +inp.z || 0;
-      konto = konto + za - zagen + adj;
+      const az = +inp.az || 0;
+      konto = konto + za - zagen + adj - az;
       let loss = 0;
       if (rc.kappungAn !== false && rc.kappungTag && k.slice(5) === rc.kappungTag && konto > rc.kappungMax) { loss = konto - rc.kappungMax; konto = rc.kappungMax; }
       const ugen = t === 'Urlaub' ? 1 : t === 'Urlaub - halb' ? 0.5 : 0;
@@ -172,13 +177,20 @@
         }
         rest -= ugen;
       }
+      // Arbeitsort: nur Tage mit Stunden. Dienstreise zaehlt eigen, geteilte Tage mit Homeoffice-Stunden ab hoAb.
+      let ort = '', hoH = 0;
+      if (cfg.ortAn && stunden > 0 && wd < 6 && isWorkType) {
+        ort = t === 'Dienstreise' ? 'dr' : (inp.o || ((cfg.hoWochentage || []).indexOf(wd) >= 0 ? 'ho' : (cfg.standardOrt || 'buero')));
+        if (ort === 'mix') hoH = Math.max(0, Math.min(stunden, e - (inp.hoAb || e)));
+        else if (ort === 'ho') hoH = stunden;
+      }
       const krank = t === 'krank' ? (so - stunden) / so : 0;
       const arbeitstag = !(t === 'Feiertag' || t === 'WE' || relax) ? 1 : 0;
       const sumAct = actsByDay && actsByDay[k] || 0;
       const netto = k < nettoAb ? stunden : (sumAct === 0 ? stunden : sumAct);
       out.push({ k, kw: isoWeek(k), t, s, e, a, pause, pauseAuto: !(inp.p != null && inp.p !== ''), stunden, over, za, zagen,
         konto, rest, ugen, krank, soll: so, arbeitstag, netto, acts: sumAct, planned: !!planned, wd,
-        hol: holidayName(k), note: inp.n || '', adj, loss, lzk, lzkIn, verfall });
+        hol: holidayName(k), note: inp.n || '', adj, az, ort, hoH, loss, lzk, lzkIn, verfall });
     }
     return out;
   }
@@ -189,12 +201,14 @@
     const years = {};
     for (const r of rows) {
       const y = +r.k.slice(0, 4), m = +r.k.slice(5, 7);
-      const Y = years[y] || (years[y] = { y, months: Array.from({ length: 12 }, (_, i) => ({ m: i + 1, stunden: 0, urlaub: 0, krank: 0, arbeitstage: 0, netto: 0, ueber10: 0, zaTage: 0, sollH: 0, extraH: 0, konto: null, rest: null, plan: 0 })) });
+      const Y = years[y] || (years[y] = { y, months: Array.from({ length: 12 }, (_, i) => ({ m: i + 1, stunden: 0, urlaub: 0, krank: 0, arbeitstage: 0, netto: 0, ueber10: 0, zaTage: 0, sollH: 0, extraH: 0, konto: null, rest: null, plan: 0, ausz: 0, tB: 0, tH: 0, tM: 0, tD: 0, hH: 0, hB: 0 })) });
       const M = Y.months[m - 1];
       M.stunden += r.stunden; M.urlaub += r.ugen; M.krank += r.krank; M.arbeitstage += r.arbeitstag;
       M.sollH += r.arbeitstag * r.soll; M.extraH += (r.ugen + r.krank) * r.soll;
       M.netto += r.netto; M.ueber10 += r.over; M.zaTage += r.zagen > 0 ? 1 : 0;
       if (r.planned) M.plan++;
+      M.ausz += r.az || 0;
+      if (r.ort) { if (r.ort === 'buero') M.tB++; else if (r.ort === 'ho') M.tH++; else if (r.ort === 'mix') M.tM++; else M.tD++; M.hH += r.hoH; if (r.ort !== 'dr') M.hB += r.stunden - r.hoH; }
       M.konto = r.konto; M.rest = r.rest; M.lzk = r.lzk; // letzter Tag des Monats
     }
     for (const Y of Object.values(years)) {
@@ -205,7 +219,7 @@
       }
       const sum = f => Y.months.reduce((a, m) => a + m[f], 0);
       Y.tot = { stunden: sum('stunden'), urlaub: sum('urlaub'), krank: sum('krank'), arbeitstage: sum('arbeitstage'),
-        netto: sum('netto'), soll: sum('soll'), gebucht: sum('gebucht'), ueber10: sum('ueber10'),
+        netto: sum('netto'), soll: sum('soll'), gebucht: sum('gebucht'), ueber10: sum('ueber10'), ausz: sum('ausz'), tB: sum('tB'), tH: sum('tH'), tM: sum('tM'), tD: sum('tD'), hH: sum('hH'), hB: sum('hB'),
         konto: Y.months[11].konto, rest: Y.months[11].rest, lzk: Y.months[11].lzk };
       Y.tot.rate = Y.tot.stunden > 0 ? Y.tot.netto / Y.tot.stunden : null;
     }

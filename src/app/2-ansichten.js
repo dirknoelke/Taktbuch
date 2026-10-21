@@ -2,6 +2,15 @@
 const ZAHLTAG_OPTS = [['erster', 'Zum Monatsanfang (erster Werktag)'], ['letzter', 'Zum Monatsende (letzter Werktag)'], ['tag15', 'Am 15. jeden Monats'], ['letzte4', '4. letzter Werktag im Monat']];
 const ZAHLTAG_ALT = ['letzte4raw', '4. letzter Werktag im Monat (Mo bis Fr, auch Feiertage)']; // nur sichtbar, wenn schon gewählt
 /* Jobwechsel-Wizard (Werte in UI.wiz) */
+const ORTE = [['buero', 'Büro'], ['ho', 'Homeoffice'], ['mix', 'geteilt']];
+function defOrt(wd) { return (S.cfg.hoWochentage || []).indexOf(wd) >= 0 ? 'ho' : (S.cfg.standardOrt || 'buero'); }
+function ortRow(d, row) {
+  const cur = d.o || defOrt(row.wd);
+  return `<div class="field" style="margin-top:12px"><label>Arbeitsort</label><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+    <div class="seg" role="group" aria-label="Arbeitsort">${ORTE.map(([v, l]) => `<button data-a="setOrt" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join('')}</div>
+    ${cur === 'mix' ? `<div class="field" style="min-width:150px"><label for="d_hoAb">Homeoffice ab</label><input id="d_hoAb" ${tAttr()} value="${esc(d.hoAb || '')}" data-f="day:hoAb"></div>` : ''}</div>
+    ${cur === 'mix' ? `<span class="hint">Vor der Uhrzeit Büro, danach Homeoffice.</span>` : ''}</div>`;
+}
 function wizDefaults(ab, uj) { const m = E.monthsBefore(ab); return Math.ceil(uj * (12 - m) / 12 * 2) / 2; }
 function wizardHtml() {
   const w = UI.wiz, old = E.cfgAt(S.cfg, w.ab || todayKey()), m = w.ab ? E.monthsBefore(w.ab) : 0;
@@ -146,7 +155,9 @@ function viewHeute() {
         <div class="field"><label for="d_a">Abwesenheit (z. B. Arzt)</label><input id="d_a"${tAttr(true)} value="${esc(d.a || '')}" data-f="day:a"></div>
         <div class="field"><label for="d_th">Thema / Ort</label><input id="d_th" type="text" list="dl-dayth" value="${esc(d.th || '')}" placeholder="${esc(S.cfg.standardThema)}" data-f="day:th"></div>
         <div class="field"><label for="d_z">Korrektur Zeitkonto (h)</label><input id="d_z" type="number" step="0.25" value="${d.z || ''}" data-f="day:z"></div>
+        ${S.cfg.auszahlAn || d.az ? `<div class="field"><label for="d_az">Auszahlung Überstunden (h)</label><input id="d_az" type="number" step="0.25" min="0" value="${d.az || ''}" data-f="day:az"></div>` : ''}
       </div>
+      ${S.cfg.ortAn && isWorkType(effType === '' ? 'arbeit' : effType) && effType !== 'Dienstreise' ? ortRow(d, row) : ''}
       <div class="field" style="margin-top:12px"><label for="d_n">Notiz</label><input id="d_n" type="text" value="${esc(d.n || '')}" data-f="day:n"></div>
       <div class="calc">
         <div><small>Anwesend</small><b>${d.s && d.e ? fmtT(Math.max(0, H(d.e) - H(d.s))) : live ? fmtT(live.dur) : '–'}</b></div>
@@ -235,7 +246,7 @@ function viewMonat() {
     const lbl = r.hol && r.t === 'Feiertag' ? r.hol : r.t === 'WE' ? '' : !isWorkType(r.t) ? tyLabel(r.t) : r.t !== 'arbeit' ? r.t : '';
     cells += `<button class="cell ${tyClass(r.t)} ${k === t ? 'today' : ''} ${r.planned ? 'planned' : ''}" data-a="goto" data-k="${k}" title="${fmtDate(k)}">
       <span class="dn"><span>${d}${paydayOf(y, m) === k ? ' <b title="Zahltag" style="color:var(--accent)">€</b>' : ''}</span>${r.acts ? `<span class="num">${fmtDec(r.acts, 1)}</span>` : ''}</span>
-      <span class="hv">${r.stunden ? fmtT(r.stunden) : '&nbsp;'}</span><small>${esc(lbl)}</small></button>`;
+      <span class="hv">${r.stunden ? fmtT(r.stunden) : '&nbsp;'}</span><small>${esc(lbl || (r.ort ? { buero: 'Büro', ho: 'HO', mix: 'Büro/HO', dr: '' }[r.ort] : ''))}</small></button>`;
   }
   const rg = UI.range;
   return `
@@ -254,7 +265,12 @@ function viewMonat() {
       <div class="field"><label for="r_to">Bis</label><input id="r_to" type="date" value="${rg.to}" data-f="range:to"></div>
       <div class="field"><label for="r_t">Art</label><select id="r_t" data-f="range:t">${TYPE_OPTS.slice(1, 8).map(([v, l]) => opt(v, l, rg.t)).join('')}</select></div>
       <div><button class="btn primary" data-a="applyRange">Eintragen</button> <button class="btn" data-a="clearRange">Zurücksetzen</button></div>
-    </div></section>`;
+    </div></section>
+  ${S.cfg.ortAn ? `<section class="card"><div class="card-h"><h3>Arbeitsort für Zeitraum</h3><span class="hint">Nutzt Von und Bis von oben. Geteilte Tage stellst du pro Tag unter Heute ein.</span></div>
+    <div class="fields" style="align-items:end">
+      <div class="field"><label for="r_o">Ort</label><select id="r_o" data-f="range:o">${opt('buero', 'Büro', rg.o)}${opt('ho', 'Homeoffice', rg.o)}</select></div>
+      <div><button class="btn primary" data-a="applyRangeOrt">Eintragen</button> <button class="btn" data-a="clearRangeOrt">Zurücksetzen</button></div>
+    </div></section>` : ''}`;
 }
 
 /* ---------- Tätigkeiten ---------- */
@@ -287,6 +303,14 @@ function pivot(dim, year) {
   for (const a of S.acts) { if (year !== 'alle' && !a.d.startsWith(year)) continue; const n = netto(a); if (!n) continue; const key = a[dim] || '(leer)'; m[key] = (m[key] || 0) + n; tot += n; }
   const arr = Object.entries(m).sort((x, y) => y[1] - x[1]);
   return { arr, tot };
+}
+function ortCard(Y, y) {
+  const T = Y.tot, f = v => fmtDec(v, 0), row = (lbl, M, cls2) => `<tr class="${cls2 || ''}"><td>${lbl}</td><td class="r num">${f(M.tB)}</td><td class="r num">${f(M.tH)}</td><td class="r num">${f(M.tM)}</td><td class="r num">${f(M.tD)}</td><td class="r num">${fmtT(M.hH)}</td><td class="r num">${fmtT(M.hB)}</td></tr>`;
+  return `<section class="card"><div class="card-h"><h3>Arbeitsort ${y}</h3><span class="hint">Nur Tage mit erfassten Stunden</span></div><div class="tablewrap"><table>
+    <thead><tr><th>Monat</th><th class="r">Büro (Tage)</th><th class="r">Homeoffice (Tage)</th><th class="r">Geteilt (Tage)</th><th class="r">Dienstreise (Tage)</th><th class="r">Homeoffice (h)</th><th class="r">Büro (h)</th></tr></thead>
+    <tbody>${Y.months.map((M, i) => row(MON[i], M, M.tB + M.tH + M.tM + M.tD ? '' : 'dim')).join('')}</tbody>
+    <tfoot>${row('Jahr', T)}</tfoot></table></div>
+    <p class="hint" style="margin:10px 0 0">Reine Zählung für die Steuererklärung, keine Steuerberechnung. Geteilte Tage zählen mit ihren Stunden bei Homeoffice und Büro. Dienstreisen laufen separat, ihre Stunden sind weder Büro noch Homeoffice.</p></section>`;
 }
 function viewAuswertung() {
   const yrs = Object.keys(R.years).map(Number).sort();
@@ -335,6 +359,8 @@ function viewAuswertung() {
       <td class="r num ${cls(M.gebucht - M.soll)}">${fmtT(M.gebucht - M.soll, true)}</td><td class="r num">${fmtT(M.konto)}</td><td class="r num">${fmtDec(M.urlaub, M.urlaub % 1 ? 1 : 0)}</td><td class="r num">${fmtDec(M.krank, M.krank % 1 ? 1 : 0)}</td><td class="r num">${M.arbeitstage}</td><td class="r num">${fmtT(M.netto)}</td><td class="r num">${M.rate == null ? '' : Math.round(M.rate * 100) + ' %'}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td>Jahr</td><td class="r num">${fmtT(T.stunden)}</td><td class="r num">${fmtT(T.soll)}</td><td class="r num ${cls(T.gebucht - T.soll)}">${fmtT(T.gebucht - T.soll, true)}</td><td class="r num">${fmtT(T.konto)}</td><td class="r num">${fmtDec(T.urlaub, T.urlaub % 1 ? 1 : 0)}</td><td class="r num">${fmtDec(T.krank, 1)}</td><td class="r num">${T.arbeitstage}</td><td class="r num">${fmtT(T.netto)}</td><td class="r num">${T.rate == null ? '' : Math.round(T.rate * 100) + ' %'}</td></tr></tfoot></table></div>
     <p class="hint" style="margin:10px 0 0">Differenz = Stunden + Urlaub + Krank − Soll, wie „+- Rechnung“ in der Excel. Künftige Monate zeigen nur Plan.</p></section>
+  ${S.cfg.ortAn ? ortCard(Y, y) : ''}
+  ${S.cfg.auszahlAn || T.ausz ? `<p class="hint" style="margin:0 0 16px">${I18N.tx('Ausgezahlte Überstunden')} ${y}: <b>${fmtT(T.ausz)} h</b>${Y.months.filter(M => M.ausz).map(M => ' · ' + MON[M.m - 1] + ' ' + fmtT(M.ausz)).join('')}</p>` : ''}
   <section class="card"><div class="card-h"><h3>${I18N.tx('Tätigkeiten nach')} ${esc(I18N.tx(dimName))}</h3>
     <div class="nav"><div class="seg" role="group" aria-label="Gruppierung">${['cat', 'w', 'sys', 'pn'].filter(colOn).map(f => [f, colN(f)]).map(([v, l]) => `<button data-a="dim" data-v="${v}" aria-pressed="${UI.dim === v}">${l}</button>`).join('')}</div>
     <select data-f="ui:pivotYear" aria-label="Zeitraum" style="width:auto">${opt('alle', 'Alle Jahre', UI.pivotYear)}${[...new Set(S.acts.map(a => a.d.slice(0, 4)))].sort().reverse().map(v => opt(v, v, UI.pivotYear)).join('')}</select></div></div>
@@ -412,6 +438,13 @@ function viewEinst() {
     <h4 class="sh">Feiertage</h4>
     <div class="fields wide">
       <div class="field"><label for="c_rg">Bundesland</label><select id="c_rg" data-f="cfg:region">${Object.keys(REGION_NAMES).map(v => opt(v, REGION_NAMES[v], c.region || 'NW')).join('')}</select><span class="hint">Bestimmt die gesetzlichen Feiertage für Kalender, Soll, Zahltag und Urlaubsplanung, für alle Jahre. Örtliche Sonderfälle (z. B. Augsburger Friedensfest) sind nicht enthalten. Tage mit eigenem Eintrag bleiben unberührt.</span></div>
+    </div>
+    <h4 class="sh">Arbeitsort und Auszahlung</h4>
+    <div class="fields wide">
+      <div class="field"><label for="c_oa">Arbeitsort erfassen (Büro / Homeoffice)</label><select id="c_oa" data-f="cfg:ortAn" data-bool="1">${opt('false', 'aus', String(!!c.ortAn))}${opt('true', 'an', String(!!c.ortAn))}</select><span class="hint">Pro Tag, auch geteilt, mit Jahresübersicht in der Auswertung.</span></div>
+      ${c.ortAn ? `<div class="field"><label for="c_so">Standardort</label><select id="c_so" data-f="cfg:standardOrt">${opt('buero', 'Büro', c.standardOrt || 'buero')}${opt('ho', 'Homeoffice', c.standardOrt || 'buero')}</select><span class="hint">Gilt für Tage ohne eigene Angabe.</span></div>
+      <div class="field"><label>Feste Homeoffice-Tage</label><div style="display:flex;gap:10px;flex-wrap:wrap">${['Mo', 'Di', 'Mi', 'Do', 'Fr'].map((n, i) => { const wd = i < 4 ? i + 1 : 5; return `<label style="display:flex;gap:4px;align-items:center;font-weight:400"><input type="checkbox" ${(c.hoWochentage || []).indexOf(wd) >= 0 ? 'checked' : ''} data-f="cfg:hoWd:${wd}" aria-label="${n}">${n}</label>`; }).join('')}</div><span class="hint">Diese Wochentage zählen als Homeoffice, wenn du nichts anderes einträgst.</span></div>` : ''}
+      <div class="field"><label for="c_aa">Überstunden-Auszahlung</label><select id="c_aa" data-f="cfg:auszahlAn" data-bool="1">${opt('false', 'aus', String(!!c.auszahlAn))}${opt('true', 'an', String(!!c.auszahlAn))}</select><span class="hint">Zeigt am Tag das Feld „Auszahlung Überstunden (h)“. Die Stunden mindern das Zeitkonto und stehen in der Auswertung.</span></div>
     </div>
     <h4 class="sh">Zeiterfassung</h4>
     <div class="fields wide">
