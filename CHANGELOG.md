@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.2
+
+- Update check: runs on start and whenever you return to the tab, at most once an hour (before: once a day, and only at start). New releases show up much sooner and in tabs that stay open for days.
+
 ## 1.8.1
 
 - Split work location days can start with home office: choose "office first" or "home office first" plus the switch time.
