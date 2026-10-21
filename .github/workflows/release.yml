@@ -30,10 +30,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "v$V" >/dev/null 2>&1; then echo "Release v$V already exists"; exit 1; fi
-          gh release create "v$V" dist/zeitwerk.html --target "$GITHUB_SHA" --title "Zeitwerk $V" --notes-file notes.md
+          gh release create "v$V" dist/taktbuch.html --target "$GITHUB_SHA" --title "Taktbuch $V" --notes-file notes.md
       - name: Publish the build to the dist branch (used by the in-app installer)
         run: |
-          mkdir /tmp/d && cp dist/zeitwerk.html /tmp/d/ && cd /tmp/d
+          mkdir /tmp/d && cp dist/taktbuch.html /tmp/d/ && cp dist/taktbuch.html /tmp/d/zeitwerk.html && cd /tmp/d   # zeitwerk.html: Übergangsdatei für Installer alter Versionen
           git init -q -b dist && git config user.name "github-actions" && git config user.email "actions@users.noreply.github.com"
-          git add . && git commit -qm "Zeitwerk $V"
+          git add . && git commit -qm "Taktbuch $V"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" dist

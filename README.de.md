@@ -1,4 +1,6 @@
-# Zeitwerk
+# Taktbuch
+
+*Früher: Zeitwerk.*
 
 [English](README.md) | **Deutsch**
 
@@ -6,7 +8,7 @@ Persönliches Stundenkonto als Einzeldatei: Zeiterfassung, Tätigkeiten, Auswert
 
 ## Benutzen
 
-1. Auf der Seite [Releases](../../releases/latest) die Datei `zeitwerk.html` herunterladen.
+1. Auf der Seite [Releases](../../releases/latest) die Datei `taktbuch.html` herunterladen.
 2. Per Doppelklick im Browser öffnen (Chrome oder Edge). Auf dem Firmenrechner reicht die lokale Datei, es ist kein Zugriff auf Webseiten nötig.
 3. Beim ersten Start eine Vorlage wählen (mit oder ohne Urlaubsverfall und Kappung). Alle Regeln lassen sich unter **Einstellungen** einzeln ändern.
 4. Optional: unter **Einstellungen → Daten** eine bestehende Stunden-Excel importieren.
@@ -24,10 +26,10 @@ Die App fragt höchstens einmal am Tag bei GitHub nach der neuesten Version. Dab
 ## Entwickeln
 
 ```bash
-python3 build.py              # baut dist/zeitwerk.html
+python3 build.py              # baut dist/taktbuch.html
 node tests/engine.test.js     # Rechenlogik
 pip install playwright && playwright install chromium
-python3 tests/ui.py dist/zeitwerk.html   # UI-Smoketest
+python3 tests/ui.py dist/taktbuch.html   # UI-Smoketest
 ```
 
 Aufbau: `src/engine.js` (reine Rechenlogik, kein DOM), `src/app/` (Zustand, Ansichten, Gehalt, Aktionen), `src/template.html` (Gerüst und CSS), `src/i18n.js` und `src/i18n-en.js` (Sprachumschaltung und englisches Wörterbuch). Die App ist auf Deutsch geschrieben, der englische Text kommt aus dem Wörterbuch: neue deutsche Texte brauchen dort einen Eintrag (Schlüssel = deutscher Text, Zahlen als `#`). Der UI-Test meldet deutsche Reste im englischen UI. Der Build setzt alles zu einer Datei ohne Fremdbibliotheken zusammen.
@@ -39,7 +41,7 @@ Aufbau: `src/engine.js` (reine Rechenlogik, kein DOM), `src/app/` (Zustand, Ansi
    ```bash
    git tag vX.Y.Z && git push origin main --tags
    ```
-3. Der Workflow `Release` baut die Datei, prüft Tag gegen `VERSION` und legt das Release mit `zeitwerk.html` an. Der Text kommt aus dem Changelog und erscheint in der App unter "Was ist neu?".
+3. Der Workflow `Release` baut die Datei, prüft Tag gegen `VERSION` und legt das Release mit `taktbuch.html` an. Der Text kommt aus dem Changelog und erscheint in der App unter "Was ist neu?".
 
 Die Update-Prüfung nutzt das Repo aus `REPO.txt` (im Release-Build automatisch das aktuelle Repo).
 

@@ -64,6 +64,7 @@ const actions = {
   applyRange: () => rangeApply(false),
   clearRange: () => rangeApply(true),
   chkUpd: () => checkUpdate(true),
+  report: () => reportProblem(),
   lang: el => { I18N.set(el.dataset.v, true); render(); I18N.apply(); },
   exportJson: () => saveFile('stundenkonto-sicherung-' + todayKey() + '.json', exportJSON(), 'application/json'),
   exportCsv: () => saveFile('taetigkeiten-' + todayKey() + '.csv', exportCSV(), 'text/csv'),
@@ -234,8 +235,8 @@ const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return
 function chooseProfile() {
   return new Promise(res => {
     const draw = () => {
-      $('#view').innerHTML = `<section class="card" style="max-width:640px;margin:40px auto"><div class="card-h"><h3>Willkommen bei Zeitwerk</h3><div class="seg" role="group" aria-label="Language" data-nt>${['de', 'en'].map(l => `<button data-lg="${l}" aria-pressed="${I18N.lang === l}">${l === 'de' ? 'Deutsch' : 'English'}</button>`).join('')}</div></div>
-        <p class="hint" style="margin:0 0 14px">Wähle eine Vorlage. Alle Regeln lassen sich später unter „Daten“ einzeln ändern. Hast du Zeitwerk oder das frühere „Stundenkonto“ schon benutzt, wähle dieselbe Vorlage wie damals, damit deine Daten gefunden werden.</p>
+      $('#view').innerHTML = `<section class="card" style="max-width:640px;margin:40px auto"><div class="card-h"><h3>Willkommen bei Taktbuch</h3><div class="seg" role="group" aria-label="Language" data-nt>${['de', 'en'].map(l => `<button data-lg="${l}" aria-pressed="${I18N.lang === l}">${l === 'de' ? 'Deutsch' : 'English'}</button>`).join('')}</div></div>
+        <p class="hint" style="margin:0 0 14px">Wähle eine Vorlage. Alle Regeln lassen sich später unter „Daten“ einzeln ändern. Hast du Taktbuch (früher „Zeitwerk“) oder das frühere „Stundenkonto“ schon benutzt, wähle dieselbe Vorlage wie damals, damit deine Daten gefunden werden.</p>
         <div style="display:grid;gap:10px">${Object.entries(PROFILES).map(([k, p]) => `<button class="btn ${k === 'voll' ? 'primary' : ''}" data-pf="${k}" style="text-align:left;padding:12px 14px"><b>${esc(p.name)}</b><br><span class="hint">${k === 'voll' ? 'Resturlaub verfällt am 1.5., Zeitkonto wird am 31.10. gekappt, 24.12. und 31.12. sind halbe Urlaubstage.' : 'Kein Verfall, keine Kappung, 24.12. und 31.12. sind normale Arbeitstage.'}</span></button>`).join('')}</div></section>`;
       I18N.apply();
       $('#view').querySelectorAll('[data-lg]').forEach(b => b.addEventListener('click', () => { I18N.set(b.dataset.lg, true); draw(); }));
@@ -275,10 +276,10 @@ function showUpdate(info) {
 async function installUpdate(info) {
   const fallback = msg => { alert(I18N.tx('Direktes Überschreiben ging nicht. Die Datei wird stattdessen heruntergeladen.') + (msg ? ' (' + msg + ')' : '')); window.open(info.asset || info.url, '_blank'); };
   let h;
-  try { h = await window.showSaveFilePicker({ suggestedName: 'zeitwerk.html', types: [{ description: 'HTML', accept: { 'text/html': ['.html'] } }] }); }
+  try { h = await window.showSaveFilePicker({ suggestedName: (() => { const f = decodeURIComponent(location.pathname.split('/').pop() || ''); return /\.html?$/i.test(f) ? f : 'taktbuch.html'; })(), types: [{ description: 'HTML', accept: { 'text/html': ['.html'] } }] }); }
   catch (e) { if (e && e.name === 'AbortError') return; fallback(e && e.message); return; }
   try {
-    const r = await fetch('https://raw.githubusercontent.com/' + REPO + '/dist/zeitwerk.html?t=' + Date.now(), { cache: 'no-store' });
+    const r = await fetch('https://raw.githubusercontent.com/' + REPO + '/dist/taktbuch.html?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const txt = await r.text();
     if (!txt.includes("__ZW_VERSION='" + info.tag.replace(/^v/, '') + "'")) throw new Error(I18N.tx('Die neue Datei ist noch nicht bereit, bitte in ein paar Minuten erneut versuchen.'));
@@ -311,6 +312,17 @@ async function checkUpdate(manual) {
     if (manual) { ls.set('zeitwerk-upd-skip', ''); say(isNewer(info.tag, VERSION) ? 'Neue Version ' + info.tag.replace(/^v/, '') + ' verfügbar.' : 'Du hast die aktuelle Version.'); }
     showUpdate(info);
   } catch (e) { say(manual ? 'Prüfung nicht möglich (offline oder Zugriff gesperrt).' : ''); if (!manual) ls.set('zeitwerk-upd-last', String(Date.now())); /* nach Fehler in 1 Stunde erneut versuchen */ showUpdate(info); }
+}
+
+/* ---------- Problem melden (mailto, nichts wird automatisch gesendet) ---------- */
+const REPORT_MAIL = 'Taktbuch@pn.me';
+function reportProblem() {
+  const en = I18N.lang === 'en', c = S.cfg;
+  const on = [c.ortAn && 'Arbeitsort', c.auszahlAn && 'Auszahlung', c.raster === '15' && 'Viertelstunden', c.pnAn && 'Projektnummer', (c.regeln || []).length && 'Regeln ab Datum'].filter(Boolean).join(', ');
+  const tech = ['Version: ' + VERSION, 'Profil: ' + PROFILE, 'Sprache: ' + I18N.lang, 'Browser: ' + navigator.userAgent, 'Schalter: ' + (on || '-')].join('\n');
+  const body = (en ? 'What did you want to do? What happened? What did you expect?\n\n\n\n' : 'Was wolltest du tun? Was ist passiert? Was hast du erwartet?\n\n\n\n') +
+    (en ? '--- Technical details (added automatically, no data from the app) ---\n' : '--- Technische Angaben (automatisch ergänzt, keine Daten aus der App) ---\n') + tech;
+  location.href = 'mailto:' + REPORT_MAIL + '?subject=' + encodeURIComponent('Taktbuch ' + VERSION + (en ? ': feedback' : ': Meldung')) + '&body=' + encodeURIComponent(body);
 }
 
 /* ---------- Start ---------- */

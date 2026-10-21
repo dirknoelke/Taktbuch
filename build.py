@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Baut die Einzeldatei dist/zeitwerk.html.
+"""Baut die Einzeldatei dist/taktbuch.html.
 
 Aufruf:  python3 build.py
 Optional: ZW_REPO=owner/repo  (Repo für die Update-Prüfung, Standard siehe REPO.txt)
@@ -21,8 +21,8 @@ html = html.replace('//@@APP@@', meta + app)
 
 out = root / 'dist'
 out.mkdir(exist_ok=True)
-(out / 'zeitwerk.html').write_text(html, encoding='utf-8')
-print(f'dist/zeitwerk.html  Version {version}  Repo {repo}  {len(html)//1024} KB')
+(out / 'taktbuch.html').write_text(html, encoding='utf-8')
+print(f'dist/taktbuch.html  Version {version}  Repo {repo}  {len(html)//1024} KB')
 
 # Syntaxprüfung, falls Node vorhanden
 try:
