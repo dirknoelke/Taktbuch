@@ -14,7 +14,7 @@ const actions = {
   payStart: () => { S.pay = S.pay || {}; S.pay[todayKey().slice(0, 7)] = { b: 0 }; save(); render(); },
   payYear: el => { UI.payYear = +el.dataset.v; render(); },
   svAdd: () => { ensureSoll(); const v = S.cfg.sollVerlauf, last = v[v.length - 1]; let ab = todayKey(); if (ab <= last.ab) ab = E.addDays(last.ab, 1); v.push({ ab, soll: last.soll }); commit(); },
-  rgAdd: () => { const g = S.cfg.regeln = S.cfg.regeln || [], last = g.length ? g[g.length - 1] : null; const src = E.cfgAt(S.cfg, '9999-12-31'); let ab = todayKey(); if (last && ab <= last.ab) ab = E.addDays(last.ab, 1); const r = { ab }; ['urlaubJahr', 'halbeTage', 'urlaubVerfall', 'lzkMax', 'kappungAn', 'kappungTag', 'kappungMax'].forEach(f => { r[f] = src[f]; }); if (r.kappungAn === undefined) r.kappungAn = true; g.push(r); commit(); },
+  rgAdd: () => { const g = S.cfg.regeln = S.cfg.regeln || [], last = g.length ? g[g.length - 1] : null; const src = E.cfgAt(S.cfg, '9999-12-31'); let ab = todayKey(); if (last && ab <= last.ab) ab = E.addDays(last.ab, 1); const r = { ab }; E.RULE_KEYS.forEach(f => { r[f] = src[f]; }); if (r.kappungAn === undefined) r.kappungAn = true; g.push(r); commit(); },
   wizOpen: () => { const rc = E.cfgAt(S.cfg, todayKey()), ab = todayKey(); UI.wiz = { ab, urlaubJahr: rc.urlaubJahr, rest: wizDefaults(ab, rc.urlaubJahr), konto: 0, lzk: 0, soll: S.cfg.soll }; render(); },
   wizCancel: () => { UI.wiz = null; render(); },
   wizApply: () => {
@@ -23,7 +23,7 @@ const actions = {
     if (!w.ab || w.ab <= S.cfg.startDatum || w.ab <= last) { toast('Das Datum muss nach dem Startdatum und nach der letzten Regeländerung liegen.'); return; }
     if (!(w.soll > 0)) { toast('Das Soll pro Arbeitstag fehlt.'); return; }
     const src = E.cfgAt(S.cfg, w.ab), r = { ab: w.ab };
-    ['urlaubJahr', 'halbeTage', 'urlaubVerfall', 'lzkMax', 'kappungAn', 'kappungTag', 'kappungMax'].forEach(f => { r[f] = src[f]; });
+    E.RULE_KEYS.forEach(f => { r[f] = src[f]; });
     if (r.kappungAn === undefined) r.kappungAn = true;
     r.urlaubJahr = w.urlaubJahr; r.wechsel = { rest: w.rest, konto: w.konto, lzk: w.lzk };
     S.cfg.regeln = (S.cfg.regeln || []).concat(r);
@@ -66,7 +66,13 @@ const actions = {
   chkUpd: () => checkUpdate(true),
   report: () => reportProblem(),
   lang: el => { I18N.set(el.dataset.v, true); render(); I18N.apply(); },
-  exportJson: () => saveFile('stundenkonto-sicherung-' + todayKey() + '.json', exportJSON(), 'application/json'),
+  bkPick: () => pickBackupDir(),
+  bkNow: () => backupNow(true),
+  bkOff: async () => { BK.cfg = Object.assign({}, BK.cfg, { handle: null }); await DB.set('backup', BK.cfg); render(); toast('Automatische Sicherung ausgeschaltet.'); },
+  bkDownload: () => { markBackup(); saveFile('taktbuch-sicherung-' + todayKey() + '.json', exportJSON(), 'application/json'); showBackupBanner(null); },
+  bkLater: () => { ls.set('zeitwerk-bk-snooze-' + PROFILE, String(Date.now())); showBackupBanner(null); },
+  bkAllow: () => backupNow(true),
+  exportJson: () => { markBackup(); saveFile('stundenkonto-sicherung-' + todayKey() + '.json', exportJSON(), 'application/json'); },
   exportCsv: () => saveFile('taetigkeiten-' + todayKey() + '.csv', exportCSV(), 'text/csv'),
   askReset: () => { UI.confirm = 'reset'; render(); },
   cancelConfirm: () => { UI.confirm = ''; render(); },
@@ -90,7 +96,7 @@ function rangeApply(clear) {
   for (let k = g.from; k <= g.to; k = E.addDays(k, 1)) {
     if (E.weekday(k) >= 6 || E.holidayName(k)) { skip++; continue; }
     const d = Object.assign({}, S.days[k] || {});
-    if (clear) delete d.t; else d.t = g.t;
+    if (clear) { delete d.t; delete d.kd; delete d.ot; } else { d.t = g.t; if (g.t === 'Dienstreise') { if (g.kd) d.kd = g.kd; if (g.ot) d.ot = g.ot; } }
     if (isEmptyDay(d)) delete S.days[k]; else S.days[k] = d; n++;
   }
   commit(); toast((clear ? I18N.tx('# Tage zurückgesetzt') : I18N.tx('# Tage eingetragen als') + ' ' + I18N.tx(tyLabel(g.t))).replace('#', n) + (skip ? ', ' + I18N.tx('# Wochenend-/Feiertage übersprungen').replace('#', skip) : '') + '.');
@@ -148,6 +154,9 @@ function fieldChange(el, final) {
     if (el.dataset.int) v = parseInt(v, 10) || 0;
     if (el.dataset.num) { v = parseFloat(String(v).replace(',', '.')); if (isNaN(v)) return; if (el.dataset.pct) v /= 100; }
     S.cfg[a] = v; commit();
+  } else if (scope === 'bk') {
+    if (a === 'keep') { const n = parseInt(v, 10); if (!(n >= 1)) { render(); return; } BK.cfg.keep = n; } else BK.cfg[a] = v;
+    DB.set('backup', BK.cfg); render();
   } else if (scope === 'wiz') {
     const w = UI.wiz; if (!w) return;
     if (a === 'ab') { if (!v) return; w.ab = v; w.rest = wizDefaults(w.ab, w.urlaubJahr); render(); return; }
@@ -174,7 +183,7 @@ function fieldChange(el, final) {
   } else if (scope === 'ui') {
     if (a === 'date') { if (!v) return; UI.date = v; UI.year = +v.slice(0, 4); } else UI[a] = v; render();
   } else if (scope === 'filt') { UI.filt[a] = v; UI.filt.limit = 200; render(); }
-  else if (scope === 'range') { UI.range[a] = v; if (a === 'from' && !UI.range.to) UI.range.to = v; if (a === 'from') render(); }
+  else if (scope === 'range') { UI.range[a] = v; if (a === 'from' && !UI.range.to) UI.range.to = v; if (a === 'from' || a === 't') render(); }
   else if (scope === 'file') {
     const f = el.files && el.files[0]; if (!f) return;
     const rd = new FileReader();
@@ -236,7 +245,7 @@ function chooseProfile() {
   return new Promise(res => {
     const draw = () => {
       $('#view').innerHTML = `<section class="card" style="max-width:640px;margin:40px auto"><div class="card-h"><h3>Willkommen bei Taktbuch</h3><div class="seg" role="group" aria-label="Language" data-nt>${['de', 'en'].map(l => `<button data-lg="${l}" aria-pressed="${I18N.lang === l}">${l === 'de' ? 'Deutsch' : 'English'}</button>`).join('')}</div></div>
-        <p class="hint" style="margin:0 0 14px">Wähle eine Vorlage. Alle Regeln lassen sich später unter „Daten“ einzeln ändern. Hast du Taktbuch (früher „Zeitwerk“) oder das frühere „Stundenkonto“ schon benutzt, wähle dieselbe Vorlage wie damals, damit deine Daten gefunden werden.</p>
+        <p class="hint" style="margin:0 0 14px">Wähle eine Vorlage. Alle Regeln lassen sich später unter „Einstellungen“ einzeln ändern. Hast du Taktbuch (früher „Zeitwerk“) oder das frühere „Stundenkonto“ schon benutzt, wähle dieselbe Vorlage wie damals, damit deine Daten gefunden werden.</p>
         <div style="display:grid;gap:10px">${Object.entries(PROFILES).map(([k, p]) => `<button class="btn ${k === 'voll' ? 'primary' : ''}" data-pf="${k}" style="text-align:left;padding:12px 14px"><b>${esc(p.name)}</b><br><span class="hint">${k === 'voll' ? 'Resturlaub verfällt am 1.5., Zeitkonto wird am 31.10. gekappt, 24.12. und 31.12. sind halbe Urlaubstage.' : 'Kein Verfall, keine Kappung, 24.12. und 31.12. sind normale Arbeitstage.'}</span></button>`).join('')}</div></section>`;
       I18N.apply();
       $('#view').querySelectorAll('[data-lg]').forEach(b => b.addEventListener('click', () => { I18N.set(b.dataset.lg, true); draw(); }));
@@ -325,6 +334,59 @@ function reportProblem() {
   location.href = 'mailto:' + REPORT_MAIL + '?subject=' + encodeURIComponent('Taktbuch ' + VERSION + (en ? ': feedback' : ': Meldung')) + '&body=' + encodeURIComponent(body);
 }
 
+/* ---------- Automatische Sicherung (Ordner per File System Access API, sonst Erinnerung) ---------- */
+const BK = { cfg: { handle: null, interval: 'daily', keep: 10 } };
+const BK_SUPPORTED = typeof window.showDirectoryPicker === 'function';
+const bkLast = () => +ls.get('zeitwerk-bk-last-' + PROFILE) || 0;
+const markBackup = () => ls.set('zeitwerk-bk-last-' + PROFILE, String(Date.now()));
+const bkDue = () => Date.now() - bkLast() >= (BK.cfg.interval === 'weekly' ? 7 : 1) * 864e5 - 36e5;
+const bkName = d => 'taktbuch-sicherung-' + PROFILE + '-' + d + '.json';
+async function bkPermission(request) {
+  const h = BK.cfg.handle; if (!h) return 'none';
+  try { let p = await h.queryPermission({ mode: 'readwrite' }); if (p === 'prompt' && request) p = await h.requestPermission({ mode: 'readwrite' }); return p; } catch (e) { return 'denied'; }
+}
+async function backupNow(manual) {
+  const h = BK.cfg.handle;
+  if (!h) { if (manual) toast('Erst einen Ordner wählen.'); return false; }
+  const perm = await bkPermission(manual);
+  if (perm !== 'granted') { if (manual) toast('Zugriff auf den Ordner wurde nicht erlaubt.'); return false; }
+  try {
+    const txt = exportJSON(), name = bkName(todayKey());
+    const fh = await h.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(txt); await w.close();
+    if ((await fh.getFile()).size !== new Blob([txt]).size) throw new Error('Datei unvollständig');
+    markBackup(); showBackupBanner(null);
+    const re = new RegExp('^taktbuch-sicherung-' + PROFILE + '-\\d{4}-\\d{2}-\\d{2}\\.json$'), names = [];
+    for await (const [n] of h.entries()) if (re.test(n)) names.push(n);
+    names.sort().reverse(); for (const n of names.slice(Math.max(1, BK.cfg.keep || 10))) { try { await h.removeEntry(n); } catch (e) { } }
+    if (manual) toast(I18N.tx('Sicherung gespeichert:') + ' ' + name); if (UI.tab === 'einst') render();
+    return true;
+  } catch (e) { if (manual) toast(I18N.tx('Sicherung fehlgeschlagen:') + ' ' + (e && e.message)); return false; }
+}
+async function pickBackupDir() {
+  if (!BK_SUPPORTED) { toast('Dieser Browser kann das nicht. Nutze Chrome oder Edge.'); return; }
+  try {
+    const h = await window.showDirectoryPicker({ id: 'taktbuch-backup', mode: 'readwrite' });
+    BK.cfg = Object.assign({ interval: 'daily', keep: 10 }, BK.cfg, { handle: h }); await DB.set('backup', BK.cfg);
+    await backupNow(true); render();
+  } catch (e) { if (!e || e.name !== 'AbortError') toast(I18N.tx('Ordner konnte nicht gewählt werden:') + ' ' + (e && e.message)); }
+}
+function showBackupBanner(kind) {
+  const el = $('#bkbanner'); if (!el) return;
+  if (!kind) { el.innerHTML = ''; return; }
+  const days = bkLast() ? Math.floor((Date.now() - bkLast()) / 864e5) : null;
+  el.innerHTML = kind === 'perm'
+    ? `<div class="banner"><span><b>Automatische Sicherung wartet.</b> Der Browser braucht nach dem Start eine Bestätigung für den Sicherungsordner.</span><span><button class="btn primary" id="bkYes" data-a="bkAllow">Jetzt bestätigen</button> <button class="btn" data-a="bkLater">Später</button></span></div>`
+    : `<div class="banner"><span><b>Zeit für eine Sicherung.</b> ${days == null ? I18N.tx('Es gibt noch keine Sicherung.') : I18N.tx('Die letzte Sicherung ist') + ' ' + days + ' ' + I18N.tx('Tage alt.')} Die Daten liegen nur in diesem Browser.</span><span><button class="btn primary" data-a="bkDownload">Sicherung speichern</button> <button class="btn" data-a="bkLater">Später</button></span></div>`;
+  I18N.apply();
+}
+async function autoBackup() {
+  if (S.demo || !bkDue()) return;
+  const snooze = +ls.get('zeitwerk-bk-snooze-' + PROFILE) || 0; if (Date.now() - snooze < 36e5 * 6) return;
+  if (BK.cfg.handle) { const p = await bkPermission(false); if (p === 'granted') await backupNow(false); else showBackupBanner('perm'); return; }
+  if (!bkLast()) { markBackup(); return; }    // erster Start: Erinnerung erst nach einem Intervall
+  showBackupBanner('remind');
+}
+
 /* ---------- Start ---------- */
 (async function boot() {
   I18N.start();
@@ -335,11 +397,13 @@ function reportProblem() {
     if (raw) { const o = JSON.parse(raw); if (o && o.v === 1) { S = Object.assign({ demo: false, pay: {} }, o); S.cfg = Object.assign({}, DEFAULT_CFG, o.cfg); loaded = true; } }
   } catch (e) { /* leer starten */ }
   if (!loaded) { makeDemo(); }
+  try { const b = await DB.get('backup'); if (b) BK.cfg = Object.assign({ interval: 'daily', keep: 10 }, b); } catch (e) { }
   let t = ls.get('stundenkonto-tab-' + PROFILE); if (t === 'daten') t = 'einst'; if (t && TABS.some(x => x[0] === t)) UI.tab = t;
   recompute(); render(); I18N.apply();
   $('#saveState').textContent = loaded ? 'geladen' : 'Beispiel';
   setInterval(timerTick, 30000);
   setTimeout(() => checkUpdate(false), 1500);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(false); }); /* auch bei lange offenem Tab */
+  setTimeout(autoBackup, 4000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkUpdate(false); autoBackup(); } }); /* auch bei lange offenem Tab */
 })();
 window.addEventListener('pagehide', () => { ls.set('stundenkonto-tab-' + PROFILE, UI.tab); });

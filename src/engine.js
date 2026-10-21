@@ -17,6 +17,9 @@
     standardOrt: 'buero',   // 'buero' | 'ho'
     hoWochentage: [],       // feste Homeoffice-Wochentage (1=Mo ... 5=Fr)
     auszahlAn: false,       // Auszahlung von Ueberstunden erfassen
+    pauseModus: 'gesetz',   // automatische Pause: 'gesetz' | 'fest' | 'keine'
+    pauseAb: 6,             // bei 'fest': ab dieser Anwesenheit (h)
+    pauseFest: 1,           // bei 'fest': Pause (h)
     regeln: [],             // Regeln ab Datum: urlaubJahr, halbeTage, urlaubVerfall, lzkMax, kappungAn, kappungTag, kappungMax
     lzkMax: 10,             // Urlaubstage, die am Stichtag ins Langzeitkonto gehen (Rest verfällt)
     startLzk: 0,            // Langzeitkonto in Tagen vor dem Startdatum
@@ -82,7 +85,10 @@
   const holidayName = k => holidays(+k.slice(0, 4))[k] || null;
 
   // Pausenregel (ArbZG-nah, wie in der Excel): d = Anwesenheit in Stunden
-  function autoPause(d) {
+  function autoPause(d, rc) {
+    const m = rc && rc.pauseModus;
+    if (m === 'keine') return 0;
+    if (m === 'fest') return d >= (rc.pauseAb != null ? rc.pauseAb : 6) ? Math.min(d, rc.pauseFest != null ? rc.pauseFest : 1) : 0;
     if (d >= 9.75) return 0.75;
     if (d > 9) return Math.max(0.5, d - 9);
     if (d >= 6.5) return 0.5;
@@ -99,7 +105,7 @@
   }
 
   // Regeln mit Gueltig-ab-Datum: Basiswerte gelten ab Startdatum, cfg.regeln ersetzen sie ab ihrem Datum.
-  const RULE_KEYS = ['urlaubJahr', 'halbeTage', 'urlaubVerfall', 'lzkMax', 'kappungAn', 'kappungTag', 'kappungMax'];
+  const RULE_KEYS = ['urlaubJahr', 'halbeTage', 'urlaubVerfall', 'lzkMax', 'kappungAn', 'kappungTag', 'kappungMax', 'pauseModus', 'pauseAb', 'pauseFest'];
   function migrate(cfgIn) {
     const c = Object.assign({}, DEFAULTS, cfgIn || {});
     c.regeln = Array.isArray(c.regeln) ? c.regeln.filter(x => x && x.ab).sort((x, y) => x.ab.localeCompare(y.ab)) : [];
@@ -147,7 +153,7 @@
       const isWorkType = !(t in TYPES) || !!TYPES[t].work;
       const s = inp.s || 0, e = inp.e || 0, a = inp.a || 0;
       const d = e > s ? e - s : 0;
-      const pause = inp.p != null && inp.p !== '' ? inp.p : autoPause(d);
+      const pause = inp.p != null && inp.p !== '' ? inp.p : autoPause(d, rc);
       const raw = d > 0 ? d - pause - a : 0;
       const stunden = Math.min(cfg.tagesMax, raw);
       const over = raw > cfg.tagesMax ? raw - cfg.tagesMax : 0;
@@ -190,7 +196,7 @@
       const netto = k < nettoAb ? stunden : (sumAct === 0 ? stunden : sumAct);
       out.push({ k, kw: isoWeek(k), t, s, e, a, pause, pauseAuto: !(inp.p != null && inp.p !== ''), stunden, over, za, zagen,
         konto, rest, ugen, krank, soll: so, arbeitstag, netto, acts: sumAct, planned: !!planned, wd,
-        hol: holidayName(k), note: inp.n || '', adj, az, ort, hoH, loss, lzk, lzkIn, verfall });
+        hol: holidayName(k), note: inp.n || '', adj, az, ort, hoH, kd: inp.kd || '', ot: inp.ot || '', loss, lzk, lzkIn, verfall });
     }
     return out;
   }
@@ -246,6 +252,6 @@
     }
     return payday(y, m, true);
   }
-  const api = { monthsBefore, creditAt, migrate, cfgAt, paydayMode, isWerktag, sollAt, payday, DEFAULTS, TYPES, key, parse, addDays, weekday, isoWeek, easter, holidays, holidayName, setRegion, getRegion, REGIONS, autoPause, defaultType, run, summarize, fromUTC, toUTC };
+  const api = { RULE_KEYS, monthsBefore, creditAt, migrate, cfgAt, paydayMode, isWerktag, sollAt, payday, DEFAULTS, TYPES, key, parse, addDays, weekday, isoWeek, easter, holidays, holidayName, setRegion, getRegion, REGIONS, autoPause, defaultType, run, summarize, fromUTC, toUTC };
   if (typeof module !== 'undefined') module.exports = api; else root.StundenEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -5,6 +5,8 @@ from playwright.async_api import async_playwright
 url = 'file://' + str(pathlib.Path(sys.argv[1]).resolve())
 REL = {'tag_name': 'v9.9.9', 'html_url': 'https://github.com/x/y/releases/tag/v9.9.9', 'body': 'Test-Hinweise',
        'assets': [{'name': 'taktbuch.html', 'browser_download_url': 'https://github.com/x/y/releases/download/v9.9.9/taktbuch.html'}]}
+async def go(pg, sub):
+    await pg.click('button[data-v=einst]'); await pg.click(f'button[data-a=sub][data-v={sub}]'); await pg.wait_for_timeout(150)
 async def main():
     ok = True
     def check(name, cond):
@@ -45,9 +47,9 @@ async def main():
         check('Tabs englisch', await pg3.inner_text('#tabs') == 'Today\nWeek\nMonth\nVacation\nActivities\nReports\nSalary\nSettings')
         STOP = set('der die das und oder für mit von zu im am ist nicht wird werden ein eine einen dem den des auf bei als auch nur wenn dann nach vor über unter alle noch schon bis aus wie sich sind kann keine kein dein deine deiner deinen du ab pro je ohne sowie'.split())
         left = []
-        for t in ['heute', 'woche', 'monat', 'urlaub', 'taet', 'auswertung', 'gehalt', 'einst', 'daten']:
-            await pg3.click(f'button[data-v={"einst" if t == "daten" else t}]')
-            if t in ('einst', 'daten'): await pg3.click(f'button[data-a=sub][data-v={t}]')
+        for t in ['heute', 'woche', 'monat', 'urlaub', 'taet', 'auswertung', 'gehalt', 'zeit', 'regeln', 'gehalt2', 'erfassung', 'allg', 'daten']:
+            if t in ('zeit', 'regeln', 'gehalt2', 'erfassung', 'allg', 'daten'): await go(pg3, 'gehalt' if t == 'gehalt2' else t)
+            else: await pg3.click(f'button[data-v={t}]')
             await pg3.wait_for_timeout(200)
             txt = await pg3.evaluate("()=>{const o=[];const w=document.createTreeWalker(document.getElementById('view'),NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){const v=n.nodeValue.trim();if(v)o.push(v)}document.querySelectorAll('#view [placeholder],#view [aria-label],#view [title]').forEach(e=>['placeholder','aria-label','title'].forEach(a=>{const v=e.getAttribute(a);if(v)o.push(v)}));return o}")
             import re
@@ -81,14 +83,17 @@ async def main():
         await pg3.evaluate("()=>{setDay(todayKey(),{t:'arbeit'})}")
         check('Spalte umbenannt', 'projekt' in (await pg3.inner_text('#view')).lower())
         await pg3.evaluate("()=>{S.cfg.raster='min';S.cfg.spalten={};commit()}")
-        await pg3.click('button[data-v=einst]'); await pg3.click('button[data-a=sub][data-v=einst]')
+        await go(pg3, 'allg')
         await pg3.select_option('#c_rg', 'SN'); await pg3.wait_for_timeout(300)
         check('Bundesland Sachsen: Buß- und Bettag', await pg3.evaluate("()=>E.holidayName('2026-11-18')==='Buß- und Bettag'&&S.cfg.region==='SN'"))
         await pg3.select_option('#c_rg', 'NW')
+        await go(pg3, 'regeln')
         await pg3.click('[data-a=rgAdd]'); await pg3.wait_for_timeout(200)
         await pg3.select_option('#r1_kappungAn', 'false'); await pg3.fill('#r1_urlaubJahr', '28'); await pg3.dispatch_event('#r1_urlaubJahr', 'change')
         check('Regeländerung ab Datum angelegt', await pg3.evaluate("()=>S.cfg.regeln.length===1&&S.cfg.regeln[0].kappungAn===false&&S.cfg.regeln[0].urlaubJahr===28&&S.cfg.urlaubJahr!==28"))
+        await go(pg3, 'gehalt')
         check('Zahltag: Reihenfolge und 4 Optionen', await pg3.evaluate("()=>[...document.querySelectorAll('#c_zf option')].map(o=>o.value).join()") == 'erster,letzter,tag15,letzte4')
+        await go(pg3, 'erfassung')
         ys = await pg3.evaluate("()=>[...document.querySelectorAll('#c_col_cat,#c_col_w,#c_col_sys,#c_col_pn,#c_col_th')].map(e=>Math.round(e.getBoundingClientRect().top))")
         check('Spaltennamen in einer Reihe', len(set(ys)) == 1)
         await pg3.select_option('#c_oa', 'true'); await pg3.select_option('#c_aa', 'true'); await pg3.wait_for_timeout(200)
@@ -108,10 +113,12 @@ async def main():
         await pg3.click('button[data-v=auswertung]'); await pg3.wait_for_timeout(300)
         check('Auswertung zeigt Arbeitsort-Tabelle', 'office' in (await pg3.inner_text('#view')).lower() or 'büro' in (await pg3.inner_text('#view')).lower())
         await pg3.evaluate("()=>{delete S.days[todayKey()];S.cfg.ortAn=false;S.cfg.auszahlAn=false;S.cfg.hoWochentage=[];commit()}")
-        await pg3.click('button[data-v=einst]'); await pg3.click('button[data-a=sub][data-v=einst]')
-        await pg3.click('button[data-v=einst]'); await pg3.click('button[data-a=sub][data-v=daten]')
+        await go(pg3, 'daten')
         check('Melden-Knopf vorhanden', await pg3.locator('[data-a=report]').count() == 1)
-        await pg3.click('button[data-a=sub][data-v=einst]')
+        check('Automatische Sicherung sichtbar', 'utomati' in (await pg3.inner_text('#view')))
+        await go(pg3, 'regeln')
+        await pg3.select_option('#r1_pauseModus', 'fest'); await pg3.wait_for_timeout(200)
+        check('Pause fest: Zusatzfelder erscheinen', await pg3.locator('#r1_pauseFest').count() == 1)
         await pg3.click('[data-a=rgDel]'); await pg3.wait_for_timeout(200)
         check('Regeländerung entfernt', await pg3.evaluate("()=>S.cfg.regeln.length===0"))
         await pg3.click('[data-a=wizOpen]'); await pg3.wait_for_selector('#w_ab')
@@ -120,6 +127,25 @@ async def main():
         await pg3.click('[data-a=wizApply]'); await pg3.wait_for_timeout(300)
         check('Wizard: Jobwechsel als Regel mit Wechselwerten', await pg3.evaluate("()=>S.cfg.regeln.some(r=>r.wechsel&&r.ab==='2026-07-17')&&S.cfg.sollVerlauf.some(x=>x.ab==='2026-07-17')"))
         await pg3.evaluate("()=>{S.cfg.regeln=S.cfg.regeln.filter(r=>!r.wechsel);S.cfg.sollVerlauf=S.cfg.sollVerlauf.filter(x=>x.ab!=='2026-07-17');commit()}")
+        await pg3.click('button[data-v=heute]'); await pg3.evaluate("()=>{setDay(todayKey(),{t:'Dienstreise'})}"); await pg3.wait_for_selector('#d_kd')
+        await pg3.fill('#d_kd', 'ACME'); await pg3.dispatch_event('#d_kd', 'change'); await pg3.fill('#d_ot', 'Ingelheim'); await pg3.dispatch_event('#d_ot', 'change'); await pg3.wait_for_timeout(200)
+        check('Dienstreise: Kunde/Ort statt Arbeitsort', await pg3.evaluate("()=>{const r=R.map[todayKey()];return r.kd==='ACME'&&r.ot==='Ingelheim'}") and await pg3.locator('[data-a=setOrt]').count() == 0)
+        await pg3.click('button[data-v=auswertung]'); await pg3.wait_for_timeout(300)
+        check('Auswertung: Dienstreisen nach Kunde und Ort', 'ACME' in (await pg3.inner_text('#view')) and 'Ingelheim' in (await pg3.inner_text('#view')))
+        await pg3.evaluate("()=>{setDay(todayKey(),{t:'arbeit',kd:'',ot:''})}")
+        # Backup: falscher Ordner-Handle im Speicher, Rotation prüfen
+        res = await pg3.evaluate("""async()=>{
+          const files={}; for(let i=1;i<=5;i++) files['taktbuch-sicherung-'+PROFILE+'-2026-01-0'+i+'.json']='x'; files['andere.txt']='y';
+          const h={name:'Test',queryPermission:async()=>'granted',requestPermission:async()=>'granted',
+            getFileHandle:async(n)=>({createWritable:async()=>{let b='';return{write:async t=>{b=t},close:async()=>{files[n]=b}}},getFile:async()=>({size:new Blob([files[n]]).size})}),
+            removeEntry:async n=>{delete files[n]}, entries:async function*(){for(const n of Object.keys(files)) yield [n,{}]}};
+          BK.cfg={handle:h,interval:'daily',keep:3}; S.demo=false;
+          const ok=await backupNow(true); return {ok,names:Object.keys(files).sort()};}""")
+        check('Backup schreibt Datei und behält nur die letzten 3 (andere Dateien bleiben)', res['ok'] and len(res['names']) == 4 and 'andere.txt' in res['names'] and not any(n.endswith('01-01.json') for n in res['names']))
+        await pg3.evaluate("()=>{BK.cfg={handle:null,interval:'daily',keep:10};localStorage.setItem('zeitwerk-bk-last-'+PROFILE,String(Date.now()-10*864e5));localStorage.removeItem('zeitwerk-bk-snooze-'+PROFILE);S.demo=false}")
+        await pg3.evaluate("()=>autoBackup()"); await pg3.wait_for_timeout(200)
+        check('Erinnerung bei alter Sicherung ohne Ordner', 'Sicherung' in (await pg3.inner_text('#bkbanner')) or 'backup' in (await pg3.inner_text('#bkbanner')).lower())
+        await go(pg3, 'erfassung')
         await pg3.select_option('[data-f="colv:pn"]', 'true'); await pg3.select_option('[data-f="colv:sys"]', 'false')
         await pg3.click('button[data-v=taet]'); hd = (await pg3.inner_text('#view thead')).lower()
         check('Spalten ein-/ausblendbar', 'projektnummer' in hd and 'system' not in hd and 'kategorie' in hd)

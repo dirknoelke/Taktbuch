@@ -65,4 +65,18 @@ eq('1 Urlaubstag: Resturlaub 9', ru.rest, 9);
   { const R2 = E.run({ '2026-03-02': { s: 8, e: 17, p: 1, o: 'mix', hoAb: 11, hoZ: 'ho' } }, {}, c, '2026-03-02', null); eq('Ort: zuerst Homeoffice bis 11 Uhr = 3 h', R2[0].hoH, 3); }
   eq('Auszahlung mindert Konto', Math.round((ix['2026-03-09'].konto - ix['2026-03-06'].konto) * 100) / 100, Math.round((ix['2026-03-09'].za - 2) * 100) / 100); eq('Auszahlung in Summe', Y.ausz, 2);
 }
+// Pausenrechnung
+{
+  eq('Pause gesetzlich 8 h = 0,5', E.autoPause(8, { pauseModus: 'gesetz' }), 0.5); eq('Pause ohne Angabe = gesetzlich', E.autoPause(8), 0.5);
+  eq('Pause fest ab 6 h: 5,5 h = 0', E.autoPause(5.5, { pauseModus: 'fest', pauseAb: 6, pauseFest: 1 }), 0); eq('Pause fest ab 6 h: 8 h = 1', E.autoPause(8, { pauseModus: 'fest', pauseAb: 6, pauseFest: 1 }), 1);
+  eq('Pause keine', E.autoPause(9, { pauseModus: 'keine' }), 0);
+  const c = { startDatum: '2026-03-02', startSaldo: 0, startUrlaub: 10, soll: 8, kappungTag: '', urlaubVerfall: '', halbeTage: false, regeln: [{ ab: '2026-03-04', pauseModus: 'fest', pauseAb: 6, pauseFest: 1 }] };
+  const R = E.run({ '2026-03-02': { s: 8, e: 16.5 }, '2026-03-04': { s: 8, e: 16.5 } }, {}, c, '2026-03-04', null);
+  eq('Pause Regel ab Datum: vorher gesetzlich 0,5', R[0].pause, 0.5); eq('Pause Regel ab Datum: nachher fest 1', R[2].pause, 1);
+}
+// Dienstreise Kunde und Ort
+{
+  const R = E.run({ '2026-03-04': { t: 'Dienstreise', kd: 'ACME', ot: 'Ingelheim', s: 8, e: 16.5 } }, {}, { startDatum: '2026-03-02', soll: 8 }, '2026-03-04', null);
+  eq('Dienstreise: Kunde und Ort in der Zeile', R[2].kd + '|' + R[2].ot, 'ACME|Ingelheim');
+}
 console.log(fail ? fail + ' Fehler' : 'alle Tests bestanden'); process.exit(fail ? 1 : 0);
