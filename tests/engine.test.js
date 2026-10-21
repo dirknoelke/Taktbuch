@@ -55,4 +55,13 @@ eq('1 Urlaubstag: Resturlaub 9', ru.rest, 9);
   eq('Jobwechsel: alter Job anteilig 15 Tage', ix['2026-06-30'].rest, 15); eq('Jobwechsel: Rest am Wechseltag 12', ix['2026-07-01'].rest, 12); eq('Jobwechsel: Zeitkonto zurueck auf Startwert', ix['2026-07-01'].konto, 0 + ix['2026-07-01'].za);
   eq('Jobwechsel: 01.01. danach 24 neue Tage', ix['2027-01-01'].rest, 12 + 24);
 }
+// Arbeitsort und Auszahlung
+{
+  const c = { startDatum: '2026-03-02', startSaldo: 0, startUrlaub: 10, soll: 8, ortAn: true, standardOrt: 'buero', hoWochentage: [3], kappungTag: '', urlaubVerfall: '', halbeTage: false };
+  const d = { '2026-03-02': { s: 8, e: 17, p: 1 }, '2026-03-03': { s: 8, e: 17, p: 1, o: 'mix', hoAb: 14 }, '2026-03-04': { s: 8, e: 17, p: 1 }, '2026-03-05': { s: 8, e: 17, p: 1, o: 'ho' }, '2026-03-06': { t: 'Dienstreise', s: 8, e: 16, p: 0 }, '2026-03-09': { s: 8, e: 17, p: 1, az: 2 } };
+  const R = E.run(d, {}, c, '2026-03-09', null), Y = E.summarize(R, c)[2026].tot, ix = {}; R.forEach(r => { ix[r.k] = r; });
+  eq('Ort: Standard Buero', ix['2026-03-02'].ort, 'buero'); eq('Ort: geteilt, 3 h Homeoffice', ix['2026-03-03'].hoH, 3); eq('Ort: Mittwoch fest Homeoffice', ix['2026-03-04'].ort, 'ho'); eq('Ort: Dienstreise', ix['2026-03-06'].ort, 'dr');
+  eq('Ort: Jahressumme Tage', [Y.tB, Y.tH, Y.tM, Y.tD].join(), '2,2,1,1'); eq('Ort: Homeoffice-Stunden', Y.hH, 8 + 8 + 3 + 0 + 0 === 19 ? 19 : -1);
+  eq('Auszahlung mindert Konto', Math.round((ix['2026-03-09'].konto - ix['2026-03-06'].konto) * 100) / 100, Math.round((ix['2026-03-09'].za - 2) * 100) / 100); eq('Auszahlung in Summe', Y.ausz, 2);
+}
 console.log(fail ? fail + ' Fehler' : 'alle Tests bestanden'); process.exit(fail ? 1 : 0);

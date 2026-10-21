@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.0
+
+- **Work location** (GitHub issue #6): per day Office, Home office or split (office before a time, home office after). Default location and fixed home office weekdays in Settings, a period tool in the Month view, and a yearly table in Reports (days and hours per month, business trips separate). A plain count, no tax calculation. Off by default.
+- **Overtime payout** (GitHub issue #5): field "Overtime payout (h)" on the day, reduces the time account and is summed per year in Reports. Off by default.
+
 ## 1.7.0
 
 - New **Job change** wizard in Settings. Asks for the first day in the new job, vacation days per year, vacation days until year end, starting time account, starting long-term account and target hours. The old job counts pro rata in half months (1st to 15th = half a month), rounded up to half days. On the change date remaining vacation, time account and long-term account are reset to the entered values; everything before stays unchanged. Expiry, cap and 24.12./31.12. are copied from the previous rules and editable in the new entry. Dated rule changes from 1.6.0 stay for changes within the same job.
