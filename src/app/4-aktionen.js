@@ -298,7 +298,7 @@ async function checkUpdate(manual) {
   if (!REPO) { say('In dieser Version ist keine Update-Prüfung eingerichtet.'); return; }
   let info = null; try { info = JSON.parse(ls.get('zeitwerk-upd-info') || 'null'); } catch (e) { }
   const last = +ls.get('zeitwerk-upd-last') || 0;
-  if (!manual && Date.now() - last < 864e5) { showUpdate(info); return; }
+  if (!manual && Date.now() - last < 36e5) { showUpdate(info); return; }
   say('prüfe …');
   try {
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 8000);
@@ -310,7 +310,7 @@ async function checkUpdate(manual) {
     ls.set('zeitwerk-upd-info', JSON.stringify(info)); ls.set('zeitwerk-upd-last', String(Date.now()));
     if (manual) { ls.set('zeitwerk-upd-skip', ''); say(isNewer(info.tag, VERSION) ? 'Neue Version ' + info.tag.replace(/^v/, '') + ' verfügbar.' : 'Du hast die aktuelle Version.'); }
     showUpdate(info);
-  } catch (e) { say(manual ? 'Prüfung nicht möglich (offline oder Zugriff gesperrt).' : ''); if (!manual) ls.set('zeitwerk-upd-last', String(Date.now() - 864e5 + 36e5)); /* nach Fehler in 1 Stunde erneut versuchen */ showUpdate(info); }
+  } catch (e) { say(manual ? 'Prüfung nicht möglich (offline oder Zugriff gesperrt).' : ''); if (!manual) ls.set('zeitwerk-upd-last', String(Date.now())); /* nach Fehler in 1 Stunde erneut versuchen */ showUpdate(info); }
 }
 
 /* ---------- Start ---------- */
@@ -328,5 +328,6 @@ async function checkUpdate(manual) {
   $('#saveState').textContent = loaded ? 'geladen' : 'Beispiel';
   setInterval(timerTick, 30000);
   setTimeout(() => checkUpdate(false), 1500);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(false); }); /* auch bei lange offenem Tab */
 })();
 window.addEventListener('pagehide', () => { ls.set('stundenkonto-tab-' + PROFILE, UI.tab); });
