@@ -55,7 +55,7 @@ let S = { v: 1, cfg: {}, days: {}, acts: [], pay: {}, demo: false };
 const UI = { sub: 'einst', uy: new Date().getFullYear(), payYear: new Date().getFullYear(), brush: 'Urlaub', tab: 'heute', date: todayKey(), year: new Date().getFullYear(), month: new Date().getMonth() + 1,
   form: { s: '', e: '', u: '', cat: '', w: '', sys: '', pn: '', th: '' },
   filt: { y: '', m: '', cat: '', w: '', sys: '', pn: '', q: '', limit: 200 }, dim: 'cat', pivotYear: 'alle',
-  range: { from: '', to: '', t: 'Urlaub', o: 'ho' }, report: null, confirm: '' };
+  range: { from: '', to: '', t: 'Urlaub', o: 'ho', kd: '', ot: '' }, report: null, confirm: '' };
 let R = null; // Berechnung: { rows, map, years }
 
 /* ---------- Speicher (IndexedDB, Fallback: nur Sitzung) ---------- */
@@ -95,7 +95,7 @@ function recompute() {
   const days = {};
   for (const k in S.days) {
     const d = S.days[k];
-    days[k] = { s: H(d.s), e: H(d.e), a: H(d.a), t: d.t || (d.th && !/^(WE|Feiertag)$/.test(E.defaultType(k, S.cfg)) ? d.th : undefined), p: d.p ? H(d.p) : null, z: d.z, n: d.n, o: d.o, hoAb: d.hoAb ? H(d.hoAb) : 0, hoZ: d.hoZ, az: d.az };
+    days[k] = { s: H(d.s), e: H(d.e), a: H(d.a), t: d.t || (d.th && !/^(WE|Feiertag)$/.test(E.defaultType(k, S.cfg)) ? d.th : undefined), p: d.p ? H(d.p) : null, z: d.z, n: d.n, o: d.o, hoAb: d.hoAb ? H(d.hoAb) : 0, hoZ: d.hoZ, az: d.az, kd: d.kd, ot: d.ot };
   }
   const by = {}; let minAct = '9999-12-31';
   for (const a of S.acts) {
@@ -114,7 +114,7 @@ function dayRow(k) { return R.map[k]; }
 function commit(rerender = true) { recompute(); save(); if (rerender) render(); else updatePill(); }
 
 /* ---------- Tagesdaten ändern ---------- */
-function isEmptyDay(d) { return !(d.o || d.hoAb || d.hoZ || d.az || d.s || d.e || d.a || d.p || d.z || d.n || d.t || (d.th && d.th !== S.cfg.standardThema)); }
+function isEmptyDay(d) { return !(d.kd || d.ot || d.o || d.hoAb || d.hoZ || d.az || d.s || d.e || d.a || d.p || d.z || d.n || d.t || (d.th && d.th !== S.cfg.standardThema)); }
 function setDay(k, patch, rerender = true) {
   const d = Object.assign({}, S.days[k] || {}, patch);
   for (const f of Object.keys(d)) if (d[f] === '' || d[f] === undefined || d[f] === 0 && (f === 'z' || f === 'az')) delete d[f];

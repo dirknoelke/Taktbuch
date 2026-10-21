@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.0
+
+- **Settings are split into sub-menus** (GitHub issue #7): Working time, Vacation and account, Salary, Recording, General, Data. The rule changes, the job change wizard and the starting values live under "Vacation and account".
+- **Automatic break is configurable** (GitHub issue #8), as a rule with a valid-from date: statutory scale, fixed break from a minimum presence (e.g. 1 hour from 6 h), or no automatic break. Manual breaks per day still win. Earlier days keep the old rule.
+- **Automatic backup** (GitHub issue #10): under Settings, Data, choose a folder (Chrome or Edge). Taktbuch writes one JSON backup per day or week there and keeps the latest ones (default 10, other files are left alone). After a browser restart the browser may ask once for permission, a banner then offers to confirm. Without folder access (other browsers) Taktbuch reminds you weekly to save a backup.
+- **Business trip: customer and place** (GitHub issue #11): on business trip days two fields replace the office/home office choice. Names are editable and each field can be hidden. Period tool, calendar label and a yearly table in Reports (days per customer and place).
+
 ## 1.9.0
 
 - **The app is now called Taktbuch** (formerly Zeitwerk). Your data stays: nothing about storage changed, just update in place as usual and keep the file name and location. Save a JSON backup before updating, as always. The repository moved to `taktbuch`, old links keep working.
