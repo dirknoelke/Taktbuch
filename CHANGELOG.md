@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.1
+
+- Split work location days can start with home office: choose "office first" or "home office first" plus the switch time.
+- Fix: after "Add" in activities, Category, Type and System are no longer carried over from the previous entry. This also restores the automatic fill of these fields from an earlier entry with the same Topic.
+
 ## 1.8.0
 
 - **Work location** (GitHub issue #6): per day Office, Home office or split (office before a time, home office after). Default location and fixed home office weekdays in Settings, a period tool in the Month view, and a yearly table in Reports (days and hours per month, business trips separate). A plain count, no tax calculation. Off by default.

@@ -8,8 +8,9 @@ function ortRow(d, row) {
   const cur = d.o || defOrt(row.wd);
   return `<div class="field" style="margin-top:12px"><label>Arbeitsort</label><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
     <div class="seg" role="group" aria-label="Arbeitsort">${ORTE.map(([v, l]) => `<button data-a="setOrt" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join('')}</div>
-    ${cur === 'mix' ? `<div class="field" style="min-width:150px"><label for="d_hoAb">Homeoffice ab</label><input id="d_hoAb" ${tAttr()} value="${esc(d.hoAb || '')}" data-f="day:hoAb"></div>` : ''}</div>
-    ${cur === 'mix' ? `<span class="hint">Vor der Uhrzeit Büro, danach Homeoffice.</span>` : ''}</div>`;
+    ${cur === 'mix' ? `<div class="seg" role="group" aria-label="Reihenfolge"><button data-a="setOrtFolge" data-v="buero" aria-pressed="${!d.hoZ}">zuerst Büro</button><button data-a="setOrtFolge" data-v="ho" aria-pressed="${!!d.hoZ}">zuerst Homeoffice</button></div>
+    <div class="field" style="min-width:150px"><label for="d_hoAb">Wechsel um</label><input id="d_hoAb" ${tAttr()} value="${esc(d.hoAb || '')}" data-f="day:hoAb"></div>` : ''}</div>
+    ${cur === 'mix' ? `<span class="hint">${d.hoZ ? 'Bis zur Uhrzeit Homeoffice, danach Büro.' : 'Bis zur Uhrzeit Büro, danach Homeoffice.'}</span>` : ''}</div>`;
 }
 function wizDefaults(ab, uj) { const m = E.monthsBefore(ab); return Math.ceil(uj * (12 - m) / 12 * 2) / 2; }
 function wizardHtml() {

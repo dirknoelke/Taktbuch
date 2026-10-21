@@ -181,7 +181,7 @@
       let ort = '', hoH = 0;
       if (cfg.ortAn && stunden > 0 && wd < 6 && isWorkType) {
         ort = t === 'Dienstreise' ? 'dr' : (inp.o || ((cfg.hoWochentage || []).indexOf(wd) >= 0 ? 'ho' : (cfg.standardOrt || 'buero')));
-        if (ort === 'mix') hoH = Math.max(0, Math.min(stunden, e - (inp.hoAb || e)));
+        if (ort === 'mix') hoH = inp.hoZ ? Math.max(0, Math.min(stunden, (inp.hoAb || s) - s)) : Math.max(0, Math.min(stunden, e - (inp.hoAb || e)));
         else if (ort === 'ho') hoH = stunden;
       }
       const krank = t === 'krank' ? (so - stunden) / so : 0;

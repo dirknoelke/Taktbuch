@@ -7,6 +7,7 @@ const actions = {
   today: () => { UI.date = todayKey(); render(); },
   goto: el => go(el.dataset.k),
   setOrt: el => setDay(UI.date, { o: el.dataset.v }),
+  setOrtFolge: el => setDay(UI.date, { hoZ: el.dataset.v === 'ho' ? 'ho' : '' }),
   applyRangeOrt: () => rangeOrt(false),
   clearRangeOrt: () => rangeOrt(true),
   setType: el => setDay(UI.date, { t: normType(UI.date, el.dataset.v) }),
@@ -43,14 +44,14 @@ const actions = {
     if (!s || !f.e) { toast('Von und Bis eintragen. Mit „Timer“ startet die Zeit ab jetzt.'); return; }
     if (H(f.e) <= H(s)) { toast('Bis muss nach Von liegen.'); return; }
     S.acts.push({ id: newId(), d: k, s, e: f.e, u: f.u, cat: f.cat, w: f.w, sys: f.sys, pn: f.pn || '', th: f.th });
-    UI.form = { s: '', e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, pn: f.pn || '', th: '' };
+    UI.form = { s: '', e: '', u: '', cat: '', w: '', sys: '', pn: '', th: '' };
     commit(); setTimeout(() => { const el = $('#f_e'); if (el) el.focus(); }, 0);
   },
   timerStart: () => {
     const f = UI.form, k = todayKey();
     if (S.acts.some(a => !a.e)) { toast('Es läuft schon ein Timer.'); return; }
     S.acts.push({ id: newId(), d: k, s: nowStr(), e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, pn: f.pn || '', th: f.th });
-    UI.date = k; UI.form = { s: '', e: '', u: '', cat: f.cat, w: f.w, sys: f.sys, pn: f.pn || '', th: '' }; commit();
+    UI.date = k; UI.form = { s: '', e: '', u: '', cat: '', w: '', sys: '', pn: '', th: '' }; commit();
   },
   timerStop: el => { const a = S.acts.find(x => x.id === el.dataset.id); if (a) { a.e = nowStr(); if (H(a.e) <= H(a.s)) { S.acts = S.acts.filter(x => x !== a); toast(S.cfg.raster === '15' ? 'Timer unter einer Viertelstunde verworfen.' : 'Timer unter einer Minute verworfen.'); } commit(); } },
   delAct: el => { S.acts = S.acts.filter(a => a.id !== el.dataset.id); commit(); },
@@ -77,7 +78,7 @@ function rangeOrt(clear) {
   for (let k = g.from; k <= g.to; k = E.addDays(k, 1)) {
     if (E.weekday(k) >= 6 || E.holidayName(k)) continue;
     const d = Object.assign({}, S.days[k] || {});
-    if (clear) { delete d.o; delete d.hoAb; } else d.o = g.o || 'ho';
+    if (clear) { delete d.o; delete d.hoAb; delete d.hoZ; } else d.o = g.o || 'ho';
     if (isEmptyDay(d)) delete S.days[k]; else S.days[k] = d; n++;
   }
   commit(); toast(n + ' ' + I18N.tx('Tage aktualisiert') + '.');
