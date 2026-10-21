@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.0
+
+- **The app is now called Taktbuch** (formerly Zeitwerk). Your data stays: nothing about storage changed, just update in place as usual and keep the file name and location. Save a JSON backup before updating, as always. The repository moved to `taktbuch`, old links keep working.
+- New button **Report a problem / send a request** under Settings, Data. It opens your mail program with prefilled text (version, browser, language, active switches). Nothing is sent automatically and no data from the app is included. (GitHub issue #9)
+
 ## 1.8.2
 
 - Update check: runs on start and whenever you return to the tab, at most once an hour (before: once a day, and only at start). New releases show up much sooner and in tabs that stay open for days.

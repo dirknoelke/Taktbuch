@@ -1,10 +1,10 @@
 """UI-Smoketest (Playwright): Profilwahl, Erkennung vorhandener Daten, Update-Banner.
-Aufruf: python3 tests/ui.py dist/zeitwerk.html"""
+Aufruf: python3 tests/ui.py dist/taktbuch.html"""
 import asyncio, json, sys, pathlib
 from playwright.async_api import async_playwright
 url = 'file://' + str(pathlib.Path(sys.argv[1]).resolve())
 REL = {'tag_name': 'v9.9.9', 'html_url': 'https://github.com/x/y/releases/tag/v9.9.9', 'body': 'Test-Hinweise',
-       'assets': [{'name': 'zeitwerk.html', 'browser_download_url': 'https://github.com/x/y/releases/download/v9.9.9/zeitwerk.html'}]}
+       'assets': [{'name': 'taktbuch.html', 'browser_download_url': 'https://github.com/x/y/releases/download/v9.9.9/taktbuch.html'}]}
 async def main():
     ok = True
     def check(name, cond):
@@ -21,7 +21,7 @@ async def main():
         check('Profil einfach: kein Verfall', await pg.evaluate("()=>S.cfg.urlaubVerfall===''&&S.cfg.mirAn===false"))
         await pg.wait_for_selector('#updbanner .banner', timeout=8000)
         bt = await pg.inner_text('#updbanner'); check('Update-Banner bei neuerer Version', 'Neue Version 9.9.9' in bt or 'New version 9.9.9' in bt)
-        check('Download-Link zeigt auf Asset', (await pg.get_attribute('#updDl', 'href')).endswith('zeitwerk.html'))
+        check('Download-Link zeigt auf Asset', (await pg.get_attribute('#updDl', 'href')).endswith('taktbuch.html'))
         await pg.click('#updSkip'); check('Später blendet aus', await pg.inner_text('#updbanner') == '')
         await pg.click('button[data-v=einst]'); await pg.click('button[data-a=sub][data-v=daten]'); await pg.click('[data-a=chkUpd]'); await pg.wait_for_function("()=>document.querySelector('#updState').textContent.includes('9.9.9')")
         check('manuelle Prüfung meldet Version', True)
@@ -109,6 +109,9 @@ async def main():
         check('Auswertung zeigt Arbeitsort-Tabelle', 'office' in (await pg3.inner_text('#view')).lower() or 'büro' in (await pg3.inner_text('#view')).lower())
         await pg3.evaluate("()=>{delete S.days[todayKey()];S.cfg.ortAn=false;S.cfg.auszahlAn=false;S.cfg.hoWochentage=[];commit()}")
         await pg3.click('button[data-v=einst]'); await pg3.click('button[data-a=sub][data-v=einst]')
+        await pg3.click('button[data-v=einst]'); await pg3.click('button[data-a=sub][data-v=daten]')
+        check('Melden-Knopf vorhanden', await pg3.locator('[data-a=report]').count() == 1)
+        await pg3.click('button[data-a=sub][data-v=einst]')
         await pg3.click('[data-a=rgDel]'); await pg3.wait_for_timeout(200)
         check('Regeländerung entfernt', await pg3.evaluate("()=>S.cfg.regeln.length===0"))
         await pg3.click('[data-a=wizOpen]'); await pg3.wait_for_selector('#w_ab')
