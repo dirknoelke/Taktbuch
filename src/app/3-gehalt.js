@@ -178,7 +178,7 @@ function viewUrlaub() {
       : `Nach aktueller Planung bleiben am ${capMD[1]}.${capMD[0]}. ${fmtDec(surplus, surplus % 1 ? 1 : 0)} Tage übrig. ${fmtDec(cap.lzkIn, cap.lzkIn % 1 ? 1 : 0)} gehen ins Langzeitkonto${cap.verfall > 0.01 ? `, <b>${fmtDec(cap.verfall, cap.verfall % 1 ? 1 : 0)} Tage verfallen</b>. Plane bis dahin ${fmtDec(cap.verfall, cap.verfall % 1 ? 1 : 0)} weitere Urlaubstage ein.` : '. Es verfällt nichts.'}`;
   }
   return `
-  <div class="nav"><h2>Urlaubsplanung</h2><div class="seg" role="group" aria-label="Jahr">${yearsBtn.map(v => `<button data-a="uyear" data-v="${v}" aria-pressed="${v === y}">${v}</button>`).join('')}</div></div>
+  <div class="nav"><h2>Kalender</h2><div class="seg" role="group" aria-label="Jahr">${yearsBtn.map(v => `<button data-a="uyear" data-v="${v}" aria-pressed="${v === y}">${v}</button>`).join('')}</div></div>
   ${warn ? `<div class="banner" style="margin:0"><span>${warn}</span></div>` : ''}
   <div class="stats">
     <div class="stat"><small>Anspruch ${y}</small><b>${fmtDec(anspruch, anspruch % 1 ? 1 : 0)}</b><span>${fmtDec(carry, carry % 1 ? 1 : 0)} Vorjahr + ${fmtDec(rc.urlaubJahr, 0)} neu am 1.1.</span></div>

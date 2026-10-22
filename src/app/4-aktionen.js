@@ -404,6 +404,7 @@ async function autoBackup() {
   setInterval(timerTick, 30000);
   setTimeout(() => checkUpdate(false), 1500);
   setTimeout(autoBackup, 4000);
+  showWhatsNew(loaded);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkUpdate(false); autoBackup(); } }); /* auch bei lange offenem Tab */
 })();
 window.addEventListener('pagehide', () => { ls.set('stundenkonto-tab-' + PROFILE, UI.tab); });

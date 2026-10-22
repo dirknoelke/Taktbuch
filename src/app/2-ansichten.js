@@ -66,6 +66,10 @@ const TYPE_OPTS = [['', 'Arbeit'], ['Urlaub', 'Urlaub'], ['Urlaub - halb', 'Urla
 const tyClass = t => (E.TYPES[t] && t !== 'arbeit' ? 'ty-' + t.replace(/[^A-Za-z]+/g, '-') : '');
 const tyLabel = t => (E.TYPES[t] ? E.TYPES[t].label : t);
 const isWorkType = t => !E.TYPES[t] || !!E.TYPES[t].work;
+// Wochensumme wie das Zeitkonto: Stunden zaehlen an jedem Werktag ausser Krank (auch an Urlaub/Zeitausgleich = Mehrarbeit).
+// Halber Urlaubstag: Soll nur die Haelfte, und nur wenn gearbeitet wurde (ohne Zeiten bleibt das Konto unveraendert).
+const wkIst = r => (r.wd < 6 && r.t !== 'krank' ? r.stunden : 0);
+const wkSoll = r => (r.wd >= 6 || r.hol ? 0 : isWorkType(r.t) ? r.soll : r.t === 'Urlaub - halb' && r.stunden > 0 ? r.soll / 2 : 0);
 const netto = a => (a.e ? Math.max(0, H(a.e) - H(a.s) - H(a.u)) : 0);
 const catColors = {};
 function catColor(c) { if (!c) return 'var(--c6)'; if (!(c in catColors)) catColors[c] = 'var(--c' + (1 + (Object.keys(catColors).length % 5)) + ')'; return catColors[c]; }
@@ -120,8 +124,8 @@ function viewHeute() {
   const live = liveInfo(k, d);
   const acts = S.acts.filter(a => a.d === k).sort((a, b) => a.s.localeCompare(b.s));
   const wsK = weekStart(k), wk = []; for (let i = 0; i < 7; i++) wk.push(dayRow(E.addDays(wsK, i)));
-  const wIst = wk.reduce((a, r) => a + (isWorkType(r.t) && r.wd < 6 ? r.stunden : 0), 0);
-  const wSoll = wk.reduce((a, r) => a + (r.wd < 6 && !r.hol && (isWorkType(r.t) || r.t === 'Urlaub - halb') ? r.soll * (r.t === 'Urlaub - halb' ? 0.5 : 1) : 0), 0);
+  const wIst = wk.reduce((a, r) => a + wkIst(r), 0);
+  const wSoll = wk.reduce((a, r) => a + wkSoll(r), 0);
   const stunden = live ? live.net : row.stunden;
   const effType = d.t || (E.defaultType(k, S.cfg) === 'Urlaub - halb' ? 'Urlaub - halb' : '');
   const isPay = paydayOf(+k.slice(0, 4), +k.slice(5, 7)) === k;
@@ -132,6 +136,7 @@ function viewHeute() {
   if (d.e && d.s && H(d.e) <= H(d.s)) warns.push('Gehen liegt vor Kommen. Über Mitternacht wird nicht gerechnet.');
   if (acts.length && gap > 0.5 && !live) warns.push(`Tätigkeiten decken ${fmtT(row.acts)} h von ${fmtT(row.stunden)} h ab (${fmtT(gap)} h offen).`);
   if (acts.some(a => !a.e)) warns.push('Ein Timer läuft noch.');
+  if (!isWorkType(row.t) && !['krank', 'Urlaub - halb', 'WE'].includes(row.t) && row.wd < 6 && !row.hol && row.stunden > 0.01) warns.push(`Für diesen Tag sind Zeiten eingetragen: ${fmtT(row.stunden)} h zählen zusätzlich als Mehrarbeit auf dem Zeitkonto. Zeiten löschen, wenn der Tag nur frei sein soll.`);
   const f = UI.form;
   const sugS = acts.length ? (acts[acts.length - 1].e || '') : (d.s || '');
   return `
@@ -222,7 +227,7 @@ function viewHeute() {
 function viewWoche() {
   const ws = weekStart(UI.date), rows = []; for (let i = 0; i < 7; i++) rows.push(dayRow(E.addDays(ws, i)));
   const sum = f => rows.reduce((a, r) => a + f(r), 0);
-  const ist = sum(r => (isWorkType(r.t) && r.wd < 6 ? r.stunden : 0)), soll = sum(r => (r.wd < 6 && !r.hol && (isWorkType(r.t) || r.t === 'Urlaub - halb') ? r.soll * (r.t === 'Urlaub - halb' ? 0.5 : 1) : 0));
+  const ist = sum(wkIst), soll = sum(wkSoll);
   const kw = rows[0].kw, last = rows[6];
   return `
   <div class="nav"><button class="btn" data-a="day" data-n="-7" aria-label="Vorige Woche">‹</button>
@@ -509,12 +514,12 @@ function viewEinst() {
 }
 
 /* ---------- Rahmen ---------- */
-const TABS = [['heute', 'Heute'], ['woche', 'Woche'], ['monat', 'Monat'], ['urlaub', 'Urlaub'], ['taet', 'Tätigkeiten'], ['auswertung', 'Auswertung'], ['gehalt', 'Gehalt'], ['einst', 'Einstellungen']];
+const TABS = [['heute', 'Heute'], ['woche', 'Woche'], ['monat', 'Monat'], ['urlaub', 'Kalender'], ['taet', 'Tätigkeiten'], ['auswertung', 'Auswertung'], ['gehalt', 'Gehalt'], ['einst', 'Einstellungen']];
 function render() {
   if (!R) recompute();
   $('#tabs').innerHTML = TABS.map(([id, l]) => `<button class="tab" data-a="tab" data-v="${id}"${UI.tab === id ? ' aria-current="page"' : ''}>${l}</button>`).join('');
   $('#banner').innerHTML = S.demo ? `<div class="banner"><span><b>Beispieldaten.</b> Diese Einträge sind erfunden. Lade deine Excel unter „Einstellungen“ → „Daten“, um mit deinen Zahlen zu arbeiten.</span><button class="btn sm primary" data-a="tab" data-v="daten">Excel importieren</button></div>` : '';
-  const v = { heute: viewHeute, woche: viewWoche, monat: viewMonat, urlaub: viewUrlaub, taet: viewTaet, auswertung: viewAuswertung, gehalt: viewGehalt, einst: viewEinst }[UI.tab];
+  const v = { heute: viewHeute, woche: viewWoche, monat: viewMonat, urlaub: viewUrlaub, taet: viewTaet, auswertung: viewAuswertung, gehalt: viewGehalt, einst: viewEinst, hilfe: viewHilfe }[UI.tab];
   const sy = window.scrollY;
   $('#view').innerHTML = v() + (S.cfg.raster === '15' ? `<datalist id="dl-t15">${Array.from({ length: 96 }, (_, i) => `<option value="${pad2(Math.floor(i / 4))}:${pad2((i % 4) * 15)}">`).join('')}</datalist><datalist id="dl-d15">${Array.from({ length: 33 }, (_, i) => `<option value="${pad2(Math.floor(i / 4))}:${pad2((i % 4) * 15)}">`).join('')}</datalist>` : '');
   window.scrollTo(0, sy);

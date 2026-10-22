@@ -44,7 +44,7 @@ async def main():
         pg3 = await (await b.new_context()).new_page()
         await pg3.goto(url); await pg3.click('[data-pf=voll]'); await pg3.wait_for_selector('#tabs .tab')
         await pg3.click('[data-a=lang][data-v=en]'); await pg3.wait_for_timeout(300)
-        check('Tabs englisch', await pg3.inner_text('#tabs') == 'Today\nWeek\nMonth\nVacation\nActivities\nReports\nSalary\nSettings')
+        check('Tabs englisch', await pg3.inner_text('#tabs') == 'Today\nWeek\nMonth\nCalendar\nActivities\nReports\nSalary\nSettings')
         STOP = set('der die das und oder für mit von zu im am ist nicht wird werden ein eine einen dem den des auf bei als auch nur wenn dann nach vor über unter alle noch schon bis aus wie sich sind kann keine kein dein deine deiner deinen du ab pro je ohne sowie'.split())
         left = []
         for t in ['heute', 'woche', 'monat', 'urlaub', 'taet', 'auswertung', 'gehalt', 'zeit', 'regeln', 'gehalt2', 'erfassung', 'allg', 'daten']:
@@ -60,7 +60,7 @@ async def main():
                     left.append(v[:80])
         check('keine deutschen Texte im englischen UI ' + (str(left[:5]) if left else ''), not left)
         await pg3.click('[data-a=lang][data-v=de]'); await pg3.wait_for_timeout(200)
-        check('zurück auf Deutsch', await pg3.inner_text('#tabs') == 'Heute\nWoche\nMonat\nUrlaub\nTätigkeiten\nAuswertung\nGehalt\nEinstellungen')
+        check('zurück auf Deutsch', await pg3.inner_text('#tabs') == 'Heute\nWoche\nMonat\nKalender\nTätigkeiten\nAuswertung\nGehalt\nEinstellungen')
         # Zeitraster und Spaltennamen
         await pg3.click('button[data-v=heute]')
         await pg3.evaluate("()=>{S.cfg.raster='15';S.cfg.spalten={cat:'Projekt'};commit()}"); await pg3.wait_for_timeout(200)
@@ -150,6 +150,24 @@ async def main():
         await pg3.click('button[data-v=taet]'); hd = (await pg3.inner_text('#view thead')).lower()
         check('Spalten ein-/ausblendbar', 'projektnummer' in hd and 'system' not in hd and 'kategorie' in hd)
         await pg3.evaluate("()=>{S.cfg.pnAn=false;S.cfg.spaltenAus={};commit()}")
+        # Hilfe, Was ist neu, Wochensumme Halbtag, Hinweis Urlaub mit Zeiten
+        await pg3.click('[data-a=lang][data-v=en]'); await pg3.click('#helpBtn'); await pg3.wait_for_timeout(200)
+        ht = await pg3.inner_text('#view'); check('Hilfe englisch geöffnet', 'Taktbuch help' in ht and "What's new" in ht)
+        await pg3.click('[data-a=helpBack]'); await pg3.click('[data-a=lang][data-v=de]'); await pg3.click('#helpBtn'); await pg3.wait_for_timeout(200)
+        check('Hilfe deutsch', 'Hilfe zu Taktbuch' in await pg3.inner_text('#view'))
+        await pg3.click('[data-a=helpBack]')
+        await pg3.evaluate("()=>{localStorage.setItem('zeitwerk-seen-ver','1.10.0');showWhatsNew(true)}"); await pg3.wait_for_timeout(200)
+        check('Was ist neu nach Update', 'Neu in Taktbuch' in await pg3.inner_text('#newbanner') and 'Kalender' in await pg3.inner_text('#newbanner'))
+        await pg3.click('[data-a=whatsOk]'); check('Was ist neu: einmal, dann weg', await pg3.inner_text('#newbanner') == '' and await pg3.evaluate("()=>localStorage.getItem('zeitwerk-seen-ver')===VERSION"))
+        await pg3.evaluate("()=>{showWhatsNew(true)}"); check('Kein erneutes Anzeigen', await pg3.inner_text('#newbanner') == '')
+        wk = await pg3.evaluate("""()=>{ S.cfg.halbeTage=true; const k='2025-12-24'; setDay(k,{t:'',s:'',e:''}); recompute(); const a=[wkSoll(dayRow(k)),wkIst(dayRow(k))];
+          setDay(k,{s:'08:00',e:'12:30'}); recompute(); const r=dayRow(k); return {a,b:[wkSoll(r),wkIst(r)],so:r.soll,za:r.za}; }""")
+        check('Wochensumme 24.12. ohne Arbeit: Soll 0, Ist 0', wk['a'] == [0, 0])
+        check('Wochensumme 24.12. mit 4,5 h: Soll halb, Ist zählt', wk['b'][1] == 4.5 and abs(wk['b'][0] - wk['so'] / 2) < 1e-9 and abs((wk['b'][1] - wk['b'][0]) - wk['za']) < 1e-9)
+        await pg3.evaluate("()=>{setDay('2025-12-24',{s:'',e:''})}")
+        await pg3.evaluate("()=>{setDay('2026-10-14',{t:'Urlaub',s:'08:00',e:'16:30'}); UI.date='2026-10-14'; UI.tab='heute'; render()}"); await pg3.wait_for_timeout(200)
+        check('Hinweis: Zeiten an Urlaubstag', 'Mehrarbeit' in await pg3.inner_text('#view'))
+        await pg3.evaluate("()=>{setDay('2026-10-14',{t:'arbeit',s:0,e:0})}")
         await b.close()
     sys.exit(0 if ok else 1)
 asyncio.run(main())

@@ -36,7 +36,7 @@ Aufbau: `src/engine.js` (reine Rechenlogik, kein DOM), `src/app/` (Zustand, Ansi
 
 ### Neue Version veröffentlichen
 
-1. `VERSION` hochzählen und `CHANGELOG.md` ergänzen (Abschnitt `## x.y.z`).
+1. `VERSION` hochzählen, `CHANGELOG.md` ergänzen (Abschnitt `## x.y.z`) und `src/whatsnew.json` (Anzeige „Was ist neu“ nach dem Update).
 2. Committen, dann Tag setzen und pushen:
    ```bash
    git tag vX.Y.Z && git push origin main --tags
@@ -48,3 +48,5 @@ Die Update-Prüfung nutzt das Repo aus `REPO.txt` (im Release-Build automatisch 
 ## Lizenz
 
 MIT, siehe [LICENSE](LICENSE).
+
+Hilfe: [docs/HILFE.md](docs/HILFE.md)
