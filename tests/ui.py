@@ -166,7 +166,7 @@ async def main():
         check('Wochensumme 24.12. mit 4,5 h: Soll halb, Ist zählt', wk['b'][1] == 4.5 and abs(wk['b'][0] - wk['so'] / 2) < 1e-9 and abs((wk['b'][1] - wk['b'][0]) - wk['za']) < 1e-9)
         await pg3.evaluate("()=>{setDay('2025-12-24',{s:'',e:''})}")
         await pg3.evaluate("()=>{setDay('2026-10-14',{t:'Urlaub',s:'08:00',e:'16:30'}); UI.date='2026-10-14'; UI.tab='heute'; render()}"); await pg3.wait_for_timeout(200)
-        check('Hinweis: Zeiten an Urlaubstag', 'Mehrarbeit' in await pg3.inner_text('#view'))
+        check('Urlaubstag mit Zeiten: Hinweis, Zeiten ignoriert', 'ignoriert' in await pg3.inner_text('#view') and await pg3.evaluate("()=>R.map['2026-10-14'].stunden===0&&R.map['2026-10-14'].za===0"))
         await pg3.evaluate("()=>{setDay('2026-10-14',{t:'arbeit',s:0,e:0})}")
         await b.close()
     sys.exit(0 if ok else 1)
