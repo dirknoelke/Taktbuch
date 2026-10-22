@@ -1,4 +1,14 @@
 {
+  "1.11.4": {
+    "de": [
+      "Fehler behoben: Der Reiter „Einstellungen“ wurde oben von der Zeitkonto-Anzeige verdeckt. Die Reiter stehen jetzt immer in einer eigenen Zeile.",
+      "Nach einem Update zeigt „Was ist neu“ bis zu sechs übersprungene Versionen statt drei."
+    ],
+    "en": [
+      "Fixed: the \"Settings\" tab was partly hidden behind the time account display at the top. The tabs now always sit in their own row.",
+      "After an update \"What's new\" shows up to six skipped versions instead of three."
+    ]
+  },
   "1.11.3": {
     "de": [
       "Fehler behoben: „Problem melden / Wunsch senden“ nutzt jetzt die richtige Mailadresse (Taktbuch@pm.me)."

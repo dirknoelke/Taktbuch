@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.4
+
+- Fix: the Settings tab was cut off behind the time account display in the header. The header is now two rows at every width, tabs in their own row.
+- "What's new" after an update lists up to six skipped versions (before: three).
+
 ## 1.11.3
 
 - Fix: the address of "Report a problem / send a request" was wrong (`pn.me`), now `Taktbuch@pm.me`.
