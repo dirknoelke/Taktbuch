@@ -79,8 +79,8 @@ eq('1 Urlaubstag: Resturlaub 9', ru.rest, 9);
   const R = E.run({ '2026-03-04': { t: 'Dienstreise', kd: 'ACME', ot: 'Ingelheim', s: 8, e: 16.5 } }, {}, { startDatum: '2026-03-02', soll: 8 }, '2026-03-04', null);
   eq('Dienstreise: Kunde und Ort in der Zeile', R[2].kd + '|' + R[2].ot, 'ACME|Ingelheim');
 }
-// Urlaub/Zeitausgleich mit eingetragenen Zeiten: ignoriert (Werktag)
+// Urlaub mit eingetragenen Zeiten: ignoriert (Zeitausgleich nicht) (Werktag)
 { const c = Object.assign({}, E.DEFAULTS, { startDatum: '2026-10-05', startSaldo: 0, startUrlaub: 10, sollVerlauf: [{ ab: '2026-10-05', soll: 8 }] });
   const r = E.run({ '2026-10-05': { t: 'Urlaub', s: 8, e: 16.5 }, '2026-10-06': { t: 'Zeitausgleich', s: 8, e: 16.5 }, '2026-10-10': { t: 'Urlaub', s: 8, e: 12 } }, {}, c, '2026-10-10', '2026-12-01');
-  eq('Urlaub mit Zeiten: Konto 0', r[0].konto, 0); eq('Zeitausgleich mit Zeiten: -Soll', r[1].konto, -8); eq('Samstag bleibt wie bisher', r[5].stunden, 4); }
+  eq('Urlaub mit Zeiten: Konto 0', r[0].konto, 0); eq('Zeitausgleich mit Zeiten zählt weiter', r[1].konto, 8); eq('Samstag bleibt wie bisher', r[5].stunden, 4); }
 console.log(fail ? fail + ' Fehler' : 'alle Tests bestanden'); process.exit(fail ? 1 : 0);

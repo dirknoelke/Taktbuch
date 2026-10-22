@@ -1,10 +1,18 @@
 {
-  "1.11.1": {
+  "1.11.2": {
     "de": [
-      "An Urlaubstagen (auch Sonderurlaub, Zeitausgleich, Betriebsfrei) werden eingetragene Zeiten ignoriert und ändern das Zeitkonto nicht mehr."
+      "Korrektur: Zeitausgleich-Tage rechnen wieder wie zuvor; nur Urlaub, Sonderurlaub und Betriebsfrei ignorieren eingetragene Zeiten."
     ],
     "en": [
-      "On vacation days (also special leave, time off in lieu, company closed) entered times are ignored and no longer change the time account."
+      "Correction: time off in lieu days calculate as before; only vacation, special leave and company closed ignore entered times."
+    ]
+  },
+  "1.11.1": {
+    "de": [
+      "An Urlaubstagen (auch Sonderurlaub und Betriebsfrei) werden eingetragene Zeiten ignoriert und ändern das Zeitkonto nicht mehr. Zeitausgleich ist davon nicht betroffen."
+    ],
+    "en": [
+      "On vacation days (also special leave and company closed) entered times are ignored and no longer change the time account. Time off in lieu is not affected."
     ]
   },
   "1.11.0": {
