@@ -136,7 +136,7 @@ function viewHeute() {
   if (d.e && d.s && H(d.e) <= H(d.s)) warns.push('Gehen liegt vor Kommen. Über Mitternacht wird nicht gerechnet.');
   if (acts.length && gap > 0.5 && !live) warns.push(`Tätigkeiten decken ${fmtT(row.acts)} h von ${fmtT(row.stunden)} h ab (${fmtT(gap)} h offen).`);
   if (acts.some(a => !a.e)) warns.push('Ein Timer läuft noch.');
-  if (['Urlaub', 'Sonderurlaub', 'Zeitausgleich', 'Betriebsfrei'].includes(row.t) && row.wd < 6 && (d.s || d.e)) warns.push('An diesem Tag sind Zeiten eingetragen. Sie werden ignoriert, weil der Tag frei ist. Lösche sie, wenn du sie nicht brauchst.');
+  if (['Urlaub', 'Sonderurlaub', 'Betriebsfrei'].includes(row.t) && row.wd < 6 && (d.s || d.e)) warns.push('An diesem Tag sind Zeiten eingetragen. Sie werden ignoriert, weil der Tag frei ist. Lösche sie, wenn du sie nicht brauchst.');
   const f = UI.form;
   const sugS = acts.length ? (acts[acts.length - 1].e || '') : (d.s || '');
   return `

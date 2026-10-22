@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.11.2
+
+- Correction to 1.11.1: Time off in lieu is not a day off from work in this sense and calculates as before. Only Vacation, Special leave and Company closed ignore entered times.
+
 ## 1.11.1
 
-- Fix (GitHub issue #17): on weekdays marked Vacation, Special leave, Time off in lieu or Company closed, entered start and end times are ignored (nobody works on a day off). They no longer change the time account; the day card says so. Weekends are unchanged. Note: old days with times on such a day now count as 0 hours.
+- Fix (GitHub issue #17): on weekdays marked Vacation, Special leave or Company closed, entered start and end times are ignored (nobody works on a day off). They no longer change the time account; the day card says so. Weekends are unchanged. Note: old days with times on such a day now count as 0 hours.
 
 ## 1.11.0
 

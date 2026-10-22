@@ -152,8 +152,8 @@
       let t = inp.t || (dt === 'arbeit' ? (cfg.standardThema || 'Arbeit') : dt);
       const isWorkType = !(t in TYPES) || !!TYPES[t].work;
       const s = inp.s || 0, e = inp.e || 0, a = inp.a || 0;
-      // Urlaub, Sonderurlaub, Zeitausgleich und Betriebsfrei: an Werktagen wird nicht gearbeitet, eingetragene Zeiten werden ignoriert.
-      const frei = weekday(k) < 6 && (t === 'Urlaub' || t === 'Sonderurlaub' || t === 'Zeitausgleich' || t === 'Betriebsfrei');
+      // Urlaub, Sonderurlaub und Betriebsfrei: an Werktagen wird nicht gearbeitet, eingetragene Zeiten werden ignoriert.
+      const frei = weekday(k) < 6 && (t === 'Urlaub' || t === 'Sonderurlaub' || t === 'Betriebsfrei');
       const d = !frei && e > s ? e - s : 0;
       const pause = inp.p != null && inp.p !== '' ? inp.p : autoPause(d, rc);
       const raw = d > 0 ? d - pause - a : 0;
