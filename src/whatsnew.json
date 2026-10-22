@@ -1,0 +1,22 @@
+{
+  "1.11.0": {
+    "de": ["**Hilfe** in der App: oben rechts auf „Hilfe“. Läuft offline und gibt es auch als Datei im Repository.", "Nach einem Update zeigt Taktbuch **Was ist neu** (diese Übersicht). Du findest sie jederzeit in der Hilfe.", "Der Reiter „Urlaub“ heißt jetzt **Kalender**.", "Fehler behoben: Die Wochensumme zählt halbe Urlaubstage (24.12. und 31.12.) jetzt wie das Zeitkonto und zeigt kein falsches Minus mehr.", "Hinweis am Tag, wenn an einem freien Tag (zum Beispiel Urlaub) Zeiten eingetragen sind: Sie zählen als Mehrarbeit."],
+    "en": ["**Help** in the app: click \"Help\" at the top right. Works offline and is also available as a file in the repository.", "After an update Taktbuch shows **What's new** (this overview). You can open it any time from the help.", "The \"Vacation\" tab is now called **Calendar**.", "Fixed: the weekly total now counts half vacation days (24 Dec and 31 Dec) like the time account and no longer shows a wrong minus.", "Notice on the day when times are entered on a day off (for example vacation): they count as extra work."]
+  },
+  "1.10.0": {
+    "de": ["Einstellungen sind in **Untermenüs** gegliedert: Arbeitszeit, Urlaub und Konto, Gehalt, Erfassung, Allgemein, Daten.", "Die **automatische Pause** ist einstellbar (gesetzliche Staffel, feste Pause ab Mindestanwesenheit oder keine), gültig ab einem Datum.", "**Automatische Sicherung** in einen Ordner deiner Wahl (Chrome, Edge), sonst eine wöchentliche Erinnerung.", "**Dienstreise** mit Kunde und Ort, inklusive Jahrestabelle in der Auswertung."],
+    "en": ["Settings are split into **sub-menus**: Working time, Vacation and account, Salary, Recording, General, Data.", "The **automatic break** is configurable (statutory scale, fixed break from a minimum presence, or none), valid from a date.", "**Automatic backup** into a folder of your choice (Chrome, Edge), otherwise a weekly reminder.", "**Business trip** with customer and place, including a yearly table in Reports."]
+  },
+  "1.9.0": {
+    "de": ["Die App heißt jetzt **Taktbuch** (vorher Zeitwerk). Deine Daten bleiben erhalten.", "Neuer Knopf **Problem melden / Wunsch senden** unter Einstellungen, Daten."],
+    "en": ["The app is now called **Taktbuch** (formerly Zeitwerk). Your data stays.", "New button **Report a problem / send a request** under Settings, Data."]
+  },
+  "1.8.0": {
+    "de": ["**Arbeitsort** je Tag (Büro, Homeoffice, geteilt) mit Jahrestabelle für die Steuererklärung.", "**Auszahlung von Überstunden** je Tag, vom Konto abgezogen.", "Fehler behoben: Kategorie, Art und System werden nach „Hinzufügen“ nicht mehr übernommen; Update-Hinweis erscheint früher."],
+    "en": ["**Work location** per day (office, home office, split) with a yearly table for your tax return.", "**Overtime payout** per day, deducted from the account.", "Fixed: category, type and system are no longer carried over after \"Add\"; the update notice appears sooner."]
+  },
+  "1.7.0": {
+    "de": ["**Jobwechsel-Assistent** unter Einstellungen, Urlaub und Konto.", "Urlaubsregeln, 24.12. und 31.12., Verfall und Kappung gelten **ab einem Datum**."],
+    "en": ["**Job change wizard** under Settings, Vacation and account.", "Vacation rules, 24 Dec and 31 Dec, expiry and cap apply **from a date**."]
+  }
+}
