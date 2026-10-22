@@ -324,7 +324,7 @@ async function checkUpdate(manual) {
 }
 
 /* ---------- Problem melden (mailto, nichts wird automatisch gesendet) ---------- */
-const REPORT_MAIL = 'Taktbuch@pn.me';
+const REPORT_MAIL = 'Taktbuch@pm.me';
 function reportProblem() {
   const en = I18N.lang === 'en', c = S.cfg;
   const on = [c.ortAn && 'Arbeitsort', c.auszahlAn && 'Auszahlung', c.raster === '15' && 'Viertelstunden', c.pnAn && 'Projektnummer', (c.regeln || []).length && 'Regeln ab Datum'].filter(Boolean).join(', ');

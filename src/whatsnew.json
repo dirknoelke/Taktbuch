@@ -1,4 +1,12 @@
 {
+  "1.11.3": {
+    "de": [
+      "Fehler behoben: „Problem melden / Wunsch senden“ nutzt jetzt die richtige Mailadresse (Taktbuch@pm.me)."
+    ],
+    "en": [
+      "Fixed: \"Report a problem / send a request\" now uses the correct mail address (Taktbuch@pm.me)."
+    ]
+  },
   "1.11.2": {
     "de": [
       "Korrektur: Zeitausgleich-Tage rechnen wieder wie zuvor; nur Urlaub, Sonderurlaub und Betriebsfrei ignorieren eingetragene Zeiten."
