@@ -63,6 +63,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .save{font-size:11px;color:var(--muted);min-width:70px;text-align:right}
 .banner{margin-top:10px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:10px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .banner b{font-weight:600}
+.banner.col{flex-direction:column;align-items:flex-start;gap:4px}.banner.col ul{margin:0 0 4px 18px;padding:0}.banner.col h4.sh{margin:6px 0 0}
+details.help{border-top:1px solid var(--line);padding:8px 0}details.help summary{cursor:pointer;font-weight:600}details.help p,details.help ul{margin:8px 0 0}details.help ul{padding-left:20px}
 
 main{padding-top:16px;display:flex;flex-direction:column;gap:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
@@ -206,11 +208,13 @@ input.tq{font-family:var(--font-num)}
       <nav class="tabs" id="tabs" aria-label="Bereiche"></nav>
       <div class="konto-pill"><small>Zeitkonto heute</small><b id="kontoPill">–</b></div>
       <div class="save" id="saveState"></div>
+      <button class="btn sm" data-a="help" id="helpBtn">Hilfe</button>
       <div class="seg lang" id="langSw" role="group" aria-label="Language" data-nt></div>
     </div>
   </div>
   <div id="updbanner"></div>
   <div id="bkbanner"></div>
+  <div id="newbanner"></div>
   <div id="banner"></div>
   <main id="view" aria-live="polite"></main>
 </div>

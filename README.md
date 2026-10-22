@@ -38,7 +38,7 @@ The app is written in German (including code comments). The English text comes f
 
 ### Publish a new version
 
-1. Bump `VERSION` and add a section `## x.y.z` to `CHANGELOG.md`, commit and push.
+1. Bump `VERSION`, add a section `## x.y.z` to `CHANGELOG.md` and an entry in `src/whatsnew.json` (shown in the app after an update), commit and push.
 2. Run the **Release** workflow (GitHub: Actions, Release, Run workflow), or push a tag `vX.Y.Z`.
 3. The workflow builds the file, creates the tag and the release with `taktbuch.html`. The release text comes from the changelog and shows in the app under “What’s new?”.
 
@@ -47,3 +47,5 @@ The update check uses the repository from `REPO.txt` (in release builds automati
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+Help: [docs/HELP.md](docs/HELP.md)

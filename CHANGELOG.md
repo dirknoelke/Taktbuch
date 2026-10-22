@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.0
+
+- **Help** (GitHub issue #14): button "Help" at the top right opens the manual inside the app (German and English, works offline). The same text is generated as `docs/HILFE.md` and `docs/HELP.md` by `build.py` from `src/help.json`.
+- **What's new after an update** (GitHub issue #15): the first start after an update shows a short overview of the user-facing changes (source: `src/whatsnew.json`, one entry per release in both languages). It is shown once and is also part of the help. First start without data shows nothing.
+- The tab **Vacation** is now called **Calendar** (GitHub issue #16). Internal keys and stored data are unchanged.
+- Fix (GitHub issue #18): the weekly total (Week tab and Today card) now counts half vacation days (24.12. and 31.12.) like the time account: the half target only applies if you work that day, and the hours worked count as actual. Before, a half day without work showed a false minus and hours entered did not correct it.
+- Notice on the day (GitHub issue #17): times entered on a day off (vacation, time off in lieu, holiday type days) count as extra work and raise the account, as before. The day card now says so. The weekly total includes those hours too, matching the account.
+
 ## 1.10.0
 
 - **Settings are split into sub-menus** (GitHub issue #7): Working time, Vacation and account, Salary, Recording, General, Data. The rule changes, the job change wizard and the starting values live under "Vacation and account".
