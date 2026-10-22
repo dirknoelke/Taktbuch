@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.3
+
+- Fix: the address of "Report a problem / send a request" was wrong (`pn.me`), now `Taktbuch@pm.me`.
+
 ## 1.11.2
 
 - Correction to 1.11.1: Time off in lieu is not a day off from work in this sense and calculates as before. Only Vacation, Special leave and Company closed ignore entered times.

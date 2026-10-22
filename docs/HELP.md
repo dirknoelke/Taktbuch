@@ -72,6 +72,10 @@ Switch between German and English at the top right. Under Settings, Data you fin
 
 ## What's new
 
+### 1.11.3
+
+- Fixed: "Report a problem / send a request" now uses the correct mail address (Taktbuch@pm.me).
+
 ### 1.11.2
 
 - Correction: time off in lieu days calculate as before; only vacation, special leave and company closed ignore entered times.

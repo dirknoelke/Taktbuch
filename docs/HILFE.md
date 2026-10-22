@@ -72,6 +72,10 @@ Oben rechts schaltest du zwischen Deutsch und Englisch um. Unter Einstellungen, 
 
 ## Was ist neu
 
+### 1.11.3
+
+- Fehler behoben: „Problem melden / Wunsch senden“ nutzt jetzt die richtige Mailadresse (Taktbuch@pm.me).
+
 ### 1.11.2
 
 - Korrektur: Zeitausgleich-Tage rechnen wieder wie zuvor; nur Urlaub, Sonderurlaub und Betriebsfrei ignorieren eingetragene Zeiten.
