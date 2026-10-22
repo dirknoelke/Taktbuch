@@ -1,0 +1,100 @@
+{
+  "de": {
+    "title": "Hilfe zu Taktbuch",
+    "intro": "Taktbuch führt dein Zeitkonto, deinen Urlaub und deine Tätigkeiten. Alles liegt in deinem Browser, nichts wird an einen Server gesendet. Diese Hilfe ist Teil der Datei und funktioniert offline.",
+    "sections": [
+      {
+        "h": "Der Tag in Kürze",
+        "p": ["Unter **Heute** trägst du Kommen und Gehen ein. Die Pause wird automatisch abgezogen, bis du sie für den Tag selbst einträgst. Das **Zeitkonto** ist die Summe aller Tage: gearbeitete Stunden minus Soll."],
+        "li": ["Urlaub, Feiertag, Krankheit und Zeitausgleich ändern das Konto nicht, weil das Soll des Tages dann als erfüllt gilt.", "Zeiten an einem freien Tag zählen als Mehrarbeit und erhöhen das Konto. Die App weist am Tag darauf hin.", "Tage in der Zukunft ohne Zeiten gelten als Plan und belasten das Konto nicht."]
+      },
+      {
+        "h": "Tätigkeiten und Timer",
+        "p": ["Unter **Tätigkeiten** buchst du, woran du gearbeitet hast: von bis oder Dauer, dazu Kategorie, Art, System, Projektnummer und Thema. Mit dem Timer startest du eine Tätigkeit, die bis zum Stopp mitläuft."],
+        "li": ["Wer ein Thema eingibt, bekommt Kategorie, Art und System aus dem letzten Eintrag mit demselben Thema vorgeschlagen (nur leere Felder werden gefüllt).", "Nach „Hinzufügen“ werden die Felder geleert.", "Welche Spalten du siehst, stellst du unter Einstellungen, Erfassung ein."]
+      },
+      {
+        "h": "Woche und Monat",
+        "p": ["In der **Woche** änderst du Zeiten direkt in der Tabelle. Die Wochensumme rechnet wie das Konto: halbe Urlaubstage (24.12. und 31.12.) zählen nur dann mit halbem Soll, wenn du an dem Tag arbeitest.", "Der **Monat** zeigt alle Tage als Kalender. Mit dem Zeitraum-Werkzeug setzt du mehrere Tage auf einmal auf Urlaub, Zeitausgleich, Dienstreise oder einen Arbeitsort."]
+      },
+      {
+        "h": "Kalender: Urlaub und Zeitausgleich planen",
+        "p": ["Im **Kalender** wählst du einen Pinsel (Urlaub, Urlaub halb, Zeitausgleich, Dienstreise) und klickst oder ziehst über die Tage. Ein zweiter Klick auf einen belegten Tag nimmt ihn zurück. Oben siehst du Anspruch, genommen, geplant und den Resturlaub, darunter den Verlauf über das Jahr."],
+        "li": ["Verfall und Übertrag ins Langzeitkonto richten sich nach den Regeln unter Einstellungen, Urlaub und Konto.", "Die Kappung des Zeitkontos wird im Kalender mit einer Warnung angezeigt, wenn nach der aktuellen Planung Stunden verfallen würden."]
+      },
+      {
+        "h": "Auswertung und Gehalt",
+        "p": ["Die **Auswertung** zeigt Monats- und Jahrestabellen, Auswertungen nach Kategorie, Art und System sowie (wenn eingeschaltet) Arbeitsort und Dienstreisen für die Steuererklärung. Das ist eine reine Zählung, keine Steuerberechnung.", "Unter **Gehalt** siehst du die Gehaltsübersicht mit Gehaltserhöhung und Zahltag."]
+      },
+      {
+        "h": "Einstellungen im Überblick",
+        "li": ["**Arbeitszeit:** Soll pro Tag (mit Änderungen ab Datum), Pausenregel, Bundesland für Feiertage.", "**Urlaub und Konto:** Urlaubstage, 24.12. und 31.12., Verfall, Langzeitkonto, Kappung. Änderungen gelten ab einem Datum, frühere Zeiträume behalten ihre Regeln. Hier startet auch der Jobwechsel-Assistent.", "**Gehalt:** Angaben für die Gehaltsansicht und den Zahltag.", "**Erfassung:** Spalten der Tätigkeiten, Arbeitsort, Auszahlung von Überstunden, Dienstreise (Kunde und Ort).", "**Allgemein:** Anzeige und Rundung der Zeiten.", "**Daten:** Sicherung, Wiederherstellung, Excel-Import, automatische Sicherung, Version und Updates."]
+      },
+      {
+        "h": "Jobwechsel",
+        "p": ["Beim Wechsel mitten im Jahr startest du den Assistenten unter Einstellungen, Urlaub und Konto. Er fragt Datum, Urlaubstage, Resturlaub bis Jahresende, Startwerte für Konto und Langzeitkonto und das neue Soll ab. Der alte Job zählt anteilig in halben Monaten (1. bis 15. = halber Monat), aufgerundet auf halbe Tage. Alles davor bleibt unverändert."]
+      },
+      {
+        "h": "Arbeitsort, Auszahlung und Dienstreise",
+        "p": ["Diese Funktionen sind standardmäßig aus und werden unter Einstellungen, Erfassung eingeschaltet. **Arbeitsort** zählt Büro und Homeoffice je Tag, auch geteilte Tage (erst Büro, dann Homeoffice oder umgekehrt, mit Umschaltzeit). **Auszahlung** zieht ausgezahlte Überstunden vom Konto ab. Bei einer **Dienstreise** trägst du Kunde und Ort ein."]
+      },
+      {
+        "h": "Sicherung und Updates",
+        "p": ["Deine Daten liegen nur in diesem Browser. Speichere deshalb regelmäßig eine Sicherung unter Einstellungen, Daten. In Chrome und Edge kannst du dort einen Ordner für die **automatische Sicherung** wählen (zum Beispiel in OneDrive). Taktbuch behält die letzten Dateien und lässt andere Dateien im Ordner in Ruhe.", "Bei einem **Update** erscheint oben ein Hinweis. „Installieren“ überschreibt die Datei, die du gerade geöffnet hast, nach Bestätigung. Speichere vorher eine Sicherung, benenne die Datei nicht um und verschiebe sie nicht."]
+      },
+      {
+        "h": "Sprache, Problem melden",
+        "p": ["Oben rechts schaltest du zwischen Deutsch und Englisch um. Unter Einstellungen, Daten findest du „Problem melden / Wunsch senden“. Das öffnet dein Mailprogramm mit vorbefülltem Text (Version, Browser, aktive Schalter). Es wird nichts automatisch gesendet und keine Daten aus der App."]
+      }
+    ]
+  },
+  "en": {
+    "title": "Taktbuch help",
+    "intro": "Taktbuch tracks your time account, vacation and activities. Everything stays in your browser, nothing is sent to a server. This help is part of the file and works offline.",
+    "sections": [
+      {
+        "h": "The day in brief",
+        "p": ["On **Today** you enter start and end. The break is deducted automatically until you enter one for the day yourself. The **time account** is the sum of all days: hours worked minus target."],
+        "li": ["Vacation, public holiday, sick leave and time off in lieu do not change the account, because the day's target counts as met.", "Hours on a day off count as extra work and raise the account. The app points this out on the day.", "Future days without times count as plan and do not burden the account."]
+      },
+      {
+        "h": "Activities and timer",
+        "p": ["Under **Activities** you log what you worked on: from to or duration, plus category, type, system, project number and topic. The timer starts an activity that keeps running until you stop it."],
+        "li": ["When you enter a topic, category, type and system are suggested from the latest entry with the same topic (only empty fields are filled).", "After \"Add\" the fields are cleared.", "Which columns you see is set under Settings, Recording."]
+      },
+      {
+        "h": "Week and month",
+        "p": ["In the **week** you change times directly in the table. The weekly total works like the account: half vacation days (24 Dec and 31 Dec) only count with half the target if you work that day.", "The **month** shows all days as a calendar. With the period tool you set several days at once to vacation, time off in lieu, business trip or a work location."]
+      },
+      {
+        "h": "Calendar: plan vacation and time off",
+        "p": ["In the **Calendar** pick a brush (vacation, half vacation, time off in lieu, business trip) and click or drag across days. A second click on a marked day removes it. At the top you see entitlement, taken, planned and remaining vacation, below it the course over the year."],
+        "li": ["Expiry and carry-over to the long-term account follow the rules under Settings, Vacation and account.", "If the planning would make hours of the time account expire because of the cap, the calendar shows a warning."]
+      },
+      {
+        "h": "Reports and salary",
+        "p": ["**Reports** shows monthly and yearly tables, breakdowns by category, type and system and (if switched on) work location and business trips for your tax return. This is a plain count, not a tax calculation.", "**Salary** shows the salary overview with pay rise and payday."]
+      },
+      {
+        "h": "Settings overview",
+        "li": ["**Working time:** daily target (changes from a date), break rule, state for public holidays.", "**Vacation and account:** vacation days, 24 Dec and 31 Dec, expiry, long-term account, cap. Changes apply from a date, earlier periods keep their rules. The job change wizard starts here.", "**Salary:** inputs for the salary view and the payday.", "**Recording:** activity columns, work location, overtime payout, business trip (customer and place).", "**General:** display and rounding of times.", "**Data:** backup, restore, Excel import, automatic backup, version and updates."]
+      },
+      {
+        "h": "Job change",
+        "p": ["When you change jobs in the middle of a year, start the wizard under Settings, Vacation and account. It asks for the date, vacation days, vacation left until year end, starting values for account and long-term account and the new target. The old job counts pro rata in half months (1st to 15th = half a month), rounded up to half days. Everything before stays unchanged."]
+      },
+      {
+        "h": "Work location, payout and business trip",
+        "p": ["These are off by default and switched on under Settings, Recording. **Work location** counts office and home office per day, including split days (office first then home office or the other way round, with a switch time). **Payout** deducts paid-out overtime from the account. For a **business trip** you enter customer and place."]
+      },
+      {
+        "h": "Backup and updates",
+        "p": ["Your data lives only in this browser. Save a backup regularly under Settings, Data. In Chrome and Edge you can pick a folder there for the **automatic backup** (for example in OneDrive). Taktbuch keeps the latest files and leaves other files in the folder alone.", "When an **update** is available a notice appears at the top. \"Install\" overwrites the file you currently have open, after confirmation. Save a backup first, do not rename the file and do not move it."]
+      },
+      {
+        "h": "Language, report a problem",
+        "p": ["Switch between German and English at the top right. Under Settings, Data you find \"Report a problem / send a request\". It opens your mail program with prefilled text (version, browser, active switches). Nothing is sent automatically and no data from the app."]
+      }
+    ]
+  }
+}
