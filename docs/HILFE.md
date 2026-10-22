@@ -72,6 +72,11 @@ Oben rechts schaltest du zwischen Deutsch und Englisch um. Unter Einstellungen, 
 
 ## Was ist neu
 
+### 1.11.4
+
+- Fehler behoben: Der Reiter „Einstellungen“ wurde oben von der Zeitkonto-Anzeige verdeckt. Die Reiter stehen jetzt immer in einer eigenen Zeile.
+- Nach einem Update zeigt „Was ist neu“ bis zu sechs übersprungene Versionen statt drei.
+
 ### 1.11.3
 
 - Fehler behoben: „Problem melden / Wunsch senden“ nutzt jetzt die richtige Mailadresse (Taktbuch@pm.me).

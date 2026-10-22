@@ -72,6 +72,11 @@ Switch between German and English at the top right. Under Settings, Data you fin
 
 ## What's new
 
+### 1.11.4
+
+- Fixed: the "Settings" tab was partly hidden behind the time account display at the top. The tabs now always sit in their own row.
+- After an update "What's new" shows up to six skipped versions instead of three.
+
 ### 1.11.3
 
 - Fixed: "Report a problem / send a request" now uses the correct mail address (Taktbuch@pm.me).

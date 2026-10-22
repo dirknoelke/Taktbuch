@@ -25,6 +25,6 @@ function showWhatsNew(hadData) {
   if (!isNewer(VERSION, seen)) { if (seen !== VERSION) ls.set('zeitwerk-seen-ver', VERSION); return; }
   const vers = whatsVersions().filter(v => isNewer(v, seen) && !isNewer(v, VERSION)); if (!vers.length) { ls.set('zeitwerk-seen-ver', VERSION); return; }
   const l = helpLang();
-  el.innerHTML = `<div class="banner col"><b>${l === 'en' ? 'New in Taktbuch ' : 'Neu in Taktbuch '}${esc(VERSION)}</b>${whatsList(vers.slice(0, 3), l).replace(/<h4 class="sh">Version [^<]*<\/h4>/g, m => (vers.length > 1 ? m : ''))}
+  el.innerHTML = `<div class="banner col"><b>${l === 'en' ? 'New in Taktbuch ' : 'Neu in Taktbuch '}${esc(VERSION)}</b>${whatsList(vers.slice(0, 6), l).replace(/<h4 class="sh">Version [^<]*<\/h4>/g, m => (vers.length > 1 ? m : ''))}
     <div class="nav"><button class="btn primary sm" data-a="whatsOk">Verstanden</button><button class="btn sm" data-a="whatsAll">Alles in der Hilfe ansehen</button></div></div>`;
 }
