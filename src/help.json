@@ -6,7 +6,7 @@
       {
         "h": "Der Tag in Kürze",
         "p": ["Unter **Heute** trägst du Kommen und Gehen ein. Die Pause wird automatisch abgezogen, bis du sie für den Tag selbst einträgst. Das **Zeitkonto** ist die Summe aller Tage: gearbeitete Stunden minus Soll."],
-        "li": ["Urlaub, Feiertag, Krankheit und Zeitausgleich ändern das Konto nicht, weil das Soll des Tages dann als erfüllt gilt.", "Zeiten an einem freien Tag zählen als Mehrarbeit und erhöhen das Konto. Die App weist am Tag darauf hin.", "Tage in der Zukunft ohne Zeiten gelten als Plan und belasten das Konto nicht."]
+        "li": ["Urlaub, Feiertag, Krankheit und Zeitausgleich ändern das Konto nicht, weil das Soll des Tages dann als erfüllt gilt.", "Zeiten, die an einem Urlaubstag (auch Sonderurlaub, Zeitausgleich, Betriebsfrei) eingetragen sind, werden ignoriert. Die App weist am Tag darauf hin.", "Tage in der Zukunft ohne Zeiten gelten als Plan und belasten das Konto nicht."]
       },
       {
         "h": "Tätigkeiten und Timer",
@@ -55,7 +55,7 @@
       {
         "h": "The day in brief",
         "p": ["On **Today** you enter start and end. The break is deducted automatically until you enter one for the day yourself. The **time account** is the sum of all days: hours worked minus target."],
-        "li": ["Vacation, public holiday, sick leave and time off in lieu do not change the account, because the day's target counts as met.", "Hours on a day off count as extra work and raise the account. The app points this out on the day.", "Future days without times count as plan and do not burden the account."]
+        "li": ["Vacation, public holiday, sick leave and time off in lieu do not change the account, because the day's target counts as met.", "Times entered on a vacation day (also special leave, time off in lieu, company closed) are ignored. The app points this out on the day.", "Future days without times count as plan and do not burden the account."]
       },
       {
         "h": "Activities and timer",

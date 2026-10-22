@@ -7,7 +7,7 @@ Taktbuch führt dein Zeitkonto, deinen Urlaub und deine Tätigkeiten. Alles lieg
 Unter **Heute** trägst du Kommen und Gehen ein. Die Pause wird automatisch abgezogen, bis du sie für den Tag selbst einträgst. Das **Zeitkonto** ist die Summe aller Tage: gearbeitete Stunden minus Soll.
 
 - Urlaub, Feiertag, Krankheit und Zeitausgleich ändern das Konto nicht, weil das Soll des Tages dann als erfüllt gilt.
-- Zeiten an einem freien Tag zählen als Mehrarbeit und erhöhen das Konto. Die App weist am Tag darauf hin.
+- Zeiten, die an einem Urlaubstag (auch Sonderurlaub, Zeitausgleich, Betriebsfrei) eingetragen sind, werden ignoriert. Die App weist am Tag darauf hin.
 - Tage in der Zukunft ohne Zeiten gelten als Plan und belasten das Konto nicht.
 
 ## Tätigkeiten und Timer
@@ -72,13 +72,17 @@ Oben rechts schaltest du zwischen Deutsch und Englisch um. Unter Einstellungen, 
 
 ## Was ist neu
 
+### 1.11.1
+
+- An Urlaubstagen (auch Sonderurlaub, Zeitausgleich, Betriebsfrei) werden eingetragene Zeiten ignoriert und ändern das Zeitkonto nicht mehr.
+
 ### 1.11.0
 
 - **Hilfe** in der App: oben rechts auf „Hilfe“. Läuft offline und gibt es auch als Datei im Repository.
 - Nach einem Update zeigt Taktbuch **Was ist neu** (diese Übersicht). Du findest sie jederzeit in der Hilfe.
 - Der Reiter „Urlaub“ heißt jetzt **Kalender**.
 - Fehler behoben: Die Wochensumme zählt halbe Urlaubstage (24.12. und 31.12.) jetzt wie das Zeitkonto und zeigt kein falsches Minus mehr.
-- Hinweis am Tag, wenn an einem freien Tag (zum Beispiel Urlaub) Zeiten eingetragen sind: Sie zählen als Mehrarbeit.
+- Hinweis am Tag, wenn an einem freien Tag Zeiten eingetragen sind.
 
 ### 1.10.0
 

@@ -7,7 +7,7 @@ Taktbuch tracks your time account, vacation and activities. Everything stays in 
 On **Today** you enter start and end. The break is deducted automatically until you enter one for the day yourself. The **time account** is the sum of all days: hours worked minus target.
 
 - Vacation, public holiday, sick leave and time off in lieu do not change the account, because the day's target counts as met.
-- Hours on a day off count as extra work and raise the account. The app points this out on the day.
+- Times entered on a vacation day (also special leave, time off in lieu, company closed) are ignored. The app points this out on the day.
 - Future days without times count as plan and do not burden the account.
 
 ## Activities and timer
@@ -72,13 +72,17 @@ Switch between German and English at the top right. Under Settings, Data you fin
 
 ## What's new
 
+### 1.11.1
+
+- On vacation days (also special leave, time off in lieu, company closed) entered times are ignored and no longer change the time account.
+
 ### 1.11.0
 
 - **Help** in the app: click "Help" at the top right. Works offline and is also available as a file in the repository.
 - After an update Taktbuch shows **What's new** (this overview). You can open it any time from the help.
 - The "Vacation" tab is now called **Calendar**.
 - Fixed: the weekly total now counts half vacation days (24 Dec and 31 Dec) like the time account and no longer shows a wrong minus.
-- Notice on the day when times are entered on a day off (for example vacation): they count as extra work.
+- Notice on the day when times are entered on a day off.
 
 ### 1.10.0
 
