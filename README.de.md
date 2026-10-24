@@ -32,11 +32,11 @@ pip install playwright && playwright install chromium
 python3 tests/ui.py dist/taktbuch.html   # UI-Smoketest
 ```
 
-Aufbau: `src/engine.js` (reine Rechenlogik, kein DOM), `src/app/` (Zustand, Ansichten, Gehalt, Aktionen), `src/template.html` (Gerüst und CSS), `src/i18n.js` und `src/i18n-en.js` (Sprachumschaltung und englisches Wörterbuch). Die App ist auf Deutsch geschrieben, der englische Text kommt aus dem Wörterbuch: neue deutsche Texte brauchen dort einen Eintrag (Schlüssel = deutscher Text, Zahlen als `#`). Der UI-Test meldet deutsche Reste im englischen UI. Der Build setzt alles zu einer Datei ohne Fremdbibliotheken zusammen.
+Aufbau: `packages/core/engine.js` (reine Rechenlogik, kein DOM), `packages/web/app/` (Zustand, Ansichten, Gehalt, Aktionen), `packages/web/storage/` (Speicher-Adapter, offline: IndexedDB), `packages/web/template.html` (Gerüst und CSS), `packages/web/i18n.js` und `packages/web/i18n-en.js` (Sprachumschaltung und englisches Wörterbuch). Die App ist auf Deutsch geschrieben, der englische Text kommt aus dem Wörterbuch: neue deutsche Texte brauchen dort einen Eintrag (Schlüssel = deutscher Text, Zahlen als `#`). Der UI-Test meldet deutsche Reste im englischen UI. Der Build setzt alles zu einer Datei ohne Fremdbibliotheken zusammen.
 
 ### Neue Version veröffentlichen
 
-1. `VERSION` hochzählen, `CHANGELOG.md` ergänzen (Abschnitt `## x.y.z`) und `src/whatsnew.json` (Anzeige „Was ist neu“ nach dem Update).
+1. `VERSION` hochzählen, `CHANGELOG.md` ergänzen (Abschnitt `## x.y.z`) und `packages/web/whatsnew.json` (Anzeige „Was ist neu“ nach dem Update).
 2. Committen, dann Tag setzen und pushen:
    ```bash
    git tag vX.Y.Z && git push origin main --tags
