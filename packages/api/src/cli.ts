@@ -2,6 +2,8 @@
 //   kubectl -n taktbuch-staging exec deploy/taktbuch-app -- node packages/api/src/cli.ts invite mella@example.org
 import { createPool, migrate } from './db.ts';
 import { createInvite } from './auth.ts';
+import { createMailer } from './mail.ts';
+import { loadConfig } from './config.ts';
 
 const [cmd, ...args] = process.argv.slice(2);
 const url = process.env.DATABASE_URL;
@@ -17,8 +19,12 @@ try {
     if (!origin) throw new Error('PUBLIC_ORIGIN fehlt');
     const email = args.find(a => !a.startsWith('--')) ?? null;
     const days = Number(args.find(a => a.startsWith('--days='))?.slice(7) ?? 7);
-    const link = await createInvite(db, { publicOrigin: origin.replace(/\/$/, '') }, email, days);
-    console.log(`Einladung${email ? ' für ' + email : ''}, gültig ${days} Tage, einmal verwendbar:\n${link}`);
+    const mailer = createMailer(loadConfig({ ...process.env, TOTP_KEY: process.env.TOTP_KEY || Buffer.alloc(32).toString('base64') }));
+    const { link, mailed, mailError } = await createInvite(db, { publicOrigin: origin.replace(/\/$/, '') }, email, days, mailer);
+    console.log(`Einladung${email ? ' für ' + email : ''}, gültig ${days} Tage, einmal verwendbar.`);
+    if (mailError) console.log(`Mailversand fehlgeschlagen: ${mailError}`);
+    console.log(mailed ? 'Mail ist verschickt. Link zur Sicherheit:' : (mailer ? 'Ohne E-Mail-Adresse keine Mail. Link:' : 'Kein Mailversand eingerichtet (SMTP_URL). Link selbst weitergeben:'));
+    console.log(link);
   } else {
     console.log('Befehle:\n  migrate\n  invite [email] [--days=7]');
     process.exitCode = cmd ? 2 : 0;
