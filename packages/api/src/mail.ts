@@ -82,3 +82,26 @@ export function accountDeletedMail(to: string): Mail {
     html: `<!doctype html><html lang="de"><body style="font-family:system-ui,sans-serif;color:#1d1d1b"><p>Hallo,</p><p>${esc(text)}</p></body></html>`,
   };
 }
+
+export function emailConfirmMail(to: string, link: string, minutes: number): Mail {
+  const p = [
+    'Für dein Taktbuch-Konto soll künftig diese E-Mail-Adresse gelten.',
+    `Bitte bestätige die Änderung über den Knopf. Der Link ist ${minutes} Minuten gültig und funktioniert genau einmal. Bis dahin bleibt die bisherige Adresse aktiv.`,
+  ];
+  const footer = 'Falls du das nicht veranlasst hast, ignoriere diese Mail. Ohne Bestätigung ändert sich nichts.';
+  return {
+    to, subject: 'Neue E-Mail-Adresse für Taktbuch bestätigen',
+    text: `Hallo,\n\n${p.join('\n\n')}\n\nAdresse bestätigen:\n${link}\n\n${footer}\n`,
+    html: layout('Neue E-Mail-Adresse bestätigen', p, { label: 'Adresse bestätigen', url: link }, footer),
+  };
+}
+
+/** Hinweis an die bisherige Adresse, damit eine unerwünschte Änderung auffällt. */
+export function emailChangedMail(to: string, newEmail: string): Mail {
+  const text = `Die E-Mail-Adresse deines Taktbuch-Kontos wurde auf ${newEmail} geändert. Anmeldung und Mails laufen ab jetzt über die neue Adresse. Falls du das nicht warst, melde dich bitte umgehend beim Betreiber.`;
+  return {
+    to, subject: 'E-Mail-Adresse für Taktbuch geändert',
+    text: `Hallo,\n\n${text}\n`,
+    html: `<!doctype html><html lang="de"><body style="font-family:system-ui,sans-serif;color:#1d1d1b"><p>Hallo,</p><p>${esc(text)}</p></body></html>`,
+  };
+}
