@@ -170,6 +170,18 @@ async def main():
         await pg3.evaluate("()=>{setDay('2026-10-14',{t:'Urlaub',s:'08:00',e:'16:30'}); UI.date='2026-10-14'; UI.tab='heute'; render()}"); await pg3.wait_for_timeout(200)
         check('Urlaubstag mit Zeiten: Hinweis, Zeiten ignoriert', 'ignoriert' in await pg3.inner_text('#view') and await pg3.evaluate("()=>R.map['2026-10-14'].stunden===0&&R.map['2026-10-14'].za===0"))
         await pg3.evaluate("()=>{setDay('2026-10-14',{t:'arbeit',s:0,e:0})}")
+        # Farbe und Darstellung
+        acc = "()=>getComputedStyle(document.documentElement).getPropertyValue('--accent').trim().toUpperCase()"
+        await go(pg3, 'allg')
+        check('Farbauswahl: 8 Farben, Orange aktiv', await pg3.locator('[data-a=farbe]').count() == 8 and await pg3.get_attribute('[data-a=farbe][data-v=orange]', 'aria-pressed') == 'true')
+        await pg3.click('[data-a=farbe][data-v=dunkelgruen]')
+        check('Dunkelgrün hell', await pg3.evaluate(acc) == '#08513D' and await pg3.get_attribute('[data-a=farbe][data-v=dunkelgruen]', 'aria-pressed') == 'true')
+        await pg3.select_option('[data-f="cfg:darstellung"]', 'dunkel')
+        check('Dunkel: Theme und helle Akzentvariante', await pg3.evaluate("()=>document.documentElement.dataset.theme==='dark'") and await pg3.evaluate(acc) == '#2FD495')
+        await pg3.wait_for_timeout(900); await pg3.reload(); await pg3.wait_for_selector('#tabs .tab')
+        check('Farbe und Darstellung bleiben nach Neuladen', await pg3.evaluate(acc) == '#2FD495' and await pg3.evaluate("()=>S.cfg.farbe==='dunkelgruen'"))
+        await pg3.evaluate("()=>{S.cfg.farbe='orange';S.cfg.darstellung='auto';commit()}")
+        check('Zurück auf Standard: keine Überschreibung', await pg3.evaluate("()=>!document.documentElement.style.getPropertyValue('--accent')&&!document.documentElement.dataset.theme"))
         await b.close()
     sys.exit(0 if ok else 1)
 asyncio.run(main())
