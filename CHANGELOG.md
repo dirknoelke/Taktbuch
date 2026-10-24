@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.0
+
+- Choose color and appearance under Settings → General → Display: light, dark or automatic, and eight accent colors (orange, blue, teal, green, dark green, purple, red, graphite). Every color is checked for readable contrast in light and dark.
+- Fix: in the dark theme the description on highlighted buttons (e.g. template choice) is readable again.
+
 ## 1.11.4
 
 - Fix: the Settings tab was cut off behind the time account display in the header. The header is now two rows at every width, tabs in their own row.
