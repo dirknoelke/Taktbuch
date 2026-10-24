@@ -16,3 +16,8 @@ jobs:
       - run: node tests/engine.test.js
       - run: pip install playwright && playwright install --with-deps chromium
       - run: python3 tests/ui.py dist/taktbuch.html
+      - name: Update-Test gegen das letzte Release
+        run: |
+          git fetch --depth 1 origin dist
+          git show FETCH_HEAD:taktbuch.html > /tmp/prev.html
+          python3 tests/upgrade.py /tmp/prev.html dist/taktbuch.html
