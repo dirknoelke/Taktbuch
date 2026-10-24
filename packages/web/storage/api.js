@@ -57,7 +57,7 @@ const DB = (() => {
   const ver = document.querySelector('#ver'); if (ver) ver.textContent = 'online';
   const help = document.querySelector('#helpBtn');
   if (help && !document.querySelector('#tbLogout')) {
-    help.insertAdjacentHTML('afterend', '<button class="btn sm" id="tbLogout">Abmelden</button>');
+    help.insertAdjacentHTML('afterend', '<a class="btn sm" id="tbKonto" href="/konto">Konto</a><button class="btn sm" id="tbLogout">Abmelden</button>');
     document.querySelector('#tbLogout').addEventListener('click', async () => {
       try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) { }
       location.href = '/login';

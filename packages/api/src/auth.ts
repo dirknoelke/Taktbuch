@@ -9,23 +9,24 @@ import { createSession, destroySession, readSession } from './session.ts';
 import { decrypt, encrypt, normalizeRecovery, recoveryCode, sha256, token } from './secrets.ts';
 import { base32Encode, newSecret, otpauthUri, verify as verifyTotp } from './totp.ts';
 import { inviteMail, resetMail, type Mailer } from './mail.ts';
+import { checkSecondFactor } from './factor.ts';
 
-const { hash: argonHash, verify: argonVerify } = argon2;
+export const { hash: argonHash, verify: argonVerify } = argon2;
 
 // OWASP-Empfehlung für Argon2id: 19 MiB, 2 Durchläufe, Parallelität 1
-const ARGON = { memoryCost: 19456, timeCost: 2, parallelism: 1 };
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const ARGON = { memoryCost: 19456, timeCost: 2, parallelism: 1 };
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TICKET_MINUTES = { mfa: 5, setup: 15 } as const;
 const MAX_TICKET_ATTEMPTS = 5;
 const RESET_MINUTES = 30;
 
-class HttpError extends Error {
+export class HttpError extends Error {
   status: number;
   constructor(status: number, message: string) { super(message); this.status = status; }
 }
-const fail = (status: number, message: string): never => { throw new HttpError(status, message); };
+export const fail = (status: number, message: string): never => { throw new HttpError(status, message); };
 
-const normEmail = (e: unknown) => String(e ?? '').trim().toLowerCase();
+export const normEmail = (e: unknown) => String(e ?? '').trim().toLowerCase();
 
 export function authRoutes(app: FastifyInstance, db: Db, cfg: Config, mailer: Mailer | null) {
   const dummyHash = argonHash('timing-ausgleich-' + token(8), ARGON);   // gleiche Laufzeit, auch wenn es die E-Mail nicht gibt
@@ -84,16 +85,19 @@ export function authRoutes(app: FastifyInstance, db: Db, cfg: Config, mailer: Ma
     if (!b.invite) fail(400, 'Einladung fehlt.');
     const pwHash = await argonHash(password, ARGON);
     return tx(db, async c => {
-      const inv = await c.query<{ email: string | null }>(
-        `SELECT email FROM invites WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now() FOR UPDATE`, [sha256(b.invite!)]);
+      const inv = await c.query<{ email: string | null; kind: 'user' | 'admin' }>(
+        `SELECT email, kind FROM invites WHERE token_hash = $1 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > now() FOR UPDATE`, [sha256(b.invite!)]);
       if (!inv.rows[0]) fail(400, 'Die Einladung ist ungültig oder abgelaufen.');
       if (inv.rows[0].email && inv.rows[0].email !== email) fail(400, 'Diese Einladung gilt für eine andere E-Mail-Adresse.');
       const exists = await c.query('SELECT 1 FROM users WHERE email = $1', [email]);
       if (exists.rowCount) fail(409, 'Für diese E-Mail-Adresse gibt es schon ein Konto.');
-      const u = await c.query<{ id: string }>('INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id', [email, pwHash]);
+      const kind = inv.rows[0].kind;
+      const u = await c.query<{ id: string }>('INSERT INTO users (email, password_hash, kind) VALUES ($1, $2, $3) RETURNING id', [email, pwHash, kind]);
       const userId = u.rows[0].id;
-      const o = await c.query<{ id: string }>('INSERT INTO organizations (name) VALUES ($1) RETURNING id', [email]);
-      await c.query(`INSERT INTO memberships (user_id, org_id, role) VALUES ($1, $2, 'owner')`, [userId, o.rows[0].id]);
+      if (kind === 'user') {   // Admin-Konten haben bewusst keine Organisation und damit keine Stundendaten
+        const o = await c.query<{ id: string }>('INSERT INTO organizations (name) VALUES ($1) RETURNING id', [email]);
+        await c.query(`INSERT INTO memberships (user_id, org_id, role) VALUES ($1, $2, 'owner')`, [userId, o.rows[0].id]);
+      }
       await c.query('UPDATE invites SET used_at = now(), used_by = $2 WHERE token_hash = $1', [sha256(b.invite!), userId]);
       await audit(c, req, { event: 'register', ok: true, userId, email });
       return setupPayload(c, userId, email);
@@ -104,12 +108,16 @@ export function authRoutes(app: FastifyInstance, db: Db, cfg: Config, mailer: Ma
   app.post('/api/auth/login', limited, async (req: FastifyRequest<{ Body: { email?: string; password?: string } }>) => {
     const email = normEmail(req.body?.email), password = String(req.body?.password ?? '');
     if (await tooManyFailures(db, email)) fail(429, 'Zu viele Fehlversuche. Bitte in 15 Minuten erneut versuchen.');
-    const r = await db.query<{ id: string; password_hash: string; mfa_enabled: boolean }>('SELECT id, password_hash, mfa_enabled FROM users WHERE email = $1', [email]);
+    const r = await db.query<{ id: string; password_hash: string; mfa_enabled: boolean; locked: boolean }>('SELECT id, password_hash, mfa_enabled, locked_at IS NOT NULL AS locked FROM users WHERE email = $1', [email]);
     const user = r.rows[0];
     const ok = await argonVerify(user?.password_hash ?? await dummyHash, password.slice(0, 256)).catch(() => false);
     if (!user || !ok) {
       await audit(db, req, { event: 'login_password', ok: false, userId: user?.id, email });
       fail(401, 'E-Mail oder Passwort falsch.');
+    }
+    if (user!.locked) {
+      await audit(db, req, { event: 'login_password', ok: false, userId: user!.id, email });
+      fail(403, 'Dieses Konto ist gesperrt. Bitte an den Betreiber wenden.');
     }
     await audit(db, req, { event: 'login_password', ok: true, userId: user!.id, email });
     return tx(db, async c => user!.mfa_enabled
@@ -233,17 +241,31 @@ export function authRoutes(app: FastifyInstance, db: Db, cfg: Config, mailer: Ma
   app.get('/api/me', async (req, reply) => {
     const s = await readSession(db, cfg, req);
     if (!s) return reply.code(401).send({ message: 'Nicht angemeldet' });
-    return { email: s.email, role: s.role };
+    return { email: s.email, kind: s.kind, role: s.role };
+  });
+
+  // 7) Zweiten Faktor in der laufenden Session erneut nachweisen (Verwaltung, sensible Konto-Aktionen)
+  app.post('/api/auth/stepup', limited, async (req: FastifyRequest<{ Body: { code?: string } }>, reply) => {
+    const s = await readSession(db, cfg, req);
+    if (!s) return reply.code(401).send({ message: 'Nicht angemeldet' });
+    const ok = await tx(db, async c => {
+      const f = await checkSecondFactor(c, cfg, s.userId, req.body?.code);
+      await audit(c, req, { event: 'stepup', ok: !!f, userId: s.userId, email: s.email });
+      if (f) await c.query('UPDATE sessions SET mfa_at = now() WHERE id = $1', [s.sessionId]);
+      return !!f;
+    });
+    return ok ? { ok: true } : fail(401, 'Der Code stimmt nicht.');
   });
 }
 
 /** Einladung anlegen (CLI). Verschickt sie per Mail, falls ein Mailer da ist; gibt den Link immer zurück.
  *  Das Token steht nur im Fragment (#), dadurch nie in Server- oder Proxy-Logs. */
-export async function createInvite(db: Db, cfg: Pick<Config, 'publicOrigin'>, email: string | null, days = 7, mailer: Mailer | null = null) {
+export async function createInvite(db: Db, cfg: Pick<Config, 'publicOrigin'>, email: string | null, days = 7, mailer: Mailer | null = null,
+  opts: { kind?: 'user' | 'admin'; createdBy?: string | null } = {}) {
   const t = token();
-  await db.query(`INSERT INTO invites (token_hash, email, expires_at) VALUES ($1, $2, now() + make_interval(days => $3))`,
-    [sha256(t), email ? normEmail(email) : null, days]);
-  await audit(db, null, { event: 'invite_created', ok: true, email });
+  await db.query(`INSERT INTO invites (token_hash, email, expires_at, kind, created_by) VALUES ($1, $2, now() + make_interval(days => $3), $4, $5)`,
+    [sha256(t), email ? normEmail(email) : null, days, opts.kind ?? 'user', opts.createdBy ?? null]);
+  await audit(db, null, { event: 'invite_created', ok: true, userId: opts.createdBy ?? null, email, target: opts.kind ?? 'user' });
   const link = `${cfg.publicOrigin}/login#invite=${t}`;
   let mailed = false, mailError: string | null = null;
   if (mailer && email) {

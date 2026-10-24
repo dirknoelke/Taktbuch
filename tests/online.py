@@ -3,68 +3,14 @@ lädt per Einladung (Mail über einen lokalen SMTP-Fänger) ein, registriert mit
 prüft zweites Gerät, Konflikt und „Passwort vergessen“.
 Voraussetzung: npm install, TARGET=online python3 build.py
 Aufruf: TEST_DATABASE_URL=postgres://... python3 tests/online.py"""
-import asyncio, base64, email, hashlib, hmac, os, re, secrets, socketserver, struct, subprocess, sys, threading, time, urllib.request
+import asyncio, secrets, sys
 from playwright.async_api import async_playwright
-
-PORT = 18080
-ORIGIN = f'http://localhost:{PORT}'
-DB = os.environ['TEST_DATABASE_URL']
-ENV = dict(os.environ, DATABASE_URL=DB, PUBLIC_ORIGIN=ORIGIN, PORT=str(PORT), HOST='127.0.0.1',
-           TOTP_KEY=base64.b64encode(secrets.token_bytes(32)).decode(), SECURE_COOKIES='false', TRUST_PROXY='false')
-API = ['node', 'packages/api/src/']
-
-# Minimaler SMTP-Empfänger: hebt eingehende Mails auf
-MAILS = []
-class Smtp(socketserver.StreamRequestHandler):
-    def handle(self):
-        w = lambda s: self.wfile.write((s + '\r\n').encode())
-        w('220 sink'); data = None
-        for raw in self.rfile:
-            line = raw.decode('utf-8', 'replace').rstrip('\r\n')
-            if data is not None:
-                if line == '.': MAILS.append(email.message_from_string('\n'.join(data))); data = None; w('250 OK')
-                else: data.append(line[1:] if line.startswith('..') else line)
-                continue
-            c = line[:4].upper()
-            if c == 'EHLO': self.wfile.write(b'250-sink\r\n250 8BITMIME\r\n')
-            elif c == 'DATA': data = []; w('354 go')
-            elif c == 'QUIT': w('221 bye'); return
-            else: w('250 OK')
-sink = socketserver.ThreadingTCPServer(('127.0.0.1', 0), Smtp); sink.daemon_threads = True
-threading.Thread(target=sink.serve_forever, daemon=True).start()
-ENV['SMTP_URL'] = f'smtp://127.0.0.1:{sink.server_address[1]}'
-
-def mail_link(to, key):
-    for _ in range(50):
-        for m in reversed(MAILS):
-            if to in m['To']:
-                body = next(p.get_payload(decode=True).decode() for p in m.walk() if p.get_content_type() == 'text/plain')
-                hit = re.search(re.escape(ORIGIN) + r'/login#' + key + r'=[A-Za-z0-9_-]+', body)
-                if hit: return hit.group(0)
-        time.sleep(0.1)
-    return None
-
-def totp(secret_b32, offset=0):
-    key = base64.b32decode(secret_b32.replace(' ', '') + '=' * (-len(secret_b32.replace(' ', '')) % 8))
-    step = int(time.time() // 30) + offset
-    h = hmac.new(key, struct.pack('>Q', step), hashlib.sha1).digest()
-    o = h[-1] & 15
-    return str((struct.unpack('>I', h[o:o + 4])[0] & 0x7fffffff) % 1_000_000).zfill(6)
-
-ok = True
-def check(name, cond):
-    global ok
-    print(('OK   ' if cond else 'FAIL ') + name); ok &= bool(cond)
+from online_lib import ORIGIN, ENV, API, MAILS, mail_link, totp, check, RESULT, start_server
+import subprocess
 
 async def main():
-    server = subprocess.Popen(API[:1] + [API[1] + 'main.ts'], env=ENV, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    server = start_server()
     try:
-        for _ in range(60):
-            try:
-                urllib.request.urlopen(ORIGIN + '/readyz', timeout=1); break
-            except Exception: time.sleep(0.5)
-        else:
-            print(server.stderr.read().decode()[-3000:]); raise SystemExit('API startet nicht')
         addr = f'e2e-{secrets.token_hex(3)}@example.org'
         out = subprocess.run(API[:1] + [API[1] + 'cli.ts', 'invite', addr], env=ENV, capture_output=True, text=True, check=True).stdout
         check('CLI meldet verschickte Mail', 'Mail ist verschickt' in out)
@@ -149,6 +95,6 @@ async def main():
             await b.close()
     finally:
         server.terminate()
-    sys.exit(0 if ok else 1)
+    sys.exit(0 if RESULT['ok'] else 1)
 
 asyncio.run(main())
