@@ -1,0 +1,7 @@
+{
+  "name": "@taktbuch/core",
+  "private": true,
+  "description": "Rechenlogik von Taktbuch (Zeitkonto, Urlaub, Pausen, Feiertage, Zahltag). Ohne DOM, läuft im Browser und in Node.",
+  "main": "engine.js",
+  "license": "SEE LICENSE IN ../../LICENSE"
+}

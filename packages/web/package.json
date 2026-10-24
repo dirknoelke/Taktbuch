@@ -1,0 +1,6 @@
+{
+  "name": "@taktbuch/web",
+  "private": true,
+  "description": "Oberfläche von Taktbuch. build.py setzt sie mit @taktbuch/core und einem Speicher-Adapter (storage/) zu einer Datei zusammen.",
+  "license": "SEE LICENSE IN ../../LICENSE"
+}

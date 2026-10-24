@@ -1,6 +1,6 @@
 /* ---------- Sprache (Deutsch / Englisch) ----------
    Die App ist auf Deutsch geschrieben. Für Englisch übersetzt ein kleiner Layer die fertig gerenderten
-   Texte anhand des Wörterbuchs in src/i18n-en.js. Zahlen, Wochentage und Monate werden direkt im
+   Texte anhand des Wörterbuchs in packages/web/i18n-en.js. Zahlen, Wochentage und Monate werden direkt im
    Code formatiert. Neue deutsche Texte brauchen einen Eintrag im Wörterbuch, sonst bleiben sie deutsch. */
 const WD = [], MON = [], MONL = [];  // gemeinsame Namenslisten, werden beim Sprachwechsel in place getauscht
 const I18N = (() => {
