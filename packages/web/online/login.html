@@ -38,6 +38,28 @@ a{color:var(--acc)}
     <label for="lEmail">E-Mail</label><input id="lEmail" type="email" autocomplete="username" required>
     <label for="lPw">Passwort</label><input id="lPw" type="password" autocomplete="current-password" required>
     <button type="submit">Weiter</button>
+    <p class="hint" id="forgotWrap" hidden style="margin:14px 0 0;text-align:center"><a href="#" id="toForgot">Passwort vergessen?</a></p>
+  </form>
+
+  <form id="fForgot" hidden>
+    <p class="hint">Gib deine E-Mail-Adresse ein. Du bekommst einen Link, mit dem du ein neues Passwort vergibst. Dafür brauchst du zusätzlich deine Authenticator-App oder einen Recovery-Code.</p>
+    <label for="fEmail">E-Mail</label><input id="fEmail" type="email" autocomplete="username" required>
+    <button type="submit">Link anfordern</button>
+    <p class="hint" style="margin:14px 0 0;text-align:center"><a href="#" class="toLogin">Zurück zur Anmeldung</a></p>
+  </form>
+
+  <div id="forgotSent" hidden>
+    <p id="forgotMsg"></p>
+    <p class="hint">Der Link ist 30 Minuten gültig. Schau auch im Spam-Ordner nach.</p>
+    <p class="hint" style="text-align:center"><a href="#" class="toLogin">Zurück zur Anmeldung</a></p>
+  </div>
+
+  <form id="fReset" hidden>
+    <label for="xPw">Neues Passwort (mindestens 12 Zeichen)</label><input id="xPw" type="password" autocomplete="new-password" minlength="12" required>
+    <label for="xPw2">Neues Passwort wiederholen</label><input id="xPw2" type="password" autocomplete="new-password" minlength="12" required>
+    <label for="xCode">Code aus der Authenticator-App oder Recovery-Code</label><input id="xCode" autocomplete="one-time-code" required>
+    <button type="submit">Passwort speichern</button>
+    <p class="hint" style="margin:14px 0 0">Danach bist du auf allen anderen Geräten abgemeldet.</p>
   </form>
 
   <form id="fRegister" hidden>
@@ -75,7 +97,7 @@ a{color:var(--acc)}
 <script>
 (() => {
   const $ = s => document.querySelector(s);
-  const forms = ['#fLogin', '#fRegister', '#fSetup', '#fMfa', '#recovery'];
+  const forms = ['#fLogin', '#fForgot', '#forgotSent', '#fReset', '#fRegister', '#fSetup', '#fMfa', '#recovery'];
   let ticket = null;
   const show = (id, title) => { forms.forEach(f => { $(f).hidden = f !== id; }); $('#subtitle').textContent = title; $('#err').textContent = ''; const i = $(id + ' input'); if (i) i.focus(); };
   const err = m => { $('#err').textContent = m; };
@@ -116,15 +138,32 @@ a{color:var(--acc)}
   });
   $('#toApp').addEventListener('click', () => { location.href = '/'; });
 
-  let inviteToken = null;
-  // Einladung steht im Fragment (#invite=...). Auch reagieren, wenn der Link in einem schon offenen Tab geöffnet wird.
+  // Passwort vergessen
+  $('#toForgot').addEventListener('click', ev => { ev.preventDefault(); $('#fEmail').value = $('#lEmail').value; show('#fForgot', 'Passwort vergessen'); });
+  document.querySelectorAll('.toLogin').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); history.replaceState(null, '', '/login'); show('#fLogin', 'Anmelden'); }));
+  handle('#fForgot', async () => {
+    const d = await post('/api/auth/forgot', { email: $('#fEmail').value });
+    $('#forgotMsg').textContent = d.message; show('#forgotSent', 'Mail ist unterwegs');
+  });
+  handle('#fReset', async () => {
+    if ($('#xPw').value !== $('#xPw2').value) throw new Error('Die Passwörter stimmen nicht überein.');
+    await post('/api/auth/reset', { token: resetToken, password: $('#xPw').value, code: $('#xCode').value });
+    location.href = '/';
+  });
+  fetch('/api/config', { credentials: 'same-origin' }).then(r => r.json()).then(c => { if (c.mail) $('#forgotWrap').hidden = false; }).catch(() => { });
+
+  let inviteToken = null, resetToken = null;
+  // Einladung (#invite=...) und Passwort-Link (#reset=...) stehen im Fragment, nie in Server-Logs.
+  // Auch reagieren, wenn der Link in einem schon offenen Tab geöffnet wird.
   const route = () => {
-    inviteToken = new URLSearchParams(location.hash.slice(1)).get('invite');
-    if (inviteToken) show('#fRegister', 'Konto anlegen'); else if ($('#fRegister').hidden === false) show('#fLogin', 'Anmelden');
+    const h = new URLSearchParams(location.hash.slice(1));
+    inviteToken = h.get('invite'); resetToken = h.get('reset');
+    if (inviteToken) show('#fRegister', 'Konto anlegen');
+    else if (resetToken) show('#fReset', 'Neues Passwort vergeben');
+    else show('#fLogin', 'Anmelden');
   };
   window.addEventListener('hashchange', route);
   route();
-  if (!inviteToken) show('#fLogin', 'Anmelden');
 })();
 </script>
 </body>
