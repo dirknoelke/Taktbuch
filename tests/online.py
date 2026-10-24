@@ -1,8 +1,9 @@
 """Ende-zu-Ende-Test Taktbuch Online (Playwright): startet die API gegen TEST_DATABASE_URL,
-lädt per Einladung ein, registriert mit TOTP, arbeitet in der App, prüft zweites Gerät und Konflikt.
+lädt per Einladung (Mail über einen lokalen SMTP-Fänger) ein, registriert mit TOTP, arbeitet in der App,
+prüft zweites Gerät, Konflikt und „Passwort vergessen“.
 Voraussetzung: npm install, TARGET=online python3 build.py
 Aufruf: TEST_DATABASE_URL=postgres://... python3 tests/online.py"""
-import asyncio, base64, hashlib, hmac, os, secrets, struct, subprocess, sys, time, urllib.request
+import asyncio, base64, email, hashlib, hmac, os, re, secrets, socketserver, struct, subprocess, sys, threading, time, urllib.request
 from playwright.async_api import async_playwright
 
 PORT = 18080
@@ -11,6 +12,37 @@ DB = os.environ['TEST_DATABASE_URL']
 ENV = dict(os.environ, DATABASE_URL=DB, PUBLIC_ORIGIN=ORIGIN, PORT=str(PORT), HOST='127.0.0.1',
            TOTP_KEY=base64.b64encode(secrets.token_bytes(32)).decode(), SECURE_COOKIES='false', TRUST_PROXY='false')
 API = ['node', 'packages/api/src/']
+
+# Minimaler SMTP-Empfänger: hebt eingehende Mails auf
+MAILS = []
+class Smtp(socketserver.StreamRequestHandler):
+    def handle(self):
+        w = lambda s: self.wfile.write((s + '\r\n').encode())
+        w('220 sink'); data = None
+        for raw in self.rfile:
+            line = raw.decode('utf-8', 'replace').rstrip('\r\n')
+            if data is not None:
+                if line == '.': MAILS.append(email.message_from_string('\n'.join(data))); data = None; w('250 OK')
+                else: data.append(line[1:] if line.startswith('..') else line)
+                continue
+            c = line[:4].upper()
+            if c == 'EHLO': self.wfile.write(b'250-sink\r\n250 8BITMIME\r\n')
+            elif c == 'DATA': data = []; w('354 go')
+            elif c == 'QUIT': w('221 bye'); return
+            else: w('250 OK')
+sink = socketserver.ThreadingTCPServer(('127.0.0.1', 0), Smtp); sink.daemon_threads = True
+threading.Thread(target=sink.serve_forever, daemon=True).start()
+ENV['SMTP_URL'] = f'smtp://127.0.0.1:{sink.server_address[1]}'
+
+def mail_link(to, key):
+    for _ in range(50):
+        for m in reversed(MAILS):
+            if to in m['To']:
+                body = next(p.get_payload(decode=True).decode() for p in m.walk() if p.get_content_type() == 'text/plain')
+                hit = re.search(re.escape(ORIGIN) + r'/login#' + key + r'=[A-Za-z0-9_-]+', body)
+                if hit: return hit.group(0)
+        time.sleep(0.1)
+    return None
 
 def totp(secret_b32, offset=0):
     key = base64.b32decode(secret_b32.replace(' ', '') + '=' * (-len(secret_b32.replace(' ', '')) % 8))
@@ -33,10 +65,11 @@ async def main():
             except Exception: time.sleep(0.5)
         else:
             print(server.stderr.read().decode()[-3000:]); raise SystemExit('API startet nicht')
-        email = f'e2e-{secrets.token_hex(3)}@example.org'
-        out = subprocess.run(API[:1] + [API[1] + 'cli.ts', 'invite', email], env=ENV, capture_output=True, text=True, check=True).stdout
-        link = out.strip().splitlines()[-1]
-        check('CLI erzeugt Einladungslink', link.startswith(ORIGIN + '/login#invite='))
+        addr = f'e2e-{secrets.token_hex(3)}@example.org'
+        out = subprocess.run(API[:1] + [API[1] + 'cli.ts', 'invite', addr], env=ENV, capture_output=True, text=True, check=True).stdout
+        check('CLI meldet verschickte Mail', 'Mail ist verschickt' in out)
+        link = mail_link(addr, 'invite')
+        check('Einladungsmail kommt an, Link wie im Terminal', link is not None and link == out.strip().splitlines()[-1])
 
         async with async_playwright() as p:
             b = await p.chromium.launch()
@@ -46,12 +79,13 @@ async def main():
             pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
             await pg.goto(ORIGIN + '/login'); await pg.wait_for_selector('#fLogin:not([hidden])')
             await pg.goto(link); await pg.wait_for_selector('#fRegister:not([hidden])')   # Link im schon offenen Tab
-            await pg.fill('#rEmail', email); await pg.fill('#rPw', 'ein-langes-passwort'); await pg.fill('#rPw2', 'ein-langes-passwort')
+            await pg.fill('#rEmail', addr); await pg.fill('#rPw', 'ein-langes-passwort'); await pg.fill('#rPw2', 'ein-langes-passwort')
             await pg.click('#fRegister button'); await pg.wait_for_selector('#fSetup:not([hidden])')
             check('QR-Code angezeigt', (await pg.get_attribute('#sQr', 'src') or '').startswith('data:image/png'))
             secret = (await pg.inner_text('#sSecret')).replace(' ', '')
             await pg.fill('#sCode', totp(secret)); await pg.click('#fSetup button'); await pg.wait_for_selector('#recovery:not([hidden])')
-            check('10 Recovery-Codes angezeigt', await pg.locator('#codes span').count() == 10)
+            codes = await pg.eval_on_selector_all('#codes span', 'els => els.map(e => e.textContent)')
+            check('10 Recovery-Codes angezeigt', len(codes) == 10)
             await pg.click('#toApp'); await pg.wait_for_selector('[data-pf]')
             check('App geladen, Kennzeichnung online', await pg.inner_text('#ver') == 'online')
             await pg.click('[data-pf=voll]'); await pg.wait_for_selector('#tabs .tab')
@@ -60,12 +94,14 @@ async def main():
             check('Speichern auf dem Server', True)
             await pg.reload(); await pg.wait_for_selector('#tabs .tab')
             check('Nach Neuladen: Daten vom Server', await pg.evaluate("()=>S.cfg.standardThema==='E2E-Thema'&&!!S.days['2026-10-20']"))
+            fonts = await pg.evaluate("async()=>(await document.fonts.load(\"600 16px 'IBM Plex Sans'\")).length>0")
+            check('Schriften vom eigenen Server geladen', fonts)
 
             # Gerät 2: Login mit Passwort + TOTP, sieht dieselben Daten
             d2 = await b.new_context(); pg2 = await d2.new_page()
             await pg2.goto(ORIGIN + '/'); await pg2.wait_for_selector('#fLogin:not([hidden])')
             check('Ohne Anmeldung: Login-Seite', pg2.url.endswith('/login'))
-            await pg2.fill('#lEmail', email); await pg2.fill('#lPw', 'ein-langes-passwort'); await pg2.click('#fLogin button')
+            await pg2.fill('#lEmail', addr); await pg2.fill('#lPw', 'ein-langes-passwort'); await pg2.click('#fLogin button')
             await pg2.wait_for_selector('#fMfa:not([hidden])')
             await pg2.fill('#mCode', totp(secret, 1)); await pg2.click('#fMfa button')
             await pg2.wait_for_selector('[data-pf]'); await pg2.click('[data-pf=voll]'); await pg2.wait_for_selector('#tabs .tab')
@@ -84,13 +120,31 @@ async def main():
             await pg2.click('#tbLogout'); await pg2.wait_for_selector('#fLogin:not([hidden])')
             await pg2.goto(ORIGIN + '/'); await pg2.wait_for_selector('#fLogin:not([hidden])')
             check('Nach Abmelden wieder Login', pg2.url.endswith('/login'))
+
+            # Passwort vergessen: Link per Mail, neues Passwort nur mit zweitem Faktor
+            await pg2.wait_for_selector('#forgotWrap:not([hidden])')
+            await pg2.fill('#lEmail', addr); await pg2.click('#toForgot'); await pg2.wait_for_selector('#fForgot:not([hidden])')
+            check('E-Mail wird ins Vergessen-Formular übernommen', await pg2.input_value('#fEmail') == addr)
+            await pg2.click('#fForgot button'); await pg2.wait_for_selector('#forgotSent:not([hidden])')
+            reset = mail_link(addr, 'reset')
+            check('Mail mit Link zum neuen Passwort kommt an', reset is not None)
+            await pg2.goto(reset); await pg2.wait_for_selector('#fReset:not([hidden])')
+            await pg2.fill('#xPw', 'ganz-neues-passwort'); await pg2.fill('#xPw2', 'ganz-neues-passwort'); await pg2.fill('#xCode', '000000')
+            await pg2.click('#fReset button'); await pg2.wait_for_function("()=>document.querySelector('#err').textContent.length>0")
+            check('Falscher Code: neues Passwort abgelehnt', 'stimmt nicht' in await pg2.inner_text('#err'))
+            await pg2.fill('#xCode', codes[0]); await pg2.click('#fReset button')   # Recovery-Code als zweiter Faktor
+            await pg2.wait_for_selector('#tabs .tab')
+            check('Neues Passwort gesetzt, direkt angemeldet', await pg2.evaluate("()=>S.cfg.standardThema==='von Gerät 2'"))
+            await pg.reload(); await pg.wait_for_selector('#fLogin:not([hidden])')
+            check('Gerät 1 danach abgemeldet', pg.url.endswith('/login'))
+            await pg.fill('#lEmail', addr); await pg.fill('#lPw', 'ganz-neues-passwort'); await pg.click('#fLogin button')
+            await pg.wait_for_selector('#fMfa:not([hidden])')
+            check('Login mit neuem Passwort', True)
             # erwartet: 404 (neuer Nutzer hat noch keine Daten) und 409 (gewollter Konflikt)
-            errs = [e for e in errs if not ('Failed to load resource' in e and ('404' in e or '409' in e))]
+            errs = [e for e in errs if not ('Failed to load resource' in e and ('404' in e or '409' in e or '401' in e))]
             csp = [e for e in errs if 'Content Security Policy' in e or 'Refused' in e]
             check('Keine CSP-Verstöße', not csp)
             check('Keine Skriptfehler', not [e for e in errs if e not in csp])
-            fonts = await pg.evaluate("async()=>(await document.fonts.load(\"600 16px 'IBM Plex Sans'\")).length>0")
-            check('Schriften vom eigenen Server geladen', fonts)
             for e in errs: print('  ', e[:300])
             await b.close()
     finally:

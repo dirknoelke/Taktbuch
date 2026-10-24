@@ -17,6 +17,11 @@ export interface Config {
   webDir: string;
   sessionDays: number;
   trustProxy: boolean;
+  /** SMTP-Zugang: entweder SMTP_URL (smtps://user:pass@host:465) oder SMTP_HOST/PORT/USER/PASS. Leer = kein Mailversand. */
+  smtpUrl: string | null;
+  smtp: { host: string; port: number; user: string; pass: string } | null;
+  mailFrom: string;
+  mailReplyTo: string | null;
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -36,5 +41,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     webDir: env.WEB_DIR ?? path.resolve(here, '../../../dist/online'),
     sessionDays: Number(env.SESSION_DAYS ?? 30),
     trustProxy: (env.TRUST_PROXY ?? 'true') === 'true',
+    smtpUrl: env.SMTP_URL || null,
+    smtp: env.SMTP_HOST ? { host: env.SMTP_HOST, port: Number(env.SMTP_PORT ?? 465), user: env.SMTP_USER ?? '', pass: env.SMTP_PASS ?? '' } : null,
+    mailFrom: env.MAIL_FROM || 'Taktbuch <noreply@taktbuch.de>',
+    mailReplyTo: env.MAIL_REPLY_TO || null,
   };
 }

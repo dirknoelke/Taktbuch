@@ -1,7 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import type { Db, Tx } from './db.ts';
 
-export type AuditEvent = 'register' | 'login_password' | 'login_mfa' | 'login_recovery' | 'totp_setup' | 'logout' | 'invite_created';
+export type AuditEvent = 'register' | 'login_password' | 'login_mfa' | 'login_recovery' | 'totp_setup' | 'logout' | 'invite_created' | 'password_reset_request' | 'password_reset';
 
 /** Protokolliert sicherheitsrelevante Ereignisse (Zeit, Nutzer, IP, Gerät, Ergebnis). */
 export async function audit(c: Db | Tx, req: FastifyRequest | null, e: { event: AuditEvent; ok: boolean; userId?: string | null; email?: string | null }) {
@@ -15,7 +15,7 @@ export async function audit(c: Db | Tx, req: FastifyRequest | null, e: { event: 
 export async function tooManyFailures(db: Db, email: string, limit = 10): Promise<boolean> {
   const r = await db.query<{ n: string }>(
     `SELECT count(*) AS n FROM audit_log WHERE email = $1 AND NOT ok AND at > now() - interval '15 minutes'
-       AND event IN ('login_password', 'login_mfa', 'login_recovery')`,
+       AND event IN ('login_password', 'login_mfa', 'login_recovery', 'password_reset')`,
     [email]
   );
   return Number(r.rows[0].n) >= limit;
