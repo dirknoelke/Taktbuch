@@ -12,11 +12,11 @@ RUN TARGET=online python3 build.py
 # 2) Laufzeit-Abhängigkeiten der API
 FROM node:24-slim AS deps
 WORKDIR /app
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY packages/api/package.json packages/api/
 COPY packages/core/package.json packages/core/
 COPY packages/web/package.json packages/web/
-RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
+RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 
 # 3) Laufzeit-Image
 FROM node:24-slim

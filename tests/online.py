@@ -44,7 +44,8 @@ async def main():
             # Gerät 1: Registrierung
             d1 = await b.new_context(); pg = await d1.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
             pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
-            await pg.goto(link); await pg.wait_for_selector('#fRegister:not([hidden])')
+            await pg.goto(ORIGIN + '/login'); await pg.wait_for_selector('#fLogin:not([hidden])')
+            await pg.goto(link); await pg.wait_for_selector('#fRegister:not([hidden])')   # Link im schon offenen Tab
             await pg.fill('#rEmail', email); await pg.fill('#rPw', 'ein-langes-passwort'); await pg.fill('#rPw2', 'ein-langes-passwort')
             await pg.click('#fRegister button'); await pg.wait_for_selector('#fSetup:not([hidden])')
             check('QR-Code angezeigt', (await pg.get_attribute('#sQr', 'src') or '').startswith('data:image/png'))
