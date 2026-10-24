@@ -31,6 +31,15 @@ app_files.insert(1, storage)   # Adapter direkt nach 1-kern.js (dort sind PROFIL
 app = '\n'.join([read(WEB + 'i18n-en.js'), read(WEB + 'i18n.js')] + app_files)
 html = read(WEB + 'template.html')
 assert '//@@ENGINE@@' in html and '//@@APP@@' in html
+GOOGLE_FONTS = re.compile(r'<link rel="preconnect" href="https://fonts\.googleapis\.com">\n<link rel="preconnect" href="https://fonts\.gstatic\.com" crossorigin>\n<link rel="stylesheet" href="https://fonts\.googleapis\.com/[^"]*">\n')
+FONTS = [('IBM Plex Sans', 400, 'IBMPlexSans-Regular'), ('IBM Plex Sans', 500, 'IBMPlexSans-Medium'), ('IBM Plex Sans', 600, 'IBMPlexSans-SemiBold'),
+         ('IBM Plex Sans Condensed', 500, 'IBMPlexSansCondensed-Medium'), ('IBM Plex Sans Condensed', 600, 'IBMPlexSansCondensed-SemiBold'), ('IBM Plex Sans Condensed', 700, 'IBMPlexSansCondensed-Bold'),
+         ('IBM Plex Mono', 400, 'IBMPlexMono-Regular'), ('IBM Plex Mono', 500, 'IBMPlexMono-Medium'), ('IBM Plex Mono', 600, 'IBMPlexMono-SemiBold')]
+if target == 'online':
+    # Online: Schriften vom eigenen Server (unveränderte IBM-Plex-Dateien, SIL OFL), keine Anfrage an Google.
+    assert GOOGLE_FONTS.search(html), 'Google-Fonts-Block im Template nicht gefunden'
+    faces = ''.join(f"@font-face{{font-family:'{fam}';font-weight:{w};font-style:normal;font-display:swap;src:url('/fonts/{f}.woff2') format('woff2')}}\n" for fam, w, f in FONTS)
+    html = GOOGLE_FONTS.sub('<style>\n' + faces + '</style>\n', html)
 html = html.replace('//@@ENGINE@@', read('packages/core/engine.js'))
 import json
 help_ = json.loads(read(WEB + 'help.json')); whats = json.loads(read(WEB + 'whatsnew.json'))
@@ -43,6 +52,8 @@ out.mkdir(parents=True, exist_ok=True)
 (out / 'taktbuch.html').write_text(html, encoding='utf-8')
 if target == 'online':
     (out / 'login.html').write_text(read(WEB + 'online/login.html'), encoding='utf-8')
+    import shutil
+    shutil.copytree(root / WEB / 'fonts', out / 'fonts', dirs_exist_ok=True)
 # Hilfe als Markdown-Dateien (gleiche Quelle wie in der App)
 def md(h, whats_title, l):
     t = [f"# {h['title']}", '', h['intro'], '']

@@ -83,9 +83,13 @@ async def main():
             await pg2.click('#tbLogout'); await pg2.wait_for_selector('#fLogin:not([hidden])')
             await pg2.goto(ORIGIN + '/'); await pg2.wait_for_selector('#fLogin:not([hidden])')
             check('Nach Abmelden wieder Login', pg2.url.endswith('/login'))
+            # erwartet: 404 (neuer Nutzer hat noch keine Daten) und 409 (gewollter Konflikt)
+            errs = [e for e in errs if not ('Failed to load resource' in e and ('404' in e or '409' in e))]
             csp = [e for e in errs if 'Content Security Policy' in e or 'Refused' in e]
             check('Keine CSP-Verstöße', not csp)
             check('Keine Skriptfehler', not [e for e in errs if e not in csp])
+            fonts = await pg2.evaluate("async()=>(await document.fonts.load(\"600 16px 'IBM Plex Sans'\")).length>0")
+            check('Schriften vom eigenen Server geladen', fonts)
             for e in errs: print('  ', e[:300])
             await b.close()
     finally:
