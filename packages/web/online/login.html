@@ -22,7 +22,7 @@ button:disabled{opacity:.6;cursor:default}
 .err{color:var(--err);font-size:14px;margin-top:12px;min-height:1.2em}
 .hint{color:var(--mute);font-size:14px}
 .qr{display:block;margin:12px auto;background:#fff;padding:8px;border-radius:8px;width:220px;height:220px}
-code{font-family:ui-monospace,Consolas,monospace;font-size:15px;word-break:break-all}
+code{font-family:ui-monospace,Consolas,monospace;font-size:15px;word-break:normal;overflow-wrap:normal}
 .codes{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin:12px 0;font-family:ui-monospace,Consolas,monospace}
 a{color:var(--acc)}
 [hidden]{display:none!important}
@@ -116,8 +116,15 @@ a{color:var(--acc)}
   });
   $('#toApp').addEventListener('click', () => { location.href = '/'; });
 
-  const inviteToken = new URLSearchParams(location.hash.slice(1)).get('invite');
-  if (inviteToken) show('#fRegister', 'Konto anlegen'); else show('#fLogin', 'Anmelden');
+  let inviteToken = null;
+  // Einladung steht im Fragment (#invite=...). Auch reagieren, wenn der Link in einem schon offenen Tab geöffnet wird.
+  const route = () => {
+    inviteToken = new URLSearchParams(location.hash.slice(1)).get('invite');
+    if (inviteToken) show('#fRegister', 'Konto anlegen'); else if ($('#fRegister').hidden === false) show('#fLogin', 'Anmelden');
+  };
+  window.addEventListener('hashchange', route);
+  route();
+  if (!inviteToken) show('#fLogin', 'Anmelden');
 })();
 </script>
 </body>

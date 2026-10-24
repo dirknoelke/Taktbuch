@@ -45,7 +45,7 @@ jobs:
         with: { node-version: 24 }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: npm install --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - name: Typprüfung
         run: npm run typecheck -w @taktbuch/api 2>&1 | tee -a /tmp/api-output.txt; exit ${PIPESTATUS[0]}
       - name: API-Tests (Postgres)
