@@ -1,11 +1,14 @@
 """Ende-zu-Ende-Test Taktbuch Online (Playwright): startet die API gegen TEST_DATABASE_URL,
 lädt per Einladung (Mail über einen lokalen SMTP-Fänger) ein, registriert mit TOTP, arbeitet in der App,
-prüft zweites Gerät, Konflikt und „Passwort vergessen“.
+prüft zweites Gerät, Live-Abgleich, Zusammenführen, Verbindungsabbruch und „Passwort vergessen“.
 Voraussetzung: npm install, TARGET=online python3 build.py
 Aufruf: TEST_DATABASE_URL=postgres://... python3 tests/online.py"""
 import asyncio, secrets, sys
 from playwright.async_api import async_playwright
 from online_lib import ORIGIN, ENV, API, MAILS, mail_link, totp, check, RESULT, start_server
+
+async def synced(page, timeout=8000):
+    await page.wait_for_function("()=>document.querySelector('#tbSync')?.dataset.state==='ok'", timeout=timeout)
 import subprocess
 
 async def main():
@@ -35,15 +38,16 @@ async def main():
             await pg.click('#toApp'); await pg.wait_for_selector('[data-pf]')
             check('App geladen, Kennzeichnung online', await pg.inner_text('#ver') == 'online')
             await pg.click('[data-pf=voll]'); await pg.wait_for_selector('#tabs .tab')
+            check('Neues Konto: Beispieldaten, nichts gespeichert', await pg.get_attribute('#tbSync', 'data-state') == 'demo')
             await pg.evaluate("()=>{S.demo=false;S.cfg.standardThema='E2E-Thema';S.days['2026-10-20']={t:'arbeit',s:'08:00',e:'16:30'};recompute();save()}")
-            await pg.wait_for_function("()=>['gespeichert','saved'].includes(document.querySelector('#saveState').textContent)", timeout=5000)
-            check('Speichern auf dem Server', True)
+            await synced(pg)
+            check('Speichern auf dem Server, Anzeige „Synchronisiert“', await pg.inner_text('#tbSync') == 'Synchronisiert')
             await pg.reload(); await pg.wait_for_selector('#tabs .tab')
             check('Nach Neuladen: Daten vom Server', await pg.evaluate("()=>S.cfg.standardThema==='E2E-Thema'&&!!S.days['2026-10-20']"))
             fonts = await pg.evaluate("async()=>(await document.fonts.load(\"600 16px 'IBM Plex Sans'\")).length>0")
             check('Schriften vom eigenen Server geladen', fonts)
 
-            # Gerät 2: Login mit Passwort + TOTP, sieht dieselben Daten
+            # Gerät 2: Login mit Passwort + TOTP, sieht dieselben Daten, ohne Vorlagen-Frage
             d2 = await b.new_context(); pg2 = await d2.new_page()
             await pg2.goto(ORIGIN + '/'); await pg2.wait_for_selector('#fLogin:not([hidden])')
             check('Ohne Anmeldung: Login-Seite', pg2.url.endswith('/login'))
@@ -53,26 +57,31 @@ async def main():
             await pg2.wait_for_selector('#tabs .tab')
             check('Gerät 2: keine Vorlagen-Frage, Konto hat schon Daten', await pg2.locator('[data-pf]').count() == 0)
             check('Gerät 2 sieht die Daten von Gerät 1', await pg2.evaluate("()=>S.cfg.standardThema==='E2E-Thema'"))
+            await synced(pg2)
 
-            # Gerät 2 speichert, Gerät 1 ist veraltet -> Konflikt statt Überschreiben
+            # Live: Gerät 2 ändert, Gerät 1 aktualisiert sich ohne Neuladen
             await pg2.evaluate("()=>{S.cfg.standardThema='von Gerät 2';save()}")
-            await pg2.wait_for_function("()=>['gespeichert','saved'].includes(document.querySelector('#saveState').textContent)", timeout=5000)
-            await pg.evaluate("()=>{S.cfg.standardThema='veraltet von Gerät 1';save()}")
-            await pg.wait_for_selector('#tbReload', timeout=5000)
-            check('Konflikt: Hinweis auf Gerät 1', 'anderen Gerät' in await pg.inner_text('#tbSave'))
-            await pg2.reload(); await pg2.wait_for_selector('#tabs .tab')
-            check('Konflikt: Stand von Gerät 2 bleibt erhalten', await pg2.evaluate("()=>S.cfg.standardThema==='von Gerät 2'"))
+            await pg.wait_for_function("()=>S.cfg.standardThema==='von Gerät 2'", timeout=8000)
+            check('Live: Gerät 1 übernimmt Änderung von Gerät 2', True)
 
-            # Server nicht erreichbar: deutlicher Hinweis, erneut speichern klappt danach
-            await pg2.route('**/api/kv/**', lambda r: asyncio.ensure_future(r.abort()))
+            # Zusammenführen: beide ändern gleichzeitig verschiedene Tage, nichts geht verloren
+            await pg.evaluate("()=>{S.days['2026-10-21']={t:'arbeit',s:'07:00',e:'15:00'};recompute();save()}")
+            await pg2.evaluate("()=>{S.days['2026-10-22']={t:'urlaub'};recompute();save()}")
+            both = "()=>!!S.days['2026-10-21']&&!!S.days['2026-10-22']&&!!S.days['2026-10-20']"
+            await pg.wait_for_function(both, timeout=8000); await pg2.wait_for_function(both, timeout=8000)
+            check('Gleichzeitige Änderungen an verschiedenen Tagen: beide erhalten', True)
+
+            # Verbindung weg: Änderung bleibt lokal, übersteht Neuladen, wird danach von selbst übertragen
+            await pg2.route('**/api/sync**', lambda r: asyncio.ensure_future(r.abort()))
             await pg2.evaluate("()=>{S.cfg.standardThema='offline geändert';save()}")
-            await pg2.wait_for_selector('#tbRetrySave', timeout=5000)
-            check('Speichern gescheitert: Hinweis sichtbar', 'Nicht gespeichert' in await pg2.inner_text('#tbSave'))
-            await pg2.evaluate("()=>render()")
-            check('Hinweis bleibt beim Neuzeichnen', await pg2.locator('#tbRetrySave').count() == 1)
-            await pg2.unroute('**/api/kv/**'); await pg2.click('#tbRetrySave')
-            await pg2.wait_for_function("()=>document.querySelector('#saveState').textContent==='gespeichert'&&!document.querySelector('#tbSave').textContent", timeout=5000)
-            check('Erneut speichern: Hinweis weg, Stand auf dem Server', True)
+            await pg2.wait_for_function("()=>['offline','error'].includes(document.querySelector('#tbSync').dataset.state)", timeout=8000)
+            check('Ohne Verbindung: Anzeige „Offline · lokal gesichert“', 'lokal gesichert' in await pg2.inner_text('#tbSync'))
+            await pg2.reload(); await pg2.wait_for_selector('#tabs .tab')
+            check('Neuladen ohne Verbindung: lokale Kopie samt Änderung', await pg2.evaluate("()=>S.cfg.standardThema==='offline geändert'&&!!S.days['2026-10-22']"))
+            await pg2.unroute('**/api/sync**')
+            await synced(pg2, 20000)
+            await pg.wait_for_function("()=>S.cfg.standardThema==='offline geändert'", timeout=8000)
+            check('Verbindung zurück: von selbst übertragen, Gerät 1 hat es', True)
 
             # Abmelden
             await pg2.click('#tbLogout'); await pg2.wait_for_selector('#fLogin:not([hidden])')
@@ -98,8 +107,8 @@ async def main():
             await pg.fill('#lEmail', addr); await pg.fill('#lPw', 'ganz-neues-passwort'); await pg.click('#fLogin button')
             await pg.wait_for_selector('#fMfa:not([hidden])')
             check('Login mit neuem Passwort', True)
-            # erwartet: 404 (neuer Nutzer hat noch keine Daten) und 409 (gewollter Konflikt)
-            errs = [e for e in errs if not ('Failed to load resource' in e and ('404' in e or '409' in e or '401' in e))]
+            # erwartet: 401 nach dem Abmelden durch das Passwort-Zurücksetzen, abgebrochene Anfragen im Offline-Test
+            errs = [e for e in errs if not ('Failed to load resource' in e and ('404' in e or '409' in e or '401' in e or 'net::ERR_FAILED' in e))]
             csp = [e for e in errs if 'Content Security Policy' in e or 'Refused' in e]
             check('Keine CSP-Verstöße', not csp)
             check('Keine Skriptfehler', not [e for e in errs if e not in csp])

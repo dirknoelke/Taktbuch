@@ -7,6 +7,7 @@ import { destroySession, readSession, type SessionUser } from './session.ts';
 import { argonHash, argonVerify, ARGON, EMAIL_RE, fail, normEmail } from './auth.ts';
 import { checkSecondFactor } from './factor.ts';
 import { normalizeRecovery, recoveryCode, sha256, token } from './secrets.ts';
+import { ensureRecords, loadState } from './sync.ts';
 import { accountDeletedMail, emailChangedMail, emailConfirmMail, type Mailer } from './mail.ts';
 
 export const EMAIL_CHANGE_MINUTES = 60;
@@ -128,12 +129,12 @@ export function accountRoutes(app: FastifyInstance, db: Db, cfg: Config, mailer:
     return { ok: true };
   });
 
-  // Export: alle gespeicherten Daten als JSON-Datei (DSGVO Art. 20). "state" ist die Sicherung der App.
+  // Export: alle gespeicherten Daten als JSON-Datei (DSGVO Art. 20).
   app.get('/api/account/export', async (req, reply) => {
     const s = await user(req, reply); if (!s) return reply;
-    const rows = await withOrg(db, s.orgId, c => c.query<{ key: string; value: unknown; updated_at: Date }>(
-      'SELECT key, value, updated_at FROM kv WHERE org_id = $1 ORDER BY key', [s.orgId]));
-    const data = { exportiert: new Date().toISOString(), konto: s.email, daten: Object.fromEntries(rows.rows.map(r => [r.key, r.value])) };
+    const st = await withOrg(db, s.orgId, async c => { await ensureRecords(c, s.orgId, s.userId); return loadState(c, s.orgId); });
+    // Format der App-Sicherung: lässt sich in der Offline-Version direkt importieren
+    const data = { app: 'stundenkonto', v: 1, exported: new Date().toISOString(), konto: s.email, cfg: st.cfg, days: st.days, acts: st.acts, pay: st.pay };
     return reply
       .header('Content-Disposition', `attachment; filename="taktbuch-export-${new Date().toISOString().slice(0, 10)}.json"`)
       .header('Cache-Control', 'no-store')
