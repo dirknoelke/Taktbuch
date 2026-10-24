@@ -241,7 +241,7 @@ export function authRoutes(app: FastifyInstance, db: Db, cfg: Config, mailer: Ma
   app.get('/api/me', async (req, reply) => {
     const s = await readSession(db, cfg, req);
     if (!s) return reply.code(401).send({ message: 'Nicht angemeldet' });
-    return { email: s.email, kind: s.kind, role: s.role };
+    return { email: s.email, kind: s.kind, role: s.role, org: s.orgId };
   });
 
   // 7) Zweiten Faktor in der laufenden Session erneut nachweisen (Verwaltung, sensible Konto-Aktionen)

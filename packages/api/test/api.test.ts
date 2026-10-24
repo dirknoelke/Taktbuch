@@ -325,7 +325,7 @@ test('Konto: Export und Löschen mitsamt Daten', { skip }, async () => {
   await req('PUT', '/api/kv/state', u.cookie, { value: '{"v":1,"days":{"2026-10-20":{}}}', version: null });
   const ex = await req('GET', '/api/account/export', u.cookie);
   assert.equal(ex.statusCode, 200); assert.match(String(ex.headers['content-disposition']), /attachment; filename="taktbuch-export-/);
-  assert.equal(ex.json().daten.state, '{"v":1,"days":{"2026-10-20":{}}}');
+  assert.equal(ex.json().app, 'stundenkonto', 'Format der App-Sicherung'); assert.deepEqual(ex.json().days, { '2026-10-20': {} });
   const org = await db.query<{ org_id: string }>("SELECT org_id FROM memberships m JOIN users u ON u.id = m.user_id WHERE u.email = 'weg@example.org'");
   assert.equal((await req('POST', '/api/account/delete', u.cookie, { password: 'ein-langes-passwort', code: code(u.secret, 1), confirm: 'ja' })).statusCode, 400, 'Bestätigungswort fehlt');
   assert.equal((await req('POST', '/api/account/delete', u.cookie, { password: 'falsch-falsch-falsch', code: code(u.secret, 1), confirm: 'LÖSCHEN' })).statusCode, 401);
@@ -364,4 +364,55 @@ test('Konto: E-Mail-Adresse ändern mit Bestätigung an die neue Adresse', { ski
   assert.equal((await post('/api/auth/login', { email: 'neu@example.org', password: 'ein-langes-passwort' })).statusCode, 200);
   assert.equal((await post('/api/auth/login', { email: 'alt@example.org', password: 'ein-langes-passwort' })).statusCode, 401);
   assert.equal((await req('GET', '/email-bestaetigen', '')).statusCode, 200, 'Seite ohne Weiterleitung');
+});
+
+test('Sync: bisheriger Gesamtstand wird übernommen, ältere Tabs laden neu', { skip }, async () => {
+  const u = await register('umzug@example.org');
+  const state = { v: 1, cfg: { soll: 7.5, standardThema: 'Alt' }, days: { '2026-10-20': { t: 'arbeit', s: '08:00' } }, acts: [{ id: 'a1', d: '2026-10-20', s: '08:00', e: '09:00' }, { d: '2026-10-20', s: '09:00', e: '10:00' }], pay: { '2026-09': { b: 1 } }, demo: false };
+  assert.equal((await req('PUT', '/api/kv/state', u.cookie, { value: JSON.stringify(state), version: null })).statusCode, 200);
+  const r = (await req('GET', '/api/sync', u.cookie)).json();
+  assert.equal(r.full, true); assert.ok(r.rev > 0);
+  const by = (c: string, id: string) => r.changes.find((x: { c: string; id: string }) => x.c === c && x.id === id)?.v;
+  assert.equal(by('cfg', 'standardThema'), 'Alt'); assert.deepEqual(by('day', '2026-10-20'), { t: 'arbeit', s: '08:00' });
+  assert.deepEqual(by('pay', '2026-09'), { b: 1 }); assert.equal(by('act', 'a1').e, '09:00');
+  assert.equal(r.changes.filter((x: { c: string }) => x.c === 'act').length, 2, 'Tätigkeit ohne id bekommt eine');
+  assert.equal((await req('PUT', '/api/kv/state', u.cookie, { value: '{}', version: 1 })).statusCode, 409, 'alter Tab schreibt nicht mehr');
+  assert.equal(JSON.parse((await req('GET', '/api/kv/state', u.cookie)).json().value).cfg.standardThema, 'Alt', 'alter Tab liest den aktuellen Stand');
+  assert.equal((await req('GET', '/api/sync', u.cookie)).json().rev, r.rev, 'nur einmal übernommen');
+});
+
+test('Sync: Änderungen, Löschen, seit-Abfrage, Mandantentrennung, Prüfung', { skip }, async () => {
+  const a = await register('sync-a@example.org'), b = await register('sync-b@example.org');
+  assert.deepEqual((await req('GET', '/api/sync', a.cookie)).json(), { rev: 0, full: true, changes: [] });
+  const p1 = await req('POST', '/api/sync', a.cookie, { changes: [{ c: 'day', id: '2026-10-21', v: { t: 'arbeit' } }, { c: 'cfg', id: 'soll', v: 8 }] });
+  assert.equal(p1.statusCode, 200, p1.body);
+  const r1 = (await req('GET', '/api/sync?since=0', a.cookie)).json();
+  assert.equal(r1.changes.length, 2);
+  const p2 = await req('POST', '/api/sync', a.cookie, { changes: [{ c: 'day', id: '2026-10-21', v: null }, { c: 'cfg', id: 'soll', v: 7 }] });
+  const r2 = (await req('GET', `/api/sync?since=${r1.rev}`, a.cookie)).json();
+  assert.equal(r2.full, false); assert.equal(r2.rev, p2.json().rev);
+  assert.deepEqual(r2.changes.map((x: { c: string; id: string; v: unknown }) => [x.c, x.id, x.v]).sort(), [['cfg', 'soll', 7], ['day', '2026-10-21', null]], 'Grabstein wird gemeldet');
+  assert.deepEqual((await req('GET', '/api/sync?since=0', a.cookie)).json().changes.map((x: { id: string }) => x.id), ['soll'], 'kompletter Stand ohne Gelöschtes');
+  assert.equal((await req('GET', `/api/sync?since=${r2.rev}`, a.cookie)).json().changes.length, 0);
+  assert.equal((await req('GET', '/api/sync?since=999999999', a.cookie)).json().full, true, 'unbekannter Stand: alles neu');
+  assert.equal((await req('GET', '/api/sync', b.cookie)).json().changes.length, 0, 'B sieht nichts von A');
+  assert.equal((await req('POST', '/api/sync', a.cookie, { changes: [{ c: 'kv', id: 'x', v: 1 }] })).statusCode, 400);
+  assert.equal((await req('POST', '/api/sync', a.cookie, { changes: [{ c: 'day', id: '../x', v: 1 }] })).statusCode, 400);
+  assert.equal((await app.inject({ url: '/api/sync' })).statusCode, 401);
+  const adm = await register('sync-admin@example.org', 'admin');
+  assert.equal((await req('GET', '/api/sync', adm.cookie)).statusCode, 403);
+});
+
+test('Sync: Live-Kanal meldet Änderungen anderer Geräte', { skip }, async () => {
+  const u = await register('live@example.org');
+  const addr = await app.listen({ port: 0, host: '127.0.0.1' });
+  const ac = new AbortController();
+  const res = await fetch(addr + '/api/sync/events', { headers: { cookie: u.cookie }, signal: ac.signal });
+  assert.equal(res.status, 200); assert.match(String(res.headers.get('content-type')), /text\/event-stream/);
+  const reader = res.body!.getReader(); let buf = '';
+  const next = async () => { while (!buf.includes('data:')) { const { value } = await reader.read(); buf += new TextDecoder().decode(value); } };
+  const p = await req('POST', '/api/sync', u.cookie, { changes: [{ c: 'cfg', id: 'soll', v: 6 }] });
+  await Promise.race([next(), new Promise((_, rej) => setTimeout(() => rej(new Error('kein Ereignis')), 5000))]);
+  assert.equal(JSON.parse(buf.split('data:')[1]).rev, p.json().rev);
+  ac.abort();
 });
