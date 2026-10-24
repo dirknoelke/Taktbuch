@@ -6,8 +6,10 @@ import type { Db } from './db.ts';
 import { authRoutes } from './auth.ts';
 import { kvRoutes } from './kv.ts';
 import { webRoutes } from './web.ts';
+import { createMailer, type Mailer } from './mail.ts';
 
-export async function buildApp(cfg: Config, db: Db, opts: { logger?: boolean } = {}): Promise<FastifyInstance> {
+export async function buildApp(cfg: Config, db: Db, opts: { logger?: boolean; mailer?: Mailer | null } = {}): Promise<FastifyInstance> {
+  const mailer = opts.mailer !== undefined ? opts.mailer : createMailer(cfg);
   const app = Fastify({
     logger: opts.logger ?? true,
     trustProxy: cfg.trustProxy,   // hinter Traefik: echte Client-IP aus X-Forwarded-For
@@ -28,7 +30,8 @@ export async function buildApp(cfg: Config, db: Db, opts: { logger?: boolean } =
     catch { return reply.code(503).send({ ok: false }); }
   });
 
-  authRoutes(app, db, cfg);
+  authRoutes(app, db, cfg, mailer);
+  app.get('/api/config', async () => ({ mail: !!mailer }));   // Login-Seite: "Passwort vergessen" nur mit Mailversand
   kvRoutes(app, db, cfg);
   webRoutes(app, db, cfg);
   return app;

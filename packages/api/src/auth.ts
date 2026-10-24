@@ -8,6 +8,7 @@ import { audit, tooManyFailures } from './audit.ts';
 import { createSession, destroySession, readSession } from './session.ts';
 import { decrypt, encrypt, normalizeRecovery, recoveryCode, sha256, token } from './secrets.ts';
 import { base32Encode, newSecret, otpauthUri, verify as verifyTotp } from './totp.ts';
+import { inviteMail, resetMail, type Mailer } from './mail.ts';
 
 const { hash: argonHash, verify: argonVerify } = argon2;
 
@@ -16,6 +17,7 @@ const ARGON = { memoryCost: 19456, timeCost: 2, parallelism: 1 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TICKET_MINUTES = { mfa: 5, setup: 15 } as const;
 const MAX_TICKET_ATTEMPTS = 5;
+const RESET_MINUTES = 30;
 
 class HttpError extends Error {
   status: number;
@@ -25,7 +27,7 @@ const fail = (status: number, message: string): never => { throw new HttpError(s
 
 const normEmail = (e: unknown) => String(e ?? '').trim().toLowerCase();
 
-export function authRoutes(app: FastifyInstance, db: Db, cfg: Config) {
+export function authRoutes(app: FastifyInstance, db: Db, cfg: Config, mailer: Mailer | null) {
   const dummyHash = argonHash('timing-ausgleich-' + token(8), ARGON);   // gleiche Laufzeit, auch wenn es die E-Mail nicht gibt
   const limited = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
 
@@ -171,6 +173,63 @@ export function authRoutes(app: FastifyInstance, db: Db, cfg: Config) {
     return { ok: true };
   });
 
+  // 5) Passwort vergessen: Link per Mail. Antwort immer gleich, egal ob es das Konto gibt.
+  app.post('/api/auth/forgot', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (req: FastifyRequest<{ Body: { email?: string } }>) => {
+    if (!mailer) fail(503, 'Mailversand ist auf diesem Server nicht eingerichtet. Bitte an den Betreiber wenden.');
+    const email = normEmail(req.body?.email);
+    const u = await db.query<{ id: string; recent: string }>(
+      `SELECT u.id, (SELECT count(*) FROM password_resets r WHERE r.user_id = u.id AND r.created_at > now() - interval '1 hour') AS recent
+         FROM users u WHERE u.email = $1 AND u.mfa_enabled`, [email]);
+    const user = u.rows[0];
+    if (user && Number(user.recent) < 3) {   // höchstens 3 Mails pro Stunde und Konto
+      const t = token();
+      await db.query(`INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES ($1, $2, now() + make_interval(mins => $3))`, [sha256(t), user.id, RESET_MINUTES]);
+      try { await mailer!.send(resetMail(email, `${cfg.publicOrigin}/login#reset=${t}`, RESET_MINUTES)); }
+      catch (e) { app.log.error(e, 'Mailversand fehlgeschlagen'); fail(502, 'Die Mail konnte gerade nicht verschickt werden. Bitte später erneut versuchen.'); }
+    }
+    await audit(db, req, { event: 'password_reset_request', ok: !!user, userId: user?.id, email });
+    return { ok: true, message: 'Wenn es ein Konto mit dieser Adresse gibt, ist jetzt eine Mail mit einem Link unterwegs.' };
+  });
+
+  // 6) Neues Passwort setzen: Link aus der Mail + zweiter Faktor (TOTP oder Recovery-Code).
+  // Danach sind alle bisherigen Sessions ungültig. Fehlversuche werden festgeschrieben.
+  app.post('/api/auth/reset', limited, async (req: FastifyRequest<{ Body: { token?: string; password?: string; code?: string } }>, reply: FastifyReply) => {
+    const b = req.body ?? {}, password = String(b.password ?? ''), code = String(b.code ?? '').trim();
+    if (typeof b.token !== 'string' || !b.token) fail(400, 'Der Link ist unvollständig.');
+    if (password.length < 12 || password.length > 256) fail(400, 'Das Passwort muss mindestens 12 Zeichen haben.');
+    const pwHash = await argonHash(password, ARGON);
+    const res = await tx(db, async c => {
+      const r = await c.query<{ user_id: string; email: string; attempts: number; secret_enc: Buffer; last_step: string }>(
+        `UPDATE password_resets pr SET attempts = attempts + 1
+           FROM users u, totp_secrets ts
+          WHERE pr.token_hash = $1 AND pr.used_at IS NULL AND pr.expires_at > now()
+            AND u.id = pr.user_id AND ts.user_id = pr.user_id
+          RETURNING pr.user_id, u.email, pr.attempts, ts.secret_enc, ts.last_step`, [sha256(b.token!)]);
+      const row = r.rows[0];
+      if (!row) fail(400, 'Der Link ist ungültig oder abgelaufen. Bitte einen neuen anfordern.');
+      if (row.attempts > MAX_TICKET_ATTEMPTS) fail(429, 'Zu viele Fehlversuche. Bitte einen neuen Link anfordern.');
+      let ok = false;
+      if (/^\d[\d ]{5,6}$/.test(code)) {
+        const step = verifyTotp(decrypt(cfg.totpKey, row.secret_enc), code, Number(row.last_step));
+        if (step !== null) { ok = true; await c.query('UPDATE totp_secrets SET last_step = $2 WHERE user_id = $1', [row.user_id, step]); }
+      } else if (code) {
+        const used = await c.query(`UPDATE recovery_codes SET used_at = now() WHERE id = (
+            SELECT id FROM recovery_codes WHERE user_id = $1 AND code_hash = $2 AND used_at IS NULL LIMIT 1) RETURNING id`,
+          [row.user_id, sha256(normalizeRecovery(code))]);
+        ok = !!used.rowCount;
+      }
+      await audit(c, req, { event: 'password_reset', ok, userId: row.user_id, email: row.email });
+      if (!ok) return null;
+      await c.query('UPDATE users SET password_hash = $2 WHERE id = $1', [row.user_id, pwHash]);
+      await c.query('UPDATE password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NULL', [row.user_id]);
+      await c.query('DELETE FROM sessions WHERE user_id = $1', [row.user_id]);
+      await c.query('DELETE FROM login_tickets WHERE user_id = $1', [row.user_id]);
+      await createSession(c, cfg, req, reply, row.user_id);
+      return { ok: true };
+    });
+    return res ?? fail(401, 'Der Code stimmt nicht.');
+  });
+
   app.get('/api/me', async (req, reply) => {
     const s = await readSession(db, cfg, req);
     if (!s) return reply.code(401).send({ message: 'Nicht angemeldet' });
@@ -178,11 +237,18 @@ export function authRoutes(app: FastifyInstance, db: Db, cfg: Config) {
   });
 }
 
-/** Einladung anlegen (CLI). Gibt den Link zurück; das Token steht nur im Fragment, nicht in Server-Logs. */
-export async function createInvite(db: Db, cfg: Pick<Config, 'publicOrigin'>, email: string | null, days = 7) {
+/** Einladung anlegen (CLI). Verschickt sie per Mail, falls ein Mailer da ist; gibt den Link immer zurück.
+ *  Das Token steht nur im Fragment (#), dadurch nie in Server- oder Proxy-Logs. */
+export async function createInvite(db: Db, cfg: Pick<Config, 'publicOrigin'>, email: string | null, days = 7, mailer: Mailer | null = null) {
   const t = token();
   await db.query(`INSERT INTO invites (token_hash, email, expires_at) VALUES ($1, $2, now() + make_interval(days => $3))`,
     [sha256(t), email ? normEmail(email) : null, days]);
   await audit(db, null, { event: 'invite_created', ok: true, email });
-  return `${cfg.publicOrigin}/login#invite=${t}`;
+  const link = `${cfg.publicOrigin}/login#invite=${t}`;
+  let mailed = false, mailError: string | null = null;
+  if (mailer && email) {
+    try { await mailer.send(inviteMail(normEmail(email), link, days)); mailed = true; }
+    catch (e) { mailError = (e as Error).message; }   // Einladung bleibt gültig, Link wird angezeigt
+  }
+  return { link, mailed, mailError };
 }

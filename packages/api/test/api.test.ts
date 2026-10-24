@@ -13,10 +13,12 @@ import { buildApp } from '../src/server.ts';
 import { createInvite } from '../src/auth.ts';
 import { base32Decode, hotp, stepAt } from '../src/totp.ts';
 import type { Config } from '../src/config.ts';
+import type { Mail } from '../src/mail.ts';
 
 const url = process.env.TEST_DATABASE_URL;
 const ORIGIN = 'https://test.taktbuch.example';
 let db: Db, app: FastifyInstance, cfg: Config;
+const outbox: Mail[] = [];
 
 before(async () => {
   if (!url) return;
@@ -26,8 +28,8 @@ before(async () => {
   const web = mkdtempSync(path.join(tmpdir(), 'tbweb-'));
   writeFileSync(path.join(web, 'taktbuch.html'), '<!doctype html><p>App</p><script>window.x=1</script>');
   writeFileSync(path.join(web, 'login.html'), '<!doctype html><p>Login</p><script>window.y=2</script>');
-  cfg = { port: 0, host: '127.0.0.1', databaseUrl: url, publicOrigin: ORIGIN, totpKey: randomBytes(32), secureCookies: true, webDir: web, sessionDays: 30, trustProxy: true };
-  app = await buildApp(cfg, db, { logger: false });
+  cfg = { port: 0, host: '127.0.0.1', databaseUrl: url, publicOrigin: ORIGIN, totpKey: randomBytes(32), secureCookies: true, webDir: web, sessionDays: 30, trustProxy: true, smtpUrl: null, smtp: null, mailFrom: 'Taktbuch <noreply@taktbuch.de>', mailReplyTo: null };
+  app = await buildApp(cfg, db, { logger: false, mailer: { send: async m => { outbox.push(m); } } });
 });
 after(async () => { if (url) { await app.close(); await db.end(); } });
 
@@ -45,7 +47,7 @@ const cookieOf = (res: { headers: Record<string, unknown> }) => {
 const code = (secret: string, offset = 0) => hotp(base32Decode(secret), stepAt(Date.now()) + offset);
 
 async function register(email: string) {
-  const link = await createInvite(db, cfg, email);
+  const { link } = await createInvite(db, cfg, email);
   const invite = new URL(link).hash.split('invite=')[1];
   const r = await post('/api/auth/register', { invite, email, password: 'ein-langes-passwort' });
   assert.equal(r.statusCode, 200, r.body);
@@ -148,4 +150,62 @@ test('Schutz: Origin-Prüfung, Logout, Web-Seiten mit CSP', { skip }, async () =
 test('Health-Endpunkte', { skip }, async () => {
   assert.equal((await app.inject({ url: '/healthz' })).statusCode, 200);
   assert.equal((await app.inject({ url: '/readyz' })).statusCode, 200);
+});
+
+const linkFrom = (m: Mail, key: string) => {
+  const u = m.text.match(new RegExp(`${ORIGIN}/login#${key}=([A-Za-z0-9_-]+)`));
+  assert.ok(u, 'Link in der Mail'); return u![1];
+};
+
+test('Einladung per Mail', { skip }, async () => {
+  const n = outbox.length;
+  const r = await createInvite(db, cfg, 'Neu@Example.org', 7, { send: async m => { outbox.push(m); } });
+  assert.equal(r.mailed, true); assert.equal(outbox.length, n + 1);
+  assert.equal(outbox.at(-1)!.to, 'neu@example.org');
+  assert.equal(linkFrom(outbox.at(-1)!, 'invite'), new URL(r.link).hash.split('invite=')[1]);
+  const broken = await createInvite(db, cfg, 'x@example.org', 7, { send: async () => { throw new Error('SMTP weg'); } });
+  assert.equal(broken.mailed, false); assert.equal(broken.mailError, 'SMTP weg'); assert.ok(broken.link, 'Link trotzdem da');
+});
+
+test('Passwort vergessen: Mail, zweiter Faktor Pflicht, alte Sessions ungültig', { skip }, async () => {
+  const u = await register('vergessen@example.org');
+  const unknown = await post('/api/auth/forgot', { email: 'gibtsnicht@example.org' });
+  const n = outbox.length;
+  const known = await post('/api/auth/forgot', { email: 'Vergessen@example.org' });
+  assert.equal(known.statusCode, 200); assert.equal(known.json().message, unknown.json().message, 'keine Auskunft, ob es das Konto gibt');
+  assert.equal(outbox.length, n + 1); assert.equal(outbox.at(-1)!.subject, 'Neues Passwort für Taktbuch');
+  const tok = linkFrom(outbox.at(-1)!, 'reset');
+
+  const noCode = await post('/api/auth/reset', { token: tok, password: 'ganz-neues-passwort' });
+  assert.equal(noCode.statusCode, 401, 'ohne zweiten Faktor kein neues Passwort');
+  const short = await post('/api/auth/reset', { token: tok, password: 'kurz', code: code(u.secret, 1) });
+  assert.equal(short.statusCode, 400);
+  const ok = await post('/api/auth/reset', { token: tok, password: 'ganz-neues-passwort', code: code(u.secret, 1) });
+  assert.equal(ok.statusCode, 200, ok.body); cookieOf(ok);
+  assert.equal((await app.inject({ url: '/api/me', headers: { cookie: u.cookie } })).statusCode, 401, 'alte Session abgemeldet');
+  assert.equal((await post('/api/auth/reset', { token: tok, password: 'noch-ein-passwort', code: u.recovery[1] })).statusCode, 400, 'Link nur einmal');
+  assert.equal((await post('/api/auth/login', { email: 'vergessen@example.org', password: 'ein-langes-passwort' })).statusCode, 401, 'altes Passwort ungültig');
+  assert.equal((await post('/api/auth/login', { email: 'vergessen@example.org', password: 'ganz-neues-passwort' })).json().next, 'mfa');
+});
+
+test('Passwort vergessen: Recovery-Code, Versuchsgrenze, Mail-Limit', { skip }, async () => {
+  const u = await register('limit@example.org');
+  const n = outbox.length;
+  for (let i = 0; i < 4; i++) await post('/api/auth/forgot', { email: 'limit@example.org' });
+  assert.equal(outbox.length, n + 3, 'höchstens 3 Mails pro Stunde');
+  const tok = linkFrom(outbox.at(-1)!, 'reset');
+  for (let i = 0; i < 5; i++) assert.equal((await post('/api/auth/reset', { token: tok, password: 'ganz-neues-passwort', code: '123456' })).statusCode, 401);
+  assert.equal((await post('/api/auth/reset', { token: tok, password: 'ganz-neues-passwort', code: u.recovery[0] })).statusCode, 429, 'Link nach 5 Fehlversuchen gesperrt');
+  const tok2 = linkFrom(outbox.at(-2)!, 'reset');
+  assert.equal((await post('/api/auth/reset', { token: tok2, password: 'ganz-neues-passwort', code: u.recovery[0] })).statusCode, 200, 'Recovery-Code als zweiter Faktor');
+});
+
+test('Ohne Mailversand: Passwort vergessen meldet 503, Konfiguration sagt mail=false', { skip }, async () => {
+  const bare = await buildApp(cfg, db, { logger: false, mailer: null });
+  try {
+    assert.deepEqual((await bare.inject({ url: '/api/config' })).json(), { mail: false });
+    const r = await bare.inject({ method: 'POST', url: '/api/auth/forgot', payload: { email: 'a@example.org' }, headers: { origin: ORIGIN } });
+    assert.equal(r.statusCode, 503);
+  } finally { await bare.close(); }
+  assert.deepEqual((await app.inject({ url: '/api/config' })).json(), { mail: true });
 });
