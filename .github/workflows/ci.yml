@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
   pull_request:
+permissions:
+  contents: read
+  pull-requests: write   # Testausgabe bei Fehlern als PR-Kommentar
 jobs:
   build-test:
     runs-on: ubuntu-latest
@@ -21,3 +24,41 @@ jobs:
           git fetch --depth 1 origin dist
           git show FETCH_HEAD:taktbuch.html > /tmp/prev.html
           python3 tests/upgrade.py /tmp/prev.html dist/taktbuch.html
+
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: taktbuch
+          POSTGRES_PASSWORD: taktbuch
+          POSTGRES_DB: taktbuch
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U taktbuch" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://taktbuch:taktbuch@localhost:5432/taktbuch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: npm ci --no-audit --no-fund
+      - name: Typprüfung
+        run: npm run typecheck -w @taktbuch/api 2>&1 | tee -a /tmp/api-output.txt; exit ${PIPESTATUS[0]}
+      - name: API-Tests (Postgres)
+        run: npm test -w @taktbuch/api 2>&1 | tee -a /tmp/api-output.txt; exit ${PIPESTATUS[0]}
+      - name: Online-Oberfläche bauen
+        run: TARGET=online python3 build.py
+      - run: pip install playwright && playwright install --with-deps chromium
+      - name: Ende-zu-Ende im Browser (Online)
+        run: python3 tests/online.py 2>&1 | tee -a /tmp/api-output.txt; exit ${PIPESTATUS[0]}
+      - name: Testausgabe als PR-Kommentar (nur bei Fehler)
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          { echo '<details><summary>Ausgabe Job api (letzte 150 Zeilen)</summary>'; echo; echo '```'; tail -n 150 /tmp/api-output.txt; echo '```'; echo '</details>'; } > /tmp/comment.md
+          gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body-file /tmp/comment.md
