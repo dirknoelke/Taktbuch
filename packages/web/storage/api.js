@@ -17,13 +17,33 @@ const DB = (() => {
     const b = document.querySelector('#tbRetry'); if (b) b.addEventListener('click', () => location.reload());
     return new Promise(() => { });   // Start bewusst nicht fortsetzen
   };
-  const conflict = () => {
-    if (conflictShown) return; conflictShown = true;
-    const b = document.querySelector('#banner');
-    if (b) b.innerHTML = '<div class="banner"><b>Auf einem anderen Gerät wurde inzwischen gespeichert.</b> Deine letzte Änderung hier wurde nicht übernommen. <button class="btn sm primary" id="tbReload">Neu laden</button></div>';
-    const r = document.querySelector('#tbReload'); if (r) r.addEventListener('click', () => location.reload());
+  // Eigener Platz für Speicher-Hinweise: #banner wird bei jedem Neuzeichnen der App überschrieben.
+  const box = () => {
+    let b = document.querySelector('#tbSave');
+    if (!b) { const a = document.querySelector('#banner'); if (!a) return null; a.insertAdjacentHTML('beforebegin', '<div id="tbSave"></div>'); b = document.querySelector('#tbSave'); }
+    return b;
   };
+  let unsaved = false;
+  const conflict = () => {
+    if (conflictShown) return; conflictShown = true; unsaved = true;
+    const b = box();
+    if (b) b.innerHTML = '<div class="banner"><b>Auf einem anderen Gerät wurde inzwischen gespeichert.</b> Deine letzte Änderung hier wurde nicht übernommen. <button class="btn sm primary" id="tbReload">Neu laden</button></div>';
+    const r = document.querySelector('#tbReload'); if (r) r.addEventListener('click', () => { unsaved = false; location.reload(); });
+  };
+  const failed = () => {
+    const b = box(); if (!b || conflictShown) return;
+    b.innerHTML = '<div class="banner"><b>Nicht gespeichert.</b> Der Server war gerade nicht erreichbar, deine letzten Änderungen sind nur in diesem Fenster. Bitte Fenster offen lassen. <button class="btn sm primary" id="tbRetrySave">Erneut speichern</button></div>';
+    document.querySelector('#tbRetrySave').addEventListener('click', () => save());
+  };
+  // Schließen oder Neuladen mit ungespeicherten Änderungen: Rückfrage des Browsers.
+  window.addEventListener('beforeunload', ev => { if (unsaved || saveTimer) { ev.preventDefault(); ev.returnValue = ''; } });
   return {
+    /** Rückmeldung von save() in 1-kern.js */
+    saved(ok) {
+      if (conflictShown) return;
+      unsaved = !ok;
+      if (ok) { const b = document.querySelector('#tbSave'); if (b) b.innerHTML = ''; } else failed();
+    },
     async get(k) {
       let r;
       try { r = await fetch(url(k), { credentials: 'same-origin', cache: 'no-store' }); }

@@ -255,6 +255,9 @@ function chooseProfile() {
   });
 }
 async function detectProfile() {
+  // Online: Hat das Konto schon Daten, keine Vorlagen-Frage (die gilt nur für den allerersten Start).
+  // Die Vorlage bestimmt nur Standardwerte; gespeicherte Einstellungen gehen immer vor.
+  if (window.__ZW_TARGET === 'online' && await DB.get('state')) { const p = ls.get('zeitwerk-profile'); return PROFILES[p] ? p : 'voll'; }
   let names = null;
   try { if (indexedDB.databases) names = (await indexedDB.databases()).map(d => d.name); } catch (e) { }
   if (names) { if (names.includes(PROFILES.voll.db)) return 'voll'; if (names.includes(PROFILES.einfach.db)) return 'einfach'; }

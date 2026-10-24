@@ -67,8 +67,9 @@ function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     const ok = await DB.set('state', JSON.stringify(S));
-    canPersist = ok; const e2 = $('#saveState');
+    canPersist = ok; saveTimer = null; const e2 = $('#saveState');
     if (e2) e2.textContent = ok ? 'gespeichert' : 'nur Sitzung';
+    if (DB.saved) DB.saved(ok);
   }, 500);
 }
 

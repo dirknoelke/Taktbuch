@@ -50,7 +50,8 @@ async def main():
             await pg2.fill('#lEmail', addr); await pg2.fill('#lPw', 'ein-langes-passwort'); await pg2.click('#fLogin button')
             await pg2.wait_for_selector('#fMfa:not([hidden])')
             await pg2.fill('#mCode', totp(secret, 1)); await pg2.click('#fMfa button')
-            await pg2.wait_for_selector('[data-pf]'); await pg2.click('[data-pf=voll]'); await pg2.wait_for_selector('#tabs .tab')
+            await pg2.wait_for_selector('#tabs .tab')
+            check('Gerät 2: keine Vorlagen-Frage, Konto hat schon Daten', await pg2.locator('[data-pf]').count() == 0)
             check('Gerät 2 sieht die Daten von Gerät 1', await pg2.evaluate("()=>S.cfg.standardThema==='E2E-Thema'"))
 
             # Gerät 2 speichert, Gerät 1 ist veraltet -> Konflikt statt Überschreiben
@@ -58,9 +59,20 @@ async def main():
             await pg2.wait_for_function("()=>['gespeichert','saved'].includes(document.querySelector('#saveState').textContent)", timeout=5000)
             await pg.evaluate("()=>{S.cfg.standardThema='veraltet von Gerät 1';save()}")
             await pg.wait_for_selector('#tbReload', timeout=5000)
-            check('Konflikt: Hinweis auf Gerät 1', 'anderen Gerät' in await pg.inner_text('#banner'))
+            check('Konflikt: Hinweis auf Gerät 1', 'anderen Gerät' in await pg.inner_text('#tbSave'))
             await pg2.reload(); await pg2.wait_for_selector('#tabs .tab')
             check('Konflikt: Stand von Gerät 2 bleibt erhalten', await pg2.evaluate("()=>S.cfg.standardThema==='von Gerät 2'"))
+
+            # Server nicht erreichbar: deutlicher Hinweis, erneut speichern klappt danach
+            await pg2.route('**/api/kv/**', lambda r: asyncio.ensure_future(r.abort()))
+            await pg2.evaluate("()=>{S.cfg.standardThema='offline geändert';save()}")
+            await pg2.wait_for_selector('#tbRetrySave', timeout=5000)
+            check('Speichern gescheitert: Hinweis sichtbar', 'Nicht gespeichert' in await pg2.inner_text('#tbSave'))
+            await pg2.evaluate("()=>render()")
+            check('Hinweis bleibt beim Neuzeichnen', await pg2.locator('#tbRetrySave').count() == 1)
+            await pg2.unroute('**/api/kv/**'); await pg2.click('#tbRetrySave')
+            await pg2.wait_for_function("()=>document.querySelector('#saveState').textContent==='gespeichert'&&!document.querySelector('#tbSave').textContent", timeout=5000)
+            check('Erneut speichern: Hinweis weg, Stand auf dem Server', True)
 
             # Abmelden
             await pg2.click('#tbLogout'); await pg2.wait_for_selector('#fLogin:not([hidden])')
@@ -80,7 +92,7 @@ async def main():
             check('Falscher Code: neues Passwort abgelehnt', 'stimmt nicht' in await pg2.inner_text('#err'))
             await pg2.fill('#xCode', codes[0]); await pg2.click('#fReset button')   # Recovery-Code als zweiter Faktor
             await pg2.wait_for_selector('#tabs .tab')
-            check('Neues Passwort gesetzt, direkt angemeldet', await pg2.evaluate("()=>S.cfg.standardThema==='von Gerät 2'"))
+            check('Neues Passwort gesetzt, direkt angemeldet', await pg2.evaluate("()=>S.cfg.standardThema==='offline geändert'"))
             await pg.reload(); await pg.wait_for_selector('#fLogin:not([hidden])')
             check('Gerät 1 danach abgemeldet', pg.url.endswith('/login'))
             await pg.fill('#lEmail', addr); await pg.fill('#lPw', 'ganz-neues-passwort'); await pg.click('#fLogin button')
