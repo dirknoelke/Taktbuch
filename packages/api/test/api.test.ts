@@ -416,3 +416,15 @@ test('Sync: Live-Kanal meldet Änderungen anderer Geräte', { skip }, async () =
   assert.equal(JSON.parse(buf.split('data:')[1]).rev, p.json().rev);
   ac.abort();
 });
+
+test('Sync: Herunterfahren wartet nicht auf offene Live-Verbindungen', { skip }, async () => {
+  const u = await register('shutdown@example.org');
+  const app2 = await buildApp(cfg, db, { logger: false, mailer: null });
+  const addr = await app2.listen({ port: 0, host: '127.0.0.1' });
+  const res = await fetch(addr + '/api/sync/events', { headers: { cookie: u.cookie } });
+  assert.equal(res.status, 200);
+  const t0 = Date.now();
+  await Promise.race([app2.close(), new Promise((_, rej) => setTimeout(() => rej(new Error('close hängt')), 5000))]);
+  assert.ok(Date.now() - t0 < 3000, 'schnell beendet');
+  await res.body?.cancel().catch(() => {});
+});
