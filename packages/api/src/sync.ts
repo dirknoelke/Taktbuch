@@ -106,7 +106,10 @@ class Hub extends EventEmitter {
 export function syncRoutes(app: FastifyInstance, db: Db, cfg: Config) {
   const hub = new Hub(cfg.databaseUrl, app.log);
   const streams = new Set<() => void>();
-  app.addHook('onClose', async () => { for (const end of [...streams]) end(); await hub.stop(); });
+  // Vor dem Schließen des Servers: offene Live-Verbindungen beenden, sonst wartet das Herunterfahren
+  // (z. B. beim Rollout) auf sie, bis Kubernetes nach 30 s hart beendet. Browser verbinden sich selbst neu.
+  app.addHook('preClose', async () => { for (const end of [...streams]) end(); });
+  app.addHook('onClose', async () => { await hub.stop(); });
 
   const auth = async (req: FastifyRequest, reply: FastifyReply): Promise<(SessionUser & { orgId: string }) | null> => {
     const s = await readSession(db, cfg, req);
