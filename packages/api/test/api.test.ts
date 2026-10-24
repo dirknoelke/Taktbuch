@@ -46,8 +46,8 @@ const cookieOf = (res: { headers: Record<string, unknown> }) => {
 /** Code für den nächsten Zeitschritt: der aktuelle ist nach Benutzung gesperrt (Replay-Schutz). */
 const code = (secret: string, offset = 0) => hotp(base32Decode(secret), stepAt(Date.now()) + offset);
 
-async function register(email: string) {
-  const { link } = await createInvite(db, cfg, email);
+async function register(email: string, kind: 'user' | 'admin' = 'user') {
+  const { link } = await createInvite(db, cfg, email, 7, null, { kind });
   const invite = new URL(link).hash.split('invite=')[1];
   const r = await post('/api/auth/register', { invite, email, password: 'ein-langes-passwort' });
   assert.equal(r.statusCode, 200, r.body);
@@ -208,4 +208,135 @@ test('Ohne Mailversand: Passwort vergessen meldet 503, Konfiguration sagt mail=f
     assert.equal(r.statusCode, 503);
   } finally { await bare.close(); }
   assert.deepEqual((await app.inject({ url: '/api/config' })).json(), { mail: true });
+});
+
+// ---------- Verwaltung und Konto ----------
+const req = (method: 'GET' | 'POST' | 'PUT', url: string, cookie: string, payload?: unknown) =>
+  app.inject({ method, url, headers: { cookie, origin: ORIGIN }, ...(payload !== undefined ? { payload: payload as object } : {}) });
+/** Session künstlich altern lassen, damit der Step-up abläuft. */
+const ageStepup = (email: string) => db.query(`UPDATE sessions SET mfa_at = now() - interval '20 minutes' WHERE user_id = (SELECT id FROM users WHERE email = $1)`, [email]);
+
+test('Admin-Konto: keine Stundendaten, eigene Startseite, Nutzer kommen nicht in die Verwaltung', { skip }, async () => {
+  const a = await register('admin@example.org', 'admin');
+  const u = await register('nutzer1@example.org');
+  assert.equal((await req('GET', '/api/kv/state', a.cookie)).statusCode, 403, 'Admin hat keine Stundendaten');
+  assert.equal((await req('GET', '/', a.cookie)).headers.location, '/admin');
+  assert.equal((await req('GET', '/konto', a.cookie)).headers.location, '/admin');
+  assert.equal((await req('GET', '/login', a.cookie)).headers.location, '/admin');
+  assert.equal((await req('GET', '/admin', u.cookie)).headers.location, '/', 'Nutzer wird aus der Verwaltung umgeleitet');
+  assert.equal((await req('GET', '/api/admin/overview', u.cookie)).statusCode, 403);
+  assert.equal((await req('GET', '/api/account', a.cookie)).statusCode, 403, 'Konto-Seite nur für Nutzer');
+  assert.equal((await req('GET', '/api/me', a.cookie)).json().kind, 'admin');
+});
+
+test('Verwaltung: Step-up nach 15 Minuten, falscher Code zählt', { skip }, async () => {
+  const a = await register('admin2@example.org', 'admin');
+  assert.equal((await req('GET', '/api/admin/overview', a.cookie)).statusCode, 200, 'direkt nach Login frisch');
+  await ageStepup('admin2@example.org');
+  const blocked = await req('GET', '/api/admin/overview', a.cookie);
+  assert.equal(blocked.statusCode, 403); assert.equal(blocked.json().stepup, true);
+  assert.equal((await req('POST', '/api/auth/stepup', a.cookie, { code: '000000' })).statusCode, 401);
+  assert.equal((await req('POST', '/api/auth/stepup', a.cookie, { code: code(a.secret, 1) })).statusCode, 200);
+  const ov = await req('GET', '/api/admin/overview', a.cookie);
+  assert.equal(ov.statusCode, 200);
+  assert.ok(ov.json().users.some((x: { email: string }) => x.email === 'admin2@example.org'));
+  const audit = await req('GET', '/api/admin/audit?limit=20', a.cookie);
+  assert.ok(audit.json().entries.some((e: { event: string; ok: boolean }) => e.event === 'stepup' && !e.ok), 'Fehlversuch im Protokoll');
+});
+
+test('Verwaltung: Einladungen verschicken und zurückziehen', { skip }, async () => {
+  const a = await register('admin3@example.org', 'admin');
+  const n = outbox.length;
+  const inv = await req('POST', '/api/admin/invites', a.cookie, { email: 'Gast@Example.org', days: 3 });
+  assert.equal(inv.statusCode, 200, inv.body); assert.equal(inv.json().mailed, true);
+  assert.equal(outbox.length, n + 1); assert.equal(outbox.at(-1)!.to, 'gast@example.org');
+  assert.equal((await req('POST', '/api/admin/invites', a.cookie, { email: 'admin3@example.org' })).statusCode, 409, 'Konto existiert schon');
+  assert.equal((await req('POST', '/api/admin/invites', a.cookie, { email: 'kaputt' })).statusCode, 400);
+  const ov = (await req('GET', '/api/admin/overview', a.cookie)).json();
+  const open = ov.invites.find((i: { email: string }) => i.email === 'gast@example.org');
+  assert.equal(open.status, 'offen');
+  assert.equal((await req('POST', `/api/admin/invites/${open.id}/revoke`, a.cookie)).statusCode, 200);
+  const token = new URL(inv.json().link).hash.split('invite=')[1];
+  const reg = await post('/api/auth/register', { invite: token, email: 'gast@example.org', password: 'ein-langes-passwort' });
+  assert.equal(reg.statusCode, 400, 'zurückgezogene Einladung ist ungültig');
+});
+
+test('Verwaltung: sperren, entsperren, abmelden, nicht das eigene Konto', { skip }, async () => {
+  const a = await register('admin4@example.org', 'admin');
+  const u = await register('sperrbar@example.org');
+  const id = (await req('GET', '/api/admin/overview', a.cookie)).json().users.find((x: { email: string }) => x.email === 'sperrbar@example.org').id;
+  const me = (await req('GET', '/api/admin/overview', a.cookie)).json().me;
+  assert.equal((await req('POST', `/api/admin/users/${me}/lock`, a.cookie)).statusCode, 400, 'eigenes Konto nicht sperrbar');
+  assert.equal((await req('POST', `/api/admin/users/${id}/lock`, a.cookie)).statusCode, 200);
+  assert.equal((await req('GET', '/api/me', u.cookie)).statusCode, 401, 'gesperrt: Sessions weg');
+  const l = await post('/api/auth/login', { email: 'sperrbar@example.org', password: 'ein-langes-passwort' });
+  assert.equal(l.statusCode, 403); assert.match(l.json().message, /gesperrt/);
+  assert.equal((await req('POST', `/api/admin/users/${id}/unlock`, a.cookie)).statusCode, 200);
+  const l2 = await post('/api/auth/login', { email: 'sperrbar@example.org', password: 'ein-langes-passwort' });
+  const m = await post('/api/auth/mfa', { ticket: l2.json().ticket, code: code(u.secret, 1) });
+  const ck = cookieOf(m);
+  assert.equal((await req('POST', `/api/admin/users/${id}/logout`, a.cookie)).statusCode, 200);
+  assert.equal((await req('GET', '/api/me', ck)).statusCode, 401, 'alle Geräte abgemeldet');
+});
+
+test('Verwaltung: zweiten Faktor zurücksetzen, Nutzer richtet neu ein, Mail geht raus', { skip }, async () => {
+  const a = await register('admin5@example.org', 'admin');
+  const u = await register('handyweg@example.org');
+  const id = (await req('GET', '/api/admin/overview', a.cookie)).json().users.find((x: { email: string }) => x.email === 'handyweg@example.org').id;
+  const n = outbox.length;
+  assert.equal((await req('POST', `/api/admin/users/${id}/reset-mfa`, a.cookie)).statusCode, 200);
+  assert.equal(outbox.length, n + 1); assert.equal(outbox.at(-1)!.subject, 'Zweiter Faktor für Taktbuch zurückgesetzt');
+  assert.equal((await req('GET', '/api/me', u.cookie)).statusCode, 401);
+  const l = await post('/api/auth/login', { email: 'handyweg@example.org', password: 'ein-langes-passwort' });
+  assert.equal(l.json().next, 'setup', 'neue Einrichtung');
+  const c = await post('/api/auth/totp/confirm', { ticket: l.json().ticket, code: code(l.json().secret) });
+  assert.equal(c.statusCode, 200); assert.equal(c.json().recoveryCodes.length, 10);
+  const l2 = await post('/api/auth/login', { email: 'handyweg@example.org', password: 'ein-langes-passwort' });
+  assert.equal((await post('/api/auth/mfa', { ticket: l2.json().ticket, code: u.recovery[0] })).statusCode, 401, 'alte Recovery-Codes ungültig');
+});
+
+test('Konto: Übersicht, Gerät abmelden, Passwort ändern', { skip }, async () => {
+  const u = await register('konto@example.org');
+  const l = await post('/api/auth/login', { email: 'konto@example.org', password: 'ein-langes-passwort' });
+  const second = cookieOf(await post('/api/auth/mfa', { ticket: l.json().ticket, code: code(u.secret, 1) }));
+  const acc = (await req('GET', '/api/account', u.cookie)).json();
+  assert.equal(acc.sessions.length, 2); assert.equal(acc.recoveryCodesLeft, 10);
+  const other = acc.sessions.find((s: { current: boolean }) => !s.current);
+  assert.equal((await req('POST', `/api/account/sessions/${other.id}/revoke`, u.cookie)).statusCode, 200);
+  assert.equal((await req('GET', '/api/me', second)).statusCode, 401, 'anderes Gerät abgemeldet');
+  assert.equal((await req('POST', '/api/account/password', u.cookie, { current: 'falsch-falsch-falsch', password: 'neues-passwort-123' })).statusCode, 401);
+  assert.equal((await req('POST', '/api/account/password', u.cookie, { current: 'ein-langes-passwort', password: 'neues-passwort-123' })).statusCode, 200);
+  assert.equal((await req('GET', '/api/me', u.cookie)).statusCode, 200, 'eigenes Gerät bleibt angemeldet');
+  assert.equal((await post('/api/auth/login', { email: 'konto@example.org', password: 'neues-passwort-123' })).statusCode, 200);
+});
+
+test('Konto: neue Recovery-Codes nur mit zweitem Faktor', { skip }, async () => {
+  const u = await register('codes@example.org');
+  assert.equal((await req('POST', '/api/account/recovery-codes', u.cookie, { code: '000000' })).statusCode, 401);
+  const r = await req('POST', '/api/account/recovery-codes', u.cookie, { code: code(u.secret, 1) });
+  assert.equal(r.statusCode, 200); assert.equal(r.json().recoveryCodes.length, 10);
+  const l = await post('/api/auth/login', { email: 'codes@example.org', password: 'ein-langes-passwort' });
+  assert.equal((await post('/api/auth/mfa', { ticket: l.json().ticket, code: u.recovery[0] })).statusCode, 401, 'alte Codes ungültig');
+  assert.equal((await post('/api/auth/mfa', { ticket: l.json().ticket, code: r.json().recoveryCodes[0] })).statusCode, 200);
+});
+
+test('Konto: Export und Löschen mitsamt Daten', { skip }, async () => {
+  const u = await register('weg@example.org');
+  await req('PUT', '/api/kv/state', u.cookie, { value: '{"v":1,"days":{"2026-10-20":{}}}', version: null });
+  const ex = await req('GET', '/api/account/export', u.cookie);
+  assert.equal(ex.statusCode, 200); assert.match(String(ex.headers['content-disposition']), /attachment; filename="taktbuch-export-/);
+  assert.equal(ex.json().daten.state, '{"v":1,"days":{"2026-10-20":{}}}');
+  const org = await db.query<{ org_id: string }>("SELECT org_id FROM memberships m JOIN users u ON u.id = m.user_id WHERE u.email = 'weg@example.org'");
+  assert.equal((await req('POST', '/api/account/delete', u.cookie, { password: 'ein-langes-passwort', code: code(u.secret, 1), confirm: 'ja' })).statusCode, 400, 'Bestätigungswort fehlt');
+  assert.equal((await req('POST', '/api/account/delete', u.cookie, { password: 'falsch-falsch-falsch', code: code(u.secret, 1), confirm: 'LÖSCHEN' })).statusCode, 401);
+  const n = outbox.length;
+  const del = await req('POST', '/api/account/delete', u.cookie, { password: 'ein-langes-passwort', code: u.recovery[0], confirm: 'LÖSCHEN' });
+  assert.equal(del.statusCode, 200, del.body);
+  assert.equal(outbox.length, n + 1, 'Bestätigung per Mail');
+  assert.equal((await db.query("SELECT 1 FROM users WHERE email = 'weg@example.org'")).rowCount, 0);
+  assert.equal((await db.query('SELECT 1 FROM organizations WHERE id = $1', [org.rows[0].org_id])).rowCount, 0);
+  await db.query("SELECT set_config('app.org_id', $1, false)", [org.rows[0].org_id]);
+  assert.equal((await db.query('SELECT 1 FROM kv WHERE org_id = $1', [org.rows[0].org_id])).rowCount, 0, 'Stundendaten gelöscht');
+  await db.query("SELECT set_config('app.org_id', '', false)");
+  assert.equal((await req('GET', '/api/me', u.cookie)).statusCode, 401);
 });

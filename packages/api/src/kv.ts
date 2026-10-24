@@ -11,7 +11,8 @@ export function kvRoutes(app: FastifyInstance, db: Db, cfg: Config) {
   const auth = async (req: FastifyRequest, reply: FastifyReply) => {
     const s = await readSession(db, cfg, req);
     if (!s) { reply.code(401).send({ message: 'Nicht angemeldet' }); return null; }
-    return s;
+    if (s.kind !== 'user' || !s.orgId) { reply.code(403).send({ message: 'Dieses Konto hat keine Stundendaten.' }); return null; }
+    return s as typeof s & { orgId: string };
   };
 
   app.get('/api/kv/:key', { schema: { params: KEY } }, async (req: FastifyRequest<{ Params: { key: string } }>, reply) => {

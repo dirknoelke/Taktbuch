@@ -55,6 +55,8 @@ jobs:
       - run: pip install playwright && playwright install --with-deps chromium
       - name: Ende-zu-Ende im Browser (Online)
         run: python3 tests/online.py 2>&1 | tee -a /tmp/api-output.txt; exit ${PIPESTATUS[0]}
+      - name: Ende-zu-Ende Verwaltung und Konto
+        run: python3 tests/online_admin.py 2>&1 | tee -a /tmp/api-output.txt; exit ${PIPESTATUS[0]}
       - name: Testausgabe als PR-Kommentar (nur bei Fehler)
         if: failure() && github.event_name == 'pull_request'
         env:

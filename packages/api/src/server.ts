@@ -7,6 +7,8 @@ import { authRoutes } from './auth.ts';
 import { kvRoutes } from './kv.ts';
 import { webRoutes } from './web.ts';
 import { createMailer, type Mailer } from './mail.ts';
+import { adminRoutes } from './admin.ts';
+import { accountRoutes } from './account.ts';
 
 export async function buildApp(cfg: Config, db: Db, opts: { logger?: boolean; mailer?: Mailer | null } = {}): Promise<FastifyInstance> {
   const mailer = opts.mailer !== undefined ? opts.mailer : createMailer(cfg);
@@ -32,6 +34,8 @@ export async function buildApp(cfg: Config, db: Db, opts: { logger?: boolean; ma
 
   authRoutes(app, db, cfg, mailer);
   app.get('/api/config', async () => ({ mail: !!mailer }));   // Login-Seite: "Passwort vergessen" nur mit Mailversand
+  adminRoutes(app, db, cfg, mailer);
+  accountRoutes(app, db, cfg, mailer);
   kvRoutes(app, db, cfg);
   webRoutes(app, db, cfg);
   return app;
