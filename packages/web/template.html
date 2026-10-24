@@ -112,6 +112,9 @@ input:disabled{background:var(--surface2);color:var(--muted)}
 .calc b{font-family:var(--font-num);font-size:16px;font-weight:600}
 .hint{font-size:12px;color:var(--muted)}
 .btn.primary .hint{color:inherit;opacity:.85}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;padding:4px 0}
+.swatches button{width:30px;height:30px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);padding:0;cursor:pointer}
+.swatches button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
 .sh{margin:18px 0 8px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .fields:not(.wide) .field,.stamp .field{justify-content:flex-end}
 .fields input,.fields select,.stamp input{min-height:36px}

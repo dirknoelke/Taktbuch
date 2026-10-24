@@ -1,4 +1,14 @@
 {
+  "1.12.0": {
+    "de": [
+      "Farbe und Darstellung wählbar: unter „Einstellungen“ → „Allgemein“ acht Akzentfarben und hell, dunkel oder automatisch.",
+      "Im dunklen Design ist die Beschreibung auf hervorgehobenen Knöpfen jetzt gut lesbar."
+    ],
+    "en": [
+      "Choose color and appearance: under \"Settings\" → \"General\" eight accent colors and light, dark or automatic.",
+      "In the dark theme the description on highlighted buttons is now easy to read."
+    ]
+  },
   "1.11.4": {
     "de": [
       "Fehler behoben: Der Reiter „Einstellungen“ wurde oben von der Zeitkonto-Anzeige verdeckt. Die Reiter stehen jetzt immer in einer eigenen Zeile.",
