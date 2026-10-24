@@ -52,7 +52,7 @@ async def main():
             await u.wait_for_selector('[data-pf]'); await u.click('[data-pf=voll]'); await u.wait_for_selector('#tabs .tab')
             check('Nutzer sieht den Knopf Konto', await u.locator('#tbKonto').count() == 1)
             await u.evaluate("()=>{S.demo=false;S.cfg.standardThema='Admin-E2E';save()}")
-            await u.wait_for_function("()=>['gespeichert','saved'].includes(document.querySelector('#saveState').textContent)")
+            await u.wait_for_function("()=>document.querySelector('#tbSync')?.dataset.state==='ok'")
             await u.goto(ORIGIN + '/admin'); await u.wait_for_selector('#tabs .tab')
             check('Nutzer kommt nicht in die Verwaltung', u.url == ORIGIN + '/')
 
@@ -61,7 +61,7 @@ async def main():
             async with u.expect_download() as dl:
                 await u.click('a[href="/api/account/export"]')
             data = json.loads(open(await (await dl.value).path()).read())
-            check('Export enthält die Stundendaten', json.loads(data['daten']['state'])['cfg']['standardThema'] == 'Admin-E2E')
+            check('Export enthält die Stundendaten', data['app'] == 'stundenkonto' and data['cfg']['standardThema'] == 'Admin-E2E')
             await u.fill('#cCode', totp(secret, 1)); await u.click('#fCodes button'); await u.wait_for_selector('#newCodes:not([hidden])')
             new_codes = await u.eval_on_selector_all('#codes span', 'els => els.map(e => e.textContent)')
             check('Neue Recovery-Codes erzeugt', len(new_codes) == 10 and new_codes[0] not in codes)
