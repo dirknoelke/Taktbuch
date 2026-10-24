@@ -5,6 +5,7 @@ import type { Config } from './config.ts';
 import type { Db } from './db.ts';
 import { authRoutes } from './auth.ts';
 import { kvRoutes } from './kv.ts';
+import { syncRoutes } from './sync.ts';
 import { webRoutes } from './web.ts';
 import { createMailer, type Mailer } from './mail.ts';
 import { adminRoutes } from './admin.ts';
@@ -37,6 +38,7 @@ export async function buildApp(cfg: Config, db: Db, opts: { logger?: boolean; ma
   adminRoutes(app, db, cfg, mailer);
   accountRoutes(app, db, cfg, mailer);
   kvRoutes(app, db, cfg);
+  syncRoutes(app, db, cfg);
   webRoutes(app, db, cfg);
   return app;
 }
