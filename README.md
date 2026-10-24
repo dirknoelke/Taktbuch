@@ -32,13 +32,13 @@ pip install playwright && playwright install chromium
 python3 tests/ui.py dist/taktbuch.html   # UI smoke test, incl. English UI
 ```
 
-Layout: `src/engine.js` (pure calculation logic, no DOM), `src/app/` (state, views, salary, actions), `src/template.html` (markup and CSS), `src/i18n.js` and `src/i18n-en.js` (language switch and English dictionary). The build bundles everything into one file without third-party libraries.
+Layout: `packages/core/engine.js` (pure calculation logic, no DOM), `packages/web/app/` (state, views, salary, actions), `packages/web/storage/` (storage adapter, offline: IndexedDB), `packages/web/template.html` (markup and CSS), `packages/web/i18n.js` and `packages/web/i18n-en.js` (language switch and English dictionary). The build bundles everything into one file without third-party libraries.
 
-The app is written in German (including code comments). The English text comes from the dictionary in `src/i18n-en.js`: key = German text with numbers as `#`, value = English text. A new German text needs an entry there, otherwise it stays German in the English UI. The UI test reports leftover German.
+The app is written in German (including code comments). The English text comes from the dictionary in `packages/web/i18n-en.js`: key = German text with numbers as `#`, value = English text. A new German text needs an entry there, otherwise it stays German in the English UI. The UI test reports leftover German.
 
 ### Publish a new version
 
-1. Bump `VERSION`, add a section `## x.y.z` to `CHANGELOG.md` and an entry in `src/whatsnew.json` (shown in the app after an update), commit and push.
+1. Bump `VERSION`, add a section `## x.y.z` to `CHANGELOG.md` and an entry in `packages/web/whatsnew.json` (shown in the app after an update), commit and push.
 2. Run the **Release** workflow (GitHub: Actions, Release, Run workflow), or push a tag `vX.Y.Z`.
 3. The workflow builds the file, creates the tag and the release with `taktbuch.html`. The release text comes from the changelog and shows in the app under “What’s new?”.
 

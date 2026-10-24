@@ -1,5 +1,5 @@
 // Mini-Test der Rechenlogik ohne Fremddaten. Aufruf: node tests/engine.test.js
-const E = require('../src/engine.js');
+const E = require('../packages/core/engine.js');
 let fail = 0;
 const eq = (n, a, b) => { const ok = JSON.stringify(a) === JSON.stringify(b); if (!ok) fail++; console.log((ok ? 'OK   ' : 'FAIL ') + n + (ok ? '' : '  erwartet ' + JSON.stringify(b) + ', war ' + JSON.stringify(a))); };
 // Feiertage NRW werden berechnet, nicht gelistet

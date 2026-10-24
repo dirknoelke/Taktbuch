@@ -6,4 +6,4 @@ __pycache__/
 *.json
 !package.json
 !.github/**/*.json
-!src/*.json
+!packages/web/*.json
