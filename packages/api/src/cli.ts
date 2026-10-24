@@ -26,7 +26,7 @@ try {
     const { link, mailed, mailError } = await createInvite(db, { publicOrigin: origin.replace(/\/$/, '') }, email, days, mailer, { kind });
     console.log(`${kind === 'admin' ? 'Einladung für ein ADMIN-Konto' : 'Einladung'}${email ? ' für ' + email : ''}, gültig ${days} Tage, einmal verwendbar.`);
     if (mailError) console.log(`Mailversand fehlgeschlagen: ${mailError}`);
-    console.log(mailed ? 'Mail ist verschickt. Link zur Sicherheit:' : (mailer ? 'Ohne E-Mail-Adresse keine Mail. Link:' : 'Kein Mailversand eingerichtet (SMTP_URL). Link selbst weitergeben:'));
+    console.log(mailed ? 'Mail ist verschickt. Link zur Sicherheit:' : mailError ? 'Link selbst weitergeben:' : (mailer ? 'Ohne E-Mail-Adresse keine Mail. Link:' : 'Kein Mailversand eingerichtet (SMTP_URL). Link selbst weitergeben:'));
     console.log(link);
   } else {
     console.log('Befehle:\n  migrate\n  invite [email] [--days=7]   Einladung für ein Nutzerkonto\n  admin <email> [--days=7]    Einladung für ein Admin-Konto (Verwaltung, keine Stundendaten)');
