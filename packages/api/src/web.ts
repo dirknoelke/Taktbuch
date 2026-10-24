@@ -35,7 +35,7 @@ function load(dir: string, file: string): Page | null {
 }
 
 export function webRoutes(app: FastifyInstance, db: Db, cfg: Config) {
-  const pages = { app: load(cfg.webDir, 'taktbuch.html'), login: load(cfg.webDir, 'login.html') };
+  const pages = { app: load(cfg.webDir, 'taktbuch.html'), login: load(cfg.webDir, 'login.html'), admin: load(cfg.webDir, 'admin.html'), konto: load(cfg.webDir, 'konto.html') };
 
   app.addHook('onSend', async (_req, reply, payload) => {
     reply.header('X-Content-Type-Options', 'nosniff');
@@ -60,6 +60,25 @@ export function webRoutes(app: FastifyInstance, db: Db, cfg: Config) {
     return reply.type('font/woff2').header('Cache-Control', 'public, max-age=31536000, immutable').send(readFileSync(p));
   });
 
-  app.get('/', async (req, reply) => ((await readSession(db, cfg, req)) ? send(reply, pages.app) : reply.redirect('/login')));
-  app.get('/login', async (req, reply) => ((await readSession(db, cfg, req)) ? reply.redirect('/') : send(reply, pages.login)));
+  // Jede Kontoart landet auf ihrer Seite: Nutzer in der App, Admin-Konten in der Verwaltung.
+  const home = (kind: 'user' | 'admin') => (kind === 'admin' ? '/admin' : '/');
+  app.get('/', async (req, reply) => {
+    const s = await readSession(db, cfg, req);
+    if (!s) return reply.redirect('/login');
+    return s.kind === 'user' ? send(reply, pages.app) : reply.redirect(home(s.kind));
+  });
+  app.get('/konto', async (req, reply) => {
+    const s = await readSession(db, cfg, req);
+    if (!s) return reply.redirect('/login');
+    return s.kind === 'user' ? send(reply, pages.konto) : reply.redirect(home(s.kind));
+  });
+  app.get('/admin', async (req, reply) => {
+    const s = await readSession(db, cfg, req);
+    if (!s) return reply.redirect('/login');
+    return s.kind === 'admin' ? send(reply, pages.admin) : reply.redirect(home(s.kind));
+  });
+  app.get('/login', async (req, reply) => {
+    const s = await readSession(db, cfg, req);
+    return s ? reply.redirect(home(s.kind)) : send(reply, pages.login);
+  });
 }

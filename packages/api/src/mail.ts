@@ -59,3 +59,26 @@ export function resetMail(to: string, link: string, minutes: number): Mail {
     html: layout('Neues Passwort für Taktbuch', p, { label: 'Neues Passwort vergeben', url: link }, footer),
   };
 }
+
+/** Hinweis an den Nutzer, damit ein Missbrauch des Admin-Kontos auffällt. */
+export function mfaResetMail(to: string, loginUrl: string): Mail {
+  const p = [
+    'Der zweite Faktor deines Taktbuch-Kontos wurde von der Verwaltung zurückgesetzt, und alle Geräte wurden abgemeldet.',
+    'Bei der nächsten Anmeldung mit deinem Passwort richtest du die Authenticator-App neu ein und bekommst neue Recovery-Codes. Die alten Codes gelten nicht mehr.',
+  ];
+  const footer = 'Falls du das nicht veranlasst hast, melde dich bitte umgehend beim Betreiber.';
+  return {
+    to, subject: 'Zweiter Faktor für Taktbuch zurückgesetzt',
+    text: `Hallo,\n\n${p.join('\n\n')}\n\nAnmelden:\n${loginUrl}\n\n${footer}\n`,
+    html: layout('Zweiter Faktor zurückgesetzt', p, { label: 'Anmelden', url: loginUrl }, footer),
+  };
+}
+
+export function accountDeletedMail(to: string): Mail {
+  const text = 'Dein Taktbuch-Konto und alle zugehörigen Daten wurden auf deinen Wunsch gelöscht. Falls du das nicht warst, melde dich bitte beim Betreiber.';
+  return {
+    to, subject: 'Dein Taktbuch-Konto wurde gelöscht',
+    text: `Hallo,\n\n${text}\n`,
+    html: `<!doctype html><html lang="de"><body style="font-family:system-ui,sans-serif;color:#1d1d1b"><p>Hallo,</p><p>${esc(text)}</p></body></html>`,
+  };
+}
