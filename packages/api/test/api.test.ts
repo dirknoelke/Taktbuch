@@ -340,3 +340,28 @@ test('Konto: Export und Löschen mitsamt Daten', { skip }, async () => {
   await db.query("SELECT set_config('app.org_id', '', false)");
   assert.equal((await req('GET', '/api/me', u.cookie)).statusCode, 401);
 });
+
+test('Konto: E-Mail-Adresse ändern mit Bestätigung an die neue Adresse', { skip }, async () => {
+  const u = await register('alt@example.org');
+  await register('belegt@example.org');
+  const linkOf = (m: Mail) => m.text.match(/email-bestaetigen#email=([A-Za-z0-9_-]+)/)![1];
+  assert.equal((await req('POST', '/api/account/email', u.cookie, { email: 'neu@example.org', password: 'falsch-falsch-falsch', code: code(u.secret) })).statusCode, 401);
+  assert.equal((await req('POST', '/api/account/email', u.cookie, { email: 'belegt@example.org', password: 'ein-langes-passwort', code: u.recovery[0] })).statusCode, 409, 'Adresse vergeben');
+  assert.equal((await req('POST', '/api/account/email', u.cookie, { email: 'kaputt', password: 'ein-langes-passwort', code: u.recovery[1] })).statusCode, 400);
+  const n = outbox.length;
+  const r1 = await req('POST', '/api/account/email', u.cookie, { email: 'Erst@Example.org', password: 'ein-langes-passwort', code: u.recovery[2] });
+  assert.equal(r1.statusCode, 200, r1.body);
+  const r2 = await req('POST', '/api/account/email', u.cookie, { email: 'Neu@Example.org', password: 'ein-langes-passwort', code: code(u.secret, 1) });
+  assert.equal(r2.statusCode, 200, r2.body); assert.equal(r2.json().sentTo, 'neu@example.org');
+  assert.equal(outbox.length, n + 2); assert.equal(outbox[n + 1].to, 'neu@example.org');
+  assert.equal((await post('/api/auth/email-confirm', { token: linkOf(outbox[n]) })).statusCode, 400, 'älterer Link ungültig');
+  assert.equal((await req('GET', '/api/me', u.cookie)).json().email, 'alt@example.org', 'vor Bestätigung unverändert');
+  const c = await post('/api/auth/email-confirm', { token: linkOf(outbox[n + 1]) });
+  assert.equal(c.statusCode, 200, c.body); assert.equal(c.json().email, 'neu@example.org');
+  assert.equal(outbox.at(-1)!.to, 'alt@example.org', 'Hinweis an die alte Adresse');
+  assert.equal((await post('/api/auth/email-confirm', { token: linkOf(outbox[n + 1]) })).statusCode, 400, 'nur einmal');
+  assert.equal((await req('GET', '/api/me', u.cookie)).json().email, 'neu@example.org', 'Session bleibt');
+  assert.equal((await post('/api/auth/login', { email: 'neu@example.org', password: 'ein-langes-passwort' })).statusCode, 200);
+  assert.equal((await post('/api/auth/login', { email: 'alt@example.org', password: 'ein-langes-passwort' })).statusCode, 401);
+  assert.equal((await req('GET', '/email-bestaetigen', '')).statusCode, 200, 'Seite ohne Weiterleitung');
+});

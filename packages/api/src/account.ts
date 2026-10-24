@@ -4,10 +4,12 @@ import type { Config } from './config.ts';
 import { tx, withOrg, type Db } from './db.ts';
 import { audit } from './audit.ts';
 import { destroySession, readSession, type SessionUser } from './session.ts';
-import { argonHash, argonVerify, ARGON, fail } from './auth.ts';
+import { argonHash, argonVerify, ARGON, EMAIL_RE, fail, normEmail } from './auth.ts';
 import { checkSecondFactor } from './factor.ts';
-import { normalizeRecovery, recoveryCode, sha256 } from './secrets.ts';
-import { accountDeletedMail, type Mailer } from './mail.ts';
+import { normalizeRecovery, recoveryCode, sha256, token } from './secrets.ts';
+import { accountDeletedMail, emailChangedMail, emailConfirmMail, type Mailer } from './mail.ts';
+
+export const EMAIL_CHANGE_MINUTES = 60;
 
 const UUID = { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } } as const;
 const limited = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
@@ -46,6 +48,60 @@ export function accountRoutes(app: FastifyInstance, db: Db, cfg: Config, mailer:
       await c.query('DELETE FROM sessions WHERE user_id = $1 AND id <> $2', [s.userId, s.sessionId]);
     });
     return { ok: true };
+  });
+
+  // E-Mail-Adresse ändern, Schritt 1: Passwort + zweiter Faktor, dann Bestätigungslink an die NEUE Adresse.
+  // Erst mit dem Klick auf den Link (Schritt 2) gilt die neue Adresse; so ist sicher, dass sie erreichbar ist.
+  app.post('/api/account/email', limited, async (req: FastifyRequest<{ Body: { email?: string; password?: string; code?: string } }>, reply) => {
+    const s = await user(req, reply); if (!s) return reply;
+    if (!mailer) fail(503, 'Mailversand ist auf diesem Server nicht eingerichtet. Bitte an den Betreiber wenden.');
+    const email = normEmail(req.body?.email);
+    if (!EMAIL_RE.test(email) || email.length > 254) fail(400, 'Bitte eine gültige E-Mail-Adresse angeben.');
+    if (email === s.email) fail(400, 'Das ist schon deine aktuelle Adresse.');
+    const r = await db.query<{ password_hash: string; recent: number }>(
+      `SELECT password_hash, (SELECT count(*)::int FROM email_changes e WHERE e.user_id = u.id AND e.created_at > now() - interval '1 hour') AS recent
+         FROM users u WHERE id = $1`, [s.userId]);
+    if (r.rows[0].recent >= 3) fail(429, 'Zu viele Änderungsanfragen. Bitte in einer Stunde erneut versuchen.');
+    const pwOk = await argonVerify(r.rows[0].password_hash, String(req.body?.password ?? '').slice(0, 256)).catch(() => false);
+    const t = token();
+    const ok = await tx(db, async c => {
+      const f = pwOk ? await checkSecondFactor(c, cfg, s.userId, req.body?.code) : null;
+      await audit(c, req, { event: 'account_email_request', ok: !!f, userId: s.userId, email: s.email, target: email });
+      if (!f) return false;
+      await c.query('UPDATE email_changes SET used_at = now() WHERE user_id = $1 AND used_at IS NULL', [s.userId]);   // nur der neueste Link gilt
+      await c.query(`INSERT INTO email_changes (token_hash, user_id, new_email, expires_at) VALUES ($1, $2, $3, now() + make_interval(mins => $4))`,
+        [sha256(t), s.userId, email, EMAIL_CHANGE_MINUTES]);
+      return true;
+    });
+    if (!ok) fail(401, 'Passwort oder Code stimmt nicht.');
+    const taken = await db.query('SELECT 1 FROM users WHERE email = $1', [email]);
+    if (taken.rowCount) fail(409, 'Diese Adresse gehört schon zu einem anderen Konto.');
+    try { await mailer!.send(emailConfirmMail(email, `${cfg.publicOrigin}/email-bestaetigen#email=${t}`, EMAIL_CHANGE_MINUTES)); }
+    catch (e) { app.log.error(e, 'Mailversand fehlgeschlagen'); fail(502, 'Die Mail konnte gerade nicht verschickt werden. Bitte später erneut versuchen.'); }
+    return { ok: true, sentTo: email, minutes: EMAIL_CHANGE_MINUTES };
+  });
+
+  // Schritt 2: Link aus der Mail. Braucht keine Anmeldung, der Link beweist den Zugriff auf das neue Postfach.
+  // Offene Passwort-Links an die alte Adresse werden ungültig; die alte Adresse bekommt einen Hinweis.
+  app.post('/api/auth/email-confirm', limited, async (req: FastifyRequest<{ Body: { token?: string } }>) => {
+    const t = req.body?.token;
+    if (typeof t !== 'string' || !t) fail(400, 'Der Link ist unvollständig.');
+    const res = await tx(db, async c => {
+      const r = await c.query<{ user_id: string; new_email: string; old_email: string }>(
+        `SELECT e.user_id, e.new_email, u.email AS old_email FROM email_changes e JOIN users u ON u.id = e.user_id
+          WHERE e.token_hash = $1 AND e.used_at IS NULL AND e.expires_at > now() FOR UPDATE OF e, u`, [sha256(t!)]);
+      const row = r.rows[0];
+      if (!row) fail(400, 'Der Link ist ungültig oder abgelaufen. Bitte die Änderung auf der Konto-Seite neu anfordern.');
+      const taken = await c.query('SELECT 1 FROM users WHERE email = $1 AND id <> $2', [row.new_email, row.user_id]);
+      if (taken.rowCount) fail(409, 'Diese Adresse gehört inzwischen zu einem anderen Konto.');
+      await c.query('UPDATE users SET email = $2 WHERE id = $1', [row.user_id, row.new_email]);
+      await c.query('UPDATE email_changes SET used_at = now() WHERE user_id = $1 AND used_at IS NULL', [row.user_id]);
+      await c.query('UPDATE password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NULL', [row.user_id]);
+      await audit(c, req, { event: 'account_email_changed', ok: true, userId: row.user_id, email: row.new_email, target: row.old_email });
+      return row;
+    });
+    if (mailer) await mailer.send(emailChangedMail(res.old_email, res.new_email)).catch(e => app.log.error(e, 'Hinweis an alte Adresse nicht verschickt'));
+    return { ok: true, email: res.new_email };
   });
 
   // Neue Recovery-Codes: zweiter Faktor als Nachweis; die alten werden ungültig.
