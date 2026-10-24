@@ -77,6 +77,8 @@ export function webRoutes(app: FastifyInstance, db: Db, cfg: Config) {
     if (!s) return reply.redirect('/login');
     return s.kind === 'admin' ? send(reply, pages.admin) : reply.redirect(home(s.kind));
   });
+  // Bestätigung einer neuen E-Mail-Adresse: immer die Anmeldeseite, auch wenn schon jemand angemeldet ist.
+  app.get('/email-bestaetigen', async (_req, reply) => send(reply, pages.login));
   app.get('/login', async (req, reply) => {
     const s = await readSession(db, cfg, req);
     return s ? reply.redirect(home(s.kind)) : send(reply, pages.login);
