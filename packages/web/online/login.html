@@ -91,13 +91,18 @@ a{color:var(--acc)}
     <button id="toApp" type="button">Ich habe die Codes gesichert, weiter</button>
   </div>
 
+  <div id="emailDone" hidden>
+    <p id="emailMsg"></p>
+    <button id="emailNext" type="button">Weiter</button>
+  </div>
+
   <div class="err" id="err" role="alert"></div>
 </div>
 </main>
 <script>
 (() => {
   const $ = s => document.querySelector(s);
-  const forms = ['#fLogin', '#fForgot', '#forgotSent', '#fReset', '#fRegister', '#fSetup', '#fMfa', '#recovery'];
+  const forms = ['#fLogin', '#fForgot', '#forgotSent', '#fReset', '#fRegister', '#fSetup', '#fMfa', '#recovery', '#emailDone'];
   let ticket = null;
   const show = (id, title) => { forms.forEach(f => { $(f).hidden = f !== id; }); $('#subtitle').textContent = title; $('#err').textContent = ''; const i = $(id + ' input'); if (i) i.focus(); };
   const err = m => { $('#err').textContent = m; };
@@ -152,13 +157,26 @@ a{color:var(--acc)}
   });
   fetch('/api/config', { credentials: 'same-origin' }).then(r => r.json()).then(c => { if (c.mail) $('#forgotWrap').hidden = false; }).catch(() => { });
 
+  // Neue E-Mail-Adresse bestätigen (#email=...): ein Klick genügt, Anmeldung nicht nötig.
+  async function confirmEmail(t) {
+    history.replaceState(null, '', '/login');
+    show('#emailDone', 'E-Mail-Adresse bestätigen');
+    try {
+      const d = await post('/api/auth/email-confirm', { token: t });
+      $('#emailMsg').textContent = `Erledigt. Dein Konto läuft jetzt über ${d.email}. Melde dich künftig mit dieser Adresse an.`;
+      $('#subtitle').textContent = 'Adresse geändert';
+    } catch (e) { $('#emailMsg').textContent = ''; err(e.message); }
+  }
+  $('#emailNext').addEventListener('click', () => { location.href = '/'; });
+
   let inviteToken = null, resetToken = null;
   // Einladung (#invite=...) und Passwort-Link (#reset=...) stehen im Fragment, nie in Server-Logs.
   // Auch reagieren, wenn der Link in einem schon offenen Tab geöffnet wird.
   const route = () => {
     const h = new URLSearchParams(location.hash.slice(1));
     inviteToken = h.get('invite'); resetToken = h.get('reset');
-    if (inviteToken) show('#fRegister', 'Konto anlegen');
+    if (h.get('email')) confirmEmail(h.get('email'));
+    else if (inviteToken) show('#fRegister', 'Konto anlegen');
     else if (resetToken) show('#fReset', 'Neues Passwort vergeben');
     else show('#fLogin', 'Anmelden');
   };

@@ -3,7 +3,7 @@ Admin-Konto per CLI einladen und einrichten, Nutzer über die Verwaltung einlade
 zurücksetzen; als Nutzer Konto-Seite: Geräte, neue Recovery-Codes, Export, Konto löschen.
 Voraussetzung: npm install, TARGET=online python3 build.py
 Aufruf: TEST_DATABASE_URL=postgres://... python3 tests/online_admin.py"""
-import asyncio, email.header, json, secrets, sys
+import asyncio, email.header, json, re, secrets, sys
 from playwright.async_api import async_playwright
 from online_lib import MAILS, ORIGIN, mail_link, totp, check, RESULT, start_server, cli, page_errors, real_errors
 
@@ -65,6 +65,20 @@ async def main():
             await u.fill('#cCode', totp(secret, 1)); await u.click('#fCodes button'); await u.wait_for_selector('#newCodes:not([hidden])')
             new_codes = await u.eval_on_selector_all('#codes span', 'els => els.map(e => e.textContent)')
             check('Neue Recovery-Codes erzeugt', len(new_codes) == 10 and new_codes[0] not in codes)
+
+            # E-Mail-Adresse ändern: Link an die neue Adresse, Bestätigung im selben (angemeldeten) Browser
+            new_addr = 'neu-' + user_addr
+            await u.fill('#mNew', new_addr); await u.fill('#mPw', PW); await u.fill('#mCode', new_codes[0]); await u.click('#fMail button')
+            await u.wait_for_function("()=>document.querySelector('#mailMsg').textContent.includes('unterwegs')")
+            link = await asyncio.to_thread(lambda: next((re.search(re.escape(ORIGIN) + r'/email-bestaetigen#email=[\w-]+', str(p.get_payload(decode=True), 'utf-8')).group(0)
+                    for _ in range(50) for m in MAILS if new_addr in m['To'] for p in m.walk() if p.get_content_type() == 'text/plain'), None))
+            check('Bestätigungslink an die neue Adresse', link is not None)
+            await u.goto(link); await u.wait_for_function("()=>document.querySelector('#emailMsg').textContent.includes('Erledigt')")
+            check('Hinweis an die alte Adresse', any(user_addr == m['To'] and 'geändert' in subject(m) for m in MAILS))
+            await u.click('#emailNext'); await u.wait_for_selector('#tabs .tab')
+            await u.goto(ORIGIN + '/konto'); await u.wait_for_selector('.dev')
+            check('Konto-Seite zeigt die neue Adresse', await u.inner_text('#email') == new_addr)
+            user_addr = new_addr
 
             # Verwaltung: Nutzer sperren -> Nutzer fliegt raus; entsperren; zweiten Faktor zurücksetzen
             await a.reload(); await a.wait_for_selector('#panel:not([hidden])')
