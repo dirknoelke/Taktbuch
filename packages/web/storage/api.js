@@ -219,6 +219,8 @@ const DB = (() => {
       if (r.status === 401) return toLogin();
       if (r.ok) me = await r.json();
     } catch (e) { }
+    const kb = document.querySelector('#tbKonto');
+    if (me && kb) { kb.textContent = me.email; kb.title = 'Konto von ' + me.email + ': Passwort, Geräte, Export'; }
     try { org = me ? me.org : localStorage.getItem('tb-org'); if (me) localStorage.setItem('tb-org', me.org); } catch (e) { org = me && me.org; }
     if (!org) return halt('Keine Verbindung zum Server. Bitte Internetverbindung prüfen.');
     try {
@@ -286,6 +288,8 @@ const DB = (() => {
 (() => {
   const ver = document.querySelector('#ver'); if (ver) ver.textContent = 'online';
   document.head.insertAdjacentHTML('beforeend', `<style>
+#tbSync,#tbKonto,#tbLogout{order:2}
+#tbKonto{color:var(--ink);text-decoration:none;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);white-space:nowrap}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--pos);flex:none}
 .sync[data-state=busy] i{background:var(--muted)}
