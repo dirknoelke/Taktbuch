@@ -88,7 +88,7 @@ async def main():
             csp = [e for e in errs if 'Content Security Policy' in e or 'Refused' in e]
             check('Keine CSP-Verstöße', not csp)
             check('Keine Skriptfehler', not [e for e in errs if e not in csp])
-            fonts = await pg2.evaluate("async()=>(await document.fonts.load(\"600 16px 'IBM Plex Sans'\")).length>0")
+            fonts = await pg.evaluate("async()=>(await document.fonts.load(\"600 16px 'IBM Plex Sans'\")).length>0")
             check('Schriften vom eigenen Server geladen', fonts)
             for e in errs: print('  ', e[:300])
             await b.close()
