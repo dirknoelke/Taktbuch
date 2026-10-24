@@ -77,8 +77,9 @@ async def main():
             # Verbindung weg: Änderung bleibt lokal, übersteht Neuladen, wird danach von selbst übertragen
             await pg2.route('**/api/sync**', lambda r: asyncio.ensure_future(r.abort()))
             await pg2.evaluate("()=>{S.cfg.standardThema='offline geändert';save()}")
-            await pg2.wait_for_function("()=>['offline','error'].includes(document.querySelector('#tbSync').dataset.state)", timeout=8000)
-            check('Ohne Verbindung: Anzeige „Offline · lokal gesichert“', 'lokal gesichert' in await pg2.inner_text('#tbSync'))
+            await pg2.wait_for_function("()=>document.querySelector('#tbSync').dataset.state==='offline'", timeout=8000)
+            await pg2.wait_for_timeout(2500)   # automatischer Wiederholungsversuch nach 2 s darf die Anzeige nicht umschalten
+            check('Ohne Verbindung: Anzeige bleibt „Offline · lokal gesichert“', await pg2.evaluate("()=>document.querySelector('#tbSync').dataset.state==='offline'&&document.querySelector('#tbSync').textContent.includes('lokal gesichert')"))
             await pg2.reload(); await pg2.wait_for_selector('#tabs .tab')
             check('Neuladen ohne Verbindung: lokale Kopie samt Änderung', await pg2.evaluate("()=>S.cfg.standardThema==='offline geändert'&&!!S.days['2026-10-22']"))
             await pg2.unroute('**/api/sync**')
