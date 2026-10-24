@@ -380,6 +380,7 @@ function showBackupBanner(kind) {
   I18N.apply();
 }
 async function autoBackup() {
+  if (window.__ZW_TARGET === 'online') return;   // online liegen die Daten auf dem Server (eigenes Backup)
   if (S.demo || !bkDue()) return;
   const snooze = +ls.get('zeitwerk-bk-snooze-' + PROFILE) || 0; if (Date.now() - snooze < 36e5 * 6) return;
   if (BK.cfg.handle) { const p = await bkPermission(false); if (p === 'granted') await backupNow(false); else showBackupBanner('perm'); return; }
