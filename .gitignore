@@ -7,3 +7,5 @@ __pycache__/
 !package.json
 !.github/**/*.json
 !packages/web/*.json
+!tsconfig.json
+!package-lock.json

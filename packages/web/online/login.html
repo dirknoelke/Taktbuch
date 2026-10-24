@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Taktbuch: Anmelden</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#dddbd3;--acc:#2f6f5e;--acc-ink:#fff;--err:#a32d2d}
+@media(prefers-color-scheme:dark){:root{--bg:#191917;--card:#232321;--ink:#ecebe6;--mute:#a3a29b;--line:#3a3935;--acc:#5dcaa5;--acc-ink:#0c2a22;--err:#f09595}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:420px;margin:8vh auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px}
+h1{font-size:22px;margin:0 0 4px;font-weight:600}
+.sub{color:var(--mute);margin:0 0 20px;font-size:14px}
+label{display:block;font-size:14px;margin:14px 0 4px}
+input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);font:inherit}
+input:focus{outline:2px solid var(--acc);outline-offset:1px}
+button{margin-top:18px;width:100%;padding:11px;border:0;border-radius:8px;background:var(--acc);color:var(--acc-ink);font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+.err{color:var(--err);font-size:14px;margin-top:12px;min-height:1.2em}
+.hint{color:var(--mute);font-size:14px}
+.qr{display:block;margin:12px auto;background:#fff;padding:8px;border-radius:8px;width:220px;height:220px}
+code{font-family:ui-monospace,Consolas,monospace;font-size:15px;word-break:normal;overflow-wrap:normal}
+.codes{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin:12px 0;font-family:ui-monospace,Consolas,monospace}
+a{color:var(--acc)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+  <h1>Taktbuch</h1>
+  <p class="sub" id="subtitle">Anmelden</p>
+
+  <form id="fLogin">
+    <label for="lEmail">E-Mail</label><input id="lEmail" type="email" autocomplete="username" required>
+    <label for="lPw">Passwort</label><input id="lPw" type="password" autocomplete="current-password" required>
+    <button type="submit">Weiter</button>
+  </form>
+
+  <form id="fRegister" hidden>
+    <p class="hint">Du wurdest eingeladen. Lege dein Konto an.</p>
+    <label for="rEmail">E-Mail</label><input id="rEmail" type="email" autocomplete="username" required>
+    <label for="rPw">Passwort (mindestens 12 Zeichen)</label><input id="rPw" type="password" autocomplete="new-password" minlength="12" required>
+    <label for="rPw2">Passwort wiederholen</label><input id="rPw2" type="password" autocomplete="new-password" minlength="12" required>
+    <button type="submit">Konto anlegen</button>
+  </form>
+
+  <form id="fSetup" hidden>
+    <p class="hint">Richte jetzt den zweiten Faktor ein: Scanne den Code mit einer Authenticator-App (z. B. Microsoft Authenticator, Aegis, Google Authenticator) oder tippe auf dem Handy auf den Link.</p>
+    <img id="sQr" class="qr" alt="QR-Code für die Authenticator-App">
+    <p class="hint">Manuell: <a id="sLink" href="#">in App öffnen</a> oder Schlüssel eingeben:<br><code id="sSecret"></code></p>
+    <label for="sCode">6-stelliger Code aus der App</label><input id="sCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" required>
+    <button type="submit">Bestätigen</button>
+  </form>
+
+  <form id="fMfa" hidden>
+    <label for="mCode">6-stelliger Code aus der Authenticator-App</label><input id="mCode" autocomplete="one-time-code" required>
+    <p class="hint">Kein Zugriff auf die App? Gib stattdessen einen deiner Recovery-Codes ein.</p>
+    <button type="submit">Anmelden</button>
+  </form>
+
+  <div id="recovery" hidden>
+    <p><b>Deine Recovery-Codes</b></p>
+    <p class="hint">Jeder Code funktioniert genau einmal, falls du keinen Zugriff auf die Authenticator-App hast. Bewahre sie sicher auf, z. B. im Passwort-Manager. Sie werden nur jetzt angezeigt.</p>
+    <div class="codes" id="codes"></div>
+    <button id="toApp" type="button">Ich habe die Codes gesichert, weiter</button>
+  </div>
+
+  <div class="err" id="err" role="alert"></div>
+</div>
+</main>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const forms = ['#fLogin', '#fRegister', '#fSetup', '#fMfa', '#recovery'];
+  let ticket = null;
+  const show = (id, title) => { forms.forEach(f => { $(f).hidden = f !== id; }); $('#subtitle').textContent = title; $('#err').textContent = ''; const i = $(id + ' input'); if (i) i.focus(); };
+  const err = m => { $('#err').textContent = m; };
+  async function post(path, body) {
+    const r = await fetch(path, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    let data = {}; try { data = await r.json(); } catch (e) { }
+    if (!r.ok) throw new Error(data.message || ('Fehler ' + r.status));
+    return data;
+  }
+  const busy = (form, on) => form.querySelectorAll('button').forEach(b => { b.disabled = on; });
+  const handle = (form, fn) => $(form).addEventListener('submit', async ev => {
+    ev.preventDefault(); busy($(form), true);
+    try { await fn(); } catch (e) { err(e.message); } finally { busy($(form), false); }
+  });
+  const setup = d => {
+    ticket = d.ticket; $('#sQr').src = d.qr; $('#sLink').href = d.otpauth;
+    $('#sSecret').textContent = d.secret.replace(/(.{4})/g, '$1 ').trim();
+    show('#fSetup', 'Zweiten Faktor einrichten');
+  };
+
+  handle('#fLogin', async () => {
+    const d = await post('/api/auth/login', { email: $('#lEmail').value, password: $('#lPw').value });
+    if (d.next === 'setup') setup(d); else { ticket = d.ticket; show('#fMfa', 'Bestätigen'); }
+  });
+  handle('#fRegister', async () => {
+    if ($('#rPw').value !== $('#rPw2').value) throw new Error('Die Passwörter stimmen nicht überein.');
+    const d = await post('/api/auth/register', { invite: inviteToken, email: $('#rEmail').value, password: $('#rPw').value });
+    history.replaceState(null, '', '/login'); setup(d);
+  });
+  handle('#fSetup', async () => {
+    const d = await post('/api/auth/totp/confirm', { ticket, code: $('#sCode').value });
+    $('#codes').innerHTML = ''; d.recoveryCodes.forEach(c => { const s = document.createElement('span'); s.textContent = c; $('#codes').append(s); });
+    show('#recovery', 'Recovery-Codes sichern');
+  });
+  handle('#fMfa', async () => {
+    await post('/api/auth/mfa', { ticket, code: $('#mCode').value });
+    location.href = '/';
+  });
+  $('#toApp').addEventListener('click', () => { location.href = '/'; });
+
+  let inviteToken = null;
+  // Einladung steht im Fragment (#invite=...). Auch reagieren, wenn der Link in einem schon offenen Tab geöffnet wird.
+  const route = () => {
+    inviteToken = new URLSearchParams(location.hash.slice(1)).get('invite');
+    if (inviteToken) show('#fRegister', 'Konto anlegen'); else if ($('#fRegister').hidden === false) show('#fLogin', 'Anmelden');
+  };
+  window.addEventListener('hashchange', route);
+  route();
+  if (!inviteToken) show('#fLogin', 'Anmelden');
+})();
+</script>
+</body>
+</html>
