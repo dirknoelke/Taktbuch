@@ -3,6 +3,7 @@ Aufruf: python3 tests/ui.py dist/taktbuch.html"""
 import asyncio, json, sys, pathlib
 from playwright.async_api import async_playwright
 url = 'file://' + str(pathlib.Path(sys.argv[1]).resolve())
+TD = '2026-10-20'   # fester Dienstag (kein Feiertag): Tests zum geteilten Tag dürfen nicht vom heutigen Wochentag abhängen
 REL = {'tag_name': 'v9.9.9', 'html_url': 'https://github.com/x/y/releases/tag/v9.9.9', 'body': 'Test-Hinweise',
        'assets': [{'name': 'taktbuch.html', 'browser_download_url': 'https://github.com/x/y/releases/download/v9.9.9/taktbuch.html'}]}
 async def go(pg, sub):
@@ -99,11 +100,12 @@ async def main():
         await pg3.select_option('#c_oa', 'true'); await pg3.select_option('#c_aa', 'true'); await pg3.wait_for_timeout(200)
         await pg3.click('[data-f="cfg:hoWd:3"]'); await pg3.wait_for_timeout(200)
         check('Ort/Auszahlung eingeschaltet, Mittwoch Homeoffice', await pg3.evaluate("()=>S.cfg.ortAn&&S.cfg.auszahlAn&&S.cfg.hoWochentage.join()==='3'"))
-        await pg3.click('button[data-v=heute]'); await pg3.evaluate("()=>{S.days[todayKey()]={s:'08:00',e:'17:00',p:'01:00'};commit()}"); await pg3.click('[data-a=setOrt][data-v=mix]'); await pg3.wait_for_selector('#d_hoAb')
+        await pg3.click('button[data-v=heute]'); await pg3.evaluate("()=>{go(TD);S.days[TD]={s:'08:00',e:'17:00',p:'01:00'};commit()}".replace('TD', repr(TD))); await pg3.click('[data-a=setOrt][data-v=mix]'); await pg3.wait_for_selector('#d_hoAb')
         await pg3.fill('#d_hoAb', '14:00'); await pg3.dispatch_event('#d_hoAb', 'change'); await pg3.fill('#d_az', '1'); await pg3.dispatch_event('#d_az', 'change'); await pg3.wait_for_timeout(200)
-        check('geteilter Tag: 3 h Homeoffice, Auszahlung 1 h', await pg3.evaluate("()=>{const r=R.map[todayKey()];return r.ort==='mix'&&r.hoH===3&&r.az===1&&S.days[todayKey()].hoAb==='14:00'}"))
+        check('geteilter Tag: 3 h Homeoffice, Auszahlung 1 h', await pg3.evaluate("()=>{const r=R.map[TD];return r.ort==='mix'&&r.hoH===3&&r.az===1&&S.days[TD].hoAb==='14:00'}".replace('TD', repr(TD))))
         await pg3.click('[data-a=setOrtFolge][data-v=ho]'); await pg3.wait_for_timeout(200)
-        check('geteilt: zuerst Homeoffice bis 14:00 = 6 h', await pg3.evaluate("()=>{const r=R.map[todayKey()];return r.hoH===6&&S.days[todayKey()].hoZ==='ho'}"))
+        check('geteilt: zuerst Homeoffice bis 14:00 = 6 h', await pg3.evaluate("()=>{const r=R.map[TD];return r.hoH===6&&S.days[TD].hoZ==='ho'}".replace('TD', repr(TD))))
+        await pg3.evaluate("()=>{go(todayKey())}")   # zurück auf heute für die folgenden Tests
         await pg3.evaluate("()=>{S.acts.push({id:'zz1',d:'2020-01-02',s:'08:00',e:'09:00',u:'',cat:'KatX',w:'ArtX',sys:'SysX',pn:'',th:'ThemaX'});commit()}")
         await pg3.fill('#f_th', 'ThemaX'); await pg3.dispatch_event('#f_th', 'change')
         check('Thema füllt Kategorie, Art, System rückwärts', await pg3.input_value('#f_cat') == 'KatX' and await pg3.input_value('#f_w') == 'ArtX' and await pg3.input_value('#f_sys') == 'SysX')
