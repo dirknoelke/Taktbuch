@@ -51,7 +51,8 @@ out = root / 'dist' if target == 'offline' else root / 'dist' / 'online'
 out.mkdir(parents=True, exist_ok=True)
 (out / 'taktbuch.html').write_text(html, encoding='utf-8')
 if target == 'online':
-    (out / 'login.html').write_text(read(WEB + 'online/login.html'), encoding='utf-8')
+    for page in ('login.html', 'konto.html', 'admin.html'):
+        (out / page).write_text(read(WEB + 'online/' + page), encoding='utf-8')
     import shutil
     shutil.copytree(root / WEB / 'fonts', out / 'fonts', dirs_exist_ok=True)
 # Hilfe als Markdown-Dateien (gleiche Quelle wie in der App)
