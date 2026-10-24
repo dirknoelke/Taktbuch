@@ -241,4 +241,9 @@ window.ZW_EN = {
   'Blatt „ab #“ bzw. „Zeiterfassung“ nicht gefunden.': 'Sheet “ab #” or “Zeiterfassung” not found.', 'Das ist keine Stundenkonto-Sicherung.': 'This is not a Zeitwerk/Stundenkonto backup.', 'Keine gültige Excel-Datei.': 'Not a valid Excel file.', 'nicht verfügbar': 'not available',
   /* Zahltag-Texte */
   'Zahltag ist': 'Payday is',
+  /* Farbe und Darstellung */
+  'Darstellung': 'Appearance', 'Automatisch (wie das Gerät)': 'Automatic (like the device)', 'Hell': 'Light', 'Dunkel': 'Dark',
+  'Automatisch folgt der Einstellung von Betriebssystem oder Browser.': 'Automatic follows the operating system or browser setting.',
+  'Akzentfarbe': 'Accent color', 'Farbe für Knöpfe und Hervorhebungen, geprüft auf gute Lesbarkeit in hell und dunkel.': 'Color for buttons and highlights, checked for good readability in light and dark.',
+  'Orange': 'Orange', 'Blau': 'Blue', 'Petrol': 'Teal', 'Grün': 'Green', 'Dunkelgrün': 'Dark green', 'Violett': 'Purple', 'Rot': 'Red', 'Graphit': 'Graphite',
 };

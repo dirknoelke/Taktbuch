@@ -501,6 +501,8 @@ function viewEinst() {
     <div class="fields wide">
       <div class="field"><label for="c_th">Standard-Thema</label><input id="c_th" value="${esc(c.standardThema)}" data-f="cfg:standardThema"><span class="hint">Thema, das bei normalen Arbeitstagen als Vorgabe gilt. Nur Anzeige.</span></div>
       <div class="field"><label for="c_an">Zahlenanzeige</label><select id="c_an" data-f="cfg:anzeige">${opt('dez', 'Dezimal (7,50)', c.anzeige)}${opt('hm', 'Stunden:Minuten (7:30)', c.anzeige)}</select><span class="hint">Nur die Darstellung, nichts wird umgerechnet.</span></div>
+      <div class="field"><label for="c_ds">Darstellung</label><select id="c_ds" data-f="cfg:darstellung">${opt('auto', 'Automatisch (wie das Gerät)', c.darstellung || 'auto')}${opt('hell', 'Hell', c.darstellung)}${opt('dunkel', 'Dunkel', c.darstellung)}</select><span class="hint">Automatisch folgt der Einstellung von Betriebssystem oder Browser.</span></div>
+      <div class="field"><span class="lbl" id="l_fa">Akzentfarbe</span><div class="swatches" role="group" aria-labelledby="l_fa">${FARBEN.map(([v, l, li, dk]) => `<button type="button" data-a="farbe" data-v="${v}" aria-pressed="${(c.farbe || 'orange') === v}" title="${l}" aria-label="${l}" style="background:${LOOK.dark() ? dk[0] : li[0]}"></button>`).join('')}</div><span class="hint">Farbe für Knöpfe und Hervorhebungen, geprüft auf gute Lesbarkeit in hell und dunkel.</span></div>
     </div>` : ''}
   </section>
   ${sub === 'zeit' ? `  <section class="card" style="margin-top:16px"><div class="card-h"><h3>So wird gerechnet</h3></div>
@@ -515,8 +517,46 @@ function viewEinst() {
 
 /* ---------- Rahmen ---------- */
 const TABS = [['heute', 'Heute'], ['woche', 'Woche'], ['monat', 'Monat'], ['urlaub', 'Kalender'], ['taet', 'Tätigkeiten'], ['auswertung', 'Auswertung'], ['gehalt', 'Gehalt'], ['einst', 'Einstellungen']];
+/* ---------- Farbe und Darstellung ----------
+   Akzentfarben mit Werten für hell und dunkel: [Akzent, Hintergrund weich]. Alle geprüft auf Kontrast
+   (Text auf Akzent und Akzent auf Hintergrund mind. 4,5:1). Orange = Standard aus dem Template. */
+const FARBEN = [
+  ['orange', 'Orange', ['#D9461C'], ['#FF7B52']],
+  ['blau', 'Blau', ['#1D5FC2', '#E2EAF7'], ['#78A9F8', '#283A51']],
+  ['petrol', 'Petrol', ['#0B6E86', '#DFECEF'], ['#4CC6DE', '#1F404C']],
+  ['gruen', 'Grün', ['#2B7A32', '#E3EEE4'], ['#6BCF7F', '#254139']],
+  ['dunkelgruen', 'Dunkelgrün', ['#08513D', '#DFE8E6'], ['#2FD495', '#19423D']],
+  ['violett', 'Violett', ['#6B3FC0', '#ECE6F7'], ['#B79CF6', '#353750']],
+  ['rot', 'Rot', ['#B3243A', '#F5E3E5'], ['#FF8A98', '#43343E']],
+  ['graphit', 'Graphit', ['#3E4C59', '#E6E8E9'], ['#B4C2CF', '#343F49']],
+];
+const LOOK = (() => {
+  const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  let cur = null;
+  const dark = () => cur && (cur.darstellung === 'dunkel' || (cur.darstellung !== 'hell' && !!(mq && mq.matches)));
+  function apply(c) {
+    const next = { farbe: c.farbe || 'orange', darstellung: c.darstellung || 'auto' };
+    if (cur && cur.farbe === next.farbe && cur.darstellung === next.darstellung && cur.dark === dark()) return;
+    cur = next;
+    try { localStorage.setItem('taktbuch-look', JSON.stringify(cur)); } catch (e) { }
+    const r = document.documentElement;
+    if (cur.darstellung === 'hell') r.dataset.theme = 'light'; else if (cur.darstellung === 'dunkel') r.dataset.theme = 'dark'; else delete r.dataset.theme;
+    cur.dark = dark();
+    for (const p of ['--accent', '--accent-ink', '--accent-soft']) r.style.removeProperty(p);
+    const f = FARBEN.find(x => x[0] === cur.farbe);
+    if (f && f[0] !== 'orange') {
+      const [a, soft] = cur.dark ? f[3] : f[2];
+      r.style.setProperty('--accent', a); r.style.setProperty('--accent-soft', soft); r.style.setProperty('--accent-ink', cur.dark ? '#0C1319' : '#FFFFFF');
+    }
+  }
+  if (mq && mq.addEventListener) mq.addEventListener('change', () => { if (cur) { const c = cur; cur = null; apply(c); } });
+  try { const s = JSON.parse(localStorage.getItem('taktbuch-look')); if (s) apply(s); } catch (e) { }   // vor dem Laden der Daten, kein Aufblitzen
+  return { apply, dark: () => !!dark() };
+})();
+
 function render() {
   if (!R) recompute();
+  LOOK.apply(S.cfg);
   $('#tabs').innerHTML = TABS.map(([id, l]) => `<button class="tab" data-a="tab" data-v="${id}"${UI.tab === id ? ' aria-current="page"' : ''}>${l}</button>`).join('');
   $('#banner').innerHTML = S.demo ? `<div class="banner"><span><b>Beispieldaten.</b> Diese Einträge sind erfunden. Lade deine Excel unter „Einstellungen“ → „Daten“, um mit deinen Zahlen zu arbeiten.</span><button class="btn sm primary" data-a="tab" data-v="daten">Excel importieren</button></div>` : '';
   const v = { heute: viewHeute, woche: viewWoche, monat: viewMonat, urlaub: viewUrlaub, taet: viewTaet, auswertung: viewAuswertung, gehalt: viewGehalt, einst: viewEinst, hilfe: viewHilfe }[UI.tab];

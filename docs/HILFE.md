@@ -72,6 +72,11 @@ Oben rechts schaltest du zwischen Deutsch und Englisch um. Unter Einstellungen, 
 
 ## Was ist neu
 
+### 1.12.0
+
+- Farbe und Darstellung wählbar: unter „Einstellungen“ → „Allgemein“ acht Akzentfarben und hell, dunkel oder automatisch.
+- Im dunklen Design ist die Beschreibung auf hervorgehobenen Knöpfen jetzt gut lesbar.
+
 ### 1.11.4
 
 - Fehler behoben: Der Reiter „Einstellungen“ wurde oben von der Zeitkonto-Anzeige verdeckt. Die Reiter stehen jetzt immer in einer eigenen Zeile.

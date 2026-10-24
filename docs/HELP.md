@@ -72,6 +72,11 @@ Switch between German and English at the top right. Under Settings, Data you fin
 
 ## What's new
 
+### 1.12.0
+
+- Choose color and appearance: under "Settings" → "General" eight accent colors and light, dark or automatic.
+- In the dark theme the description on highlighted buttons is now easy to read.
+
 ### 1.11.4
 
 - Fixed: the "Settings" tab was partly hidden behind the time account display at the top. The tabs now always sit in their own row.

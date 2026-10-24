@@ -1,6 +1,7 @@
 /* ---------- Ereignisse ---------- */
 const go = k => { UI.date = k; UI.tab = 'heute'; render(); window.scrollTo(0, 0); };
 const actions = {
+  farbe: el => { S.cfg.farbe = el.dataset.v; commit(); },
   tab: el => { let v = el.dataset.v; if (v === 'daten') { v = 'einst'; UI.sub = 'daten'; } UI.tab = v; render(); window.scrollTo(0, 0); },
   sub: el => { UI.sub = el.dataset.v; render(); },
   day: el => { UI.date = E.addDays(UI.date, +el.dataset.n); UI.year = +UI.date.slice(0, 4); render(); },
