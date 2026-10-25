@@ -1,4 +1,5 @@
 <title>Taktbuch</title>
+<!--@@ICON@@-->
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,6 +50,7 @@ h2{font-size:20px}h3{font-size:15px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
 .bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
 .brand{font-family:var(--font-head);font-weight:700;font-size:22px;letter-spacing:.01em;display:flex;align-items:baseline;gap:8px}
+.brand .mark{width:26px;height:26px;flex:none;align-self:center}
 .brand i{font-style:normal;font-family:var(--font-num);font-size:11px;font-weight:500;color:var(--muted);border:1px solid var(--line);padding:1px 6px;border-radius:99px}
 .tabs{display:flex;gap:2px;flex-wrap:nowrap;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
@@ -208,7 +210,7 @@ input.tq{font-family:var(--font-num)}
 <div class="wrap">
   <div class="top">
     <div class="bar">
-      <div class="brand">Taktbuch <i id="ver">lokal</i></div>
+      <div class="brand"><!--@@MARK@@-->Taktbuch <i id="ver">lokal</i></div>
       <nav class="tabs" id="tabs" aria-label="Bereiche"></nav>
       <div class="konto-pill"><small>Zeitkonto heute</small><b id="kontoPill">–</b></div>
       <div class="save" id="saveState"></div>
