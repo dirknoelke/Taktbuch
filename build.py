@@ -40,6 +40,20 @@ if target == 'online':
     assert GOOGLE_FONTS.search(html), 'Google-Fonts-Block im Template nicht gefunden'
     faces = ''.join(f"@font-face{{font-family:'{fam}';font-weight:{w};font-style:normal;font-display:swap;src:url('/fonts/{f}.woff2') format('woff2')}}\n" for fam, w, f in FONTS)
     html = GOOGLE_FONTS.sub('<style>\n' + faces + '</style>\n', html)
+# Markenzeichen: Variante je Build-Ziel (lokal grün, online blau; Pro violett folgt mit eigenem Ziel)
+BRAND = {'offline': 'lokal', 'online': 'online'}[target]
+import urllib.parse
+def brand_svg(small=False):
+    return read(f"{WEB}brand/taktbuch-{BRAND}{'-small' if small else ''}.svg").strip()
+icon_uri = 'data:image/svg+xml,' + urllib.parse.quote(brand_svg(small=True), safe=':/= ')
+ICON = f'<link rel="icon" type="image/svg+xml" href="{icon_uri}">\n'
+if target == 'online':
+    ICON += '<link rel="icon" href="/favicon.ico" sizes="48x48">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">\n'
+MARK = brand_svg(small=True).replace('<svg ', '<svg class="mark" aria-hidden="true" focusable="false" ', 1).replace('<rect ', '<rect rx="224" ', 1)
+def brand(page):
+    assert '<!--@@ICON@@-->' in page and '<!--@@MARK@@-->' in page, 'Marken-Platzhalter fehlen'
+    return page.replace('<!--@@ICON@@-->\n', ICON).replace('<!--@@MARK@@-->', MARK)
+html = brand(html)
 html = html.replace('//@@ENGINE@@', read('packages/core/engine.js'))
 import json
 help_ = json.loads(read(WEB + 'help.json')); whats = json.loads(read(WEB + 'whatsnew.json'))
@@ -52,9 +66,12 @@ out.mkdir(parents=True, exist_ok=True)
 (out / 'taktbuch.html').write_text(html, encoding='utf-8')
 if target == 'online':
     for page in ('login.html', 'konto.html', 'admin.html'):
-        (out / page).write_text(read(WEB + 'online/' + page), encoding='utf-8')
+        (out / page).write_text(brand(read(WEB + 'online/' + page)), encoding='utf-8')
     import shutil
     shutil.copytree(root / WEB / 'fonts', out / 'fonts', dirs_exist_ok=True)
+    (out / 'brand').mkdir(exist_ok=True)
+    for f in ('favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'):
+        shutil.copy(root / WEB / 'brand' / f, out / 'brand' / f)
 # Hilfe als Markdown-Dateien (gleiche Quelle wie in der App)
 def md(h, whats_title, l):
     t = [f"# {h['title']}", '', h['intro'], '']

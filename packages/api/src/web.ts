@@ -60,6 +60,16 @@ export function webRoutes(app: FastifyInstance, db: Db, cfg: Config) {
     return reply.type('font/woff2').header('Cache-Control', 'public, max-age=31536000, immutable').send(readFileSync(p));
   });
 
+  // App-Icons (Favicon, Homescreen): feste Liste, kein Pfad aus der Anfrage
+  const BRAND: Record<string, string> = { '/favicon.ico': 'image/x-icon', '/apple-touch-icon.png': 'image/png', '/icon-192.png': 'image/png', '/icon-512.png': 'image/png' };
+  for (const [url, type] of Object.entries(BRAND)) {
+    app.get(url, async (_req, reply) => {
+      const p = path.join(cfg.webDir, 'brand', url.slice(1));
+      if (!existsSync(p)) return reply.code(404).send();
+      return reply.type(type).header('Cache-Control', 'public, max-age=86400').send(readFileSync(p));
+    });
+  }
+
   // Jede Kontoart landet auf ihrer Seite: Nutzer in der App, Admin-Konten in der Verwaltung.
   const home = (kind: 'user' | 'admin') => (kind === 'admin' ? '/admin' : '/');
   app.get('/', async (req, reply) => {
