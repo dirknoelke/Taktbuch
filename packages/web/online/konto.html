@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Taktbuch: Konto</title>
+<!--@@ICON@@-->
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#dddbd3;--acc:#2f6f5e;--acc-ink:#fff;--err:#a32d2d;--ok:#3b6d11;--soft:#efeee9}
-@media(prefers-color-scheme:dark){:root{--bg:#191917;--card:#232321;--ink:#ecebe6;--mute:#a3a29b;--line:#3a3935;--acc:#5dcaa5;--acc-ink:#0c2a22;--err:#f09595;--ok:#97c459;--soft:#2c2c2a}}
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#dddbd3;--acc:#0078B7;--acc-ink:#fff;--err:#a32d2d;--ok:#3b6d11;--soft:#efeee9}
+@media(prefers-color-scheme:dark){:root{--bg:#191917;--card:#232321;--ink:#ecebe6;--mute:#a3a29b;--line:#3a3935;--acc:#5BB4E5;--acc-ink:#062033;--err:#f09595;--ok:#97c459;--soft:#2c2c2a}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{display:flex;align-items:center;gap:12px;max-width:720px;margin:0 auto;padding:18px 16px 6px}
@@ -34,10 +35,11 @@ button.sm{margin:0;padding:4px 10px;font-size:13px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 @media(max-width:560px){.grid2{grid-template-columns:1fr}}
 [hidden]{display:none!important}
+header h1 .mark{width:26px;height:26px;vertical-align:-6px;margin-right:8px}
 </style>
 </head>
 <body>
-<header><h1>Taktbuch · Konto</h1><a class="btn" href="/" style="margin:0">Zurück zur App</a></header>
+<header><h1><!--@@MARK@@-->Taktbuch · Konto</h1><a class="btn" href="/" style="margin:0">Zurück zur App</a></header>
 <main>
   <section class="card">
     <h2 id="email">…</h2>
