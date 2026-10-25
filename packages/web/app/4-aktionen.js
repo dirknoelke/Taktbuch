@@ -150,6 +150,7 @@ function fieldChange(el, final) {
   } else if (scope === 'cfg' && a === 'hoWd') {
     const wd = +b, l = (S.cfg.hoWochentage || []).filter(x => x !== wd); if (el.checked) l.push(wd); S.cfg.hoWochentage = l.sort(); commit();
   } else if (scope === 'cfg') {
+    if (el.dataset.md) { const md = mdParse(v); if (md === null) { toast('Bitte als Tag.Monat eingeben, z. B. 01.05.'); render(); return; } v = md; }
     if (el.dataset.bool) v = v === 'true';
     if (el.dataset.nullable && String(v).trim() === '') { S.cfg[a] = null; commit(); return; }
     if (el.dataset.int) v = parseInt(v, 10) || 0;
@@ -170,6 +171,7 @@ function fieldChange(el, final) {
     const x = (S.cfg.regeln || [])[+a]; if (!x) return;
     if (b === 'ab') { if (!v) { render(); return; } x.ab = v; S.cfg.regeln.sort((p, q) => p.ab.localeCompare(q.ab)); }
     else {
+      if (el.dataset.md) { const md = mdParse(v); if (md === null) { toast('Bitte als Tag.Monat eingeben, z. B. 01.05.'); render(); return; } v = md; }
       if (el.dataset.bool) v = v === 'true';
       if (el.dataset.num) { v = parseFloat(String(v).replace(',', '.')); if (isNaN(v)) { render(); return; } }
       x[b] = v;

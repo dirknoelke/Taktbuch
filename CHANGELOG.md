@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.1
+
+- Fix: with a start date in the current week or in the future (typical for a new account), Today, Week and Calendar did not open. Days before the start date show a note that they are not counted.
+- Cut-off dates for vacation expiry and time-balance cap are entered and shown as day.month (e.g. 01.05.) instead of MM-DD. Values accidentally saved as day.month are converted automatically.
+
 ## 1.12.0
 
 - Choose color and appearance under Settings → General → Display: light, dark or automatic, and eight accent colors (orange, blue, teal, green, dark green, purple, red, graphite). Every color is checked for readable contrast in light and dark.

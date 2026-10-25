@@ -72,6 +72,11 @@ Switch between German and English at the top right. Under Settings, Data you fin
 
 ## What's new
 
+### 1.12.1
+
+- Fixed: if the start date was in the current week or in the future (new account), Today, Week and Calendar could not be opened. Days before the start date now show a note.
+- Cut-off dates for vacation expiry and cap are entered and shown as day.month (e.g. 01.05.). Values accidentally saved that way are converted automatically.
+
 ### 1.12.0
 
 - Choose color and appearance: under "Settings" → "General" eight accent colors and light, dark or automatic.
