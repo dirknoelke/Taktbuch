@@ -121,7 +121,7 @@ const DB = (() => {
     busy = true;
     const batch = [...pending].slice(0, 5000);
     try {
-      status('busy');
+      if (state !== 'offline' && state !== 'error') status('busy');   // Wiederholungsversuche ohne Flackern
       await call('POST', '/api/sync', { changes: batch.map(([k, j]) => { const i = k.indexOf(':'); return { c: k.slice(0, i), id: k.slice(i + 1), v: j === null ? null : JSON.parse(j) }; }) });
       const ops = [];
       for (const [k, j] of batch) {
@@ -270,7 +270,8 @@ const DB = (() => {
       snap = now;
       if (!ops.length) { settle(); return true; }
       await idbWrite(ops);
-      status('busy'); flush();
+      if (state !== 'offline' && state !== 'error') status('busy');
+      flush();
       return true;
     },
     saved() { },
