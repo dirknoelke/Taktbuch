@@ -72,6 +72,11 @@ Oben rechts schaltest du zwischen Deutsch und Englisch um. Unter Einstellungen, 
 
 ## Was ist neu
 
+### 1.12.1
+
+- Fehler behoben: Liegt das Startdatum in der aktuellen Woche oder in der Zukunft (neues Konto), ließen sich Heute, Woche und Kalender nicht öffnen. Tage vor dem Startdatum zeigen jetzt einen Hinweis.
+- Stichtage für Urlaubsverfall und Kappung werden als Tag.Monat eingegeben und angezeigt (z. B. 01.05.). Versehentlich so gespeicherte Werte werden automatisch übernommen.
+
 ### 1.12.0
 
 - Farbe und Darstellung wählbar: unter „Einstellungen“ → „Allgemein“ acht Akzentfarben und hell, dunkel oder automatisch.

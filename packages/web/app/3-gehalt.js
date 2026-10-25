@@ -163,7 +163,7 @@ function viewUrlaub() {
     const m = i + 1, n = monthDays(y, m), off = E.weekday(E.key(y, m, 1)) - 1; let c = '';
     for (let j = 0; j < off; j++) c += '<span></span>';
     for (let d = 1; d <= n; d++) {
-      const k = E.key(y, m, d), r = R.map[k], paintable = r.wd < 6 && !r.hol;
+      const k = E.key(y, m, d), r = dayRow(k), paintable = !r.vorStart && r.wd < 6 && !r.hol;
       const half = r.t === 'Urlaub - halb';
       c += `<button class="pd ${tyClass(r.t)} ${k > t && !isWorkType(r.t) && r.wd < 6 ? 'fut' : ''} ${k === t ? 'today' : ''}" data-k="${k}" ${paintable ? 'data-p="1"' : 'tabindex="-1"'} data-a="paintKey" title="${esc(fmtDate(k) + (r.hol ? ' · ' + r.hol : E.TYPES[r.t] && r.t !== 'arbeit' && r.t !== 'WE' ? ' · ' + tyLabel(r.t) : ''))}" aria-label="${esc(fmtDate(k) + ' ' + tyLabel(r.t))}">${d}${half ? '<sup>½</sup>' : ''}</button>`;
     }

@@ -181,6 +181,26 @@ async def main():
         await pg3.wait_for_timeout(900); await pg3.reload(); await pg3.wait_for_selector('#tabs .tab')
         check('Farbe und Darstellung bleiben nach Neuladen', await pg3.evaluate(acc) == '#2FD495' and await pg3.evaluate("()=>S.cfg.farbe==='dunkelgruen'"))
         await pg3.evaluate("()=>{S.cfg.farbe='orange';S.cfg.darstellung='auto';commit()}")
+        # Startdatum in dieser Woche oder in der Zukunft (neues Konto): Tag, Woche, Kalender gehen
+        r = await pg3.evaluate("""()=>{ const out=[]; const t=todayKey(); for (const sd of [E.addDays(t,1), t, E.addDays(t,-1), E.addDays(t,40)]) {
+            S.cfg.startDatum=sd; S.cfg.sollVerlauf=[{ab:sd,soll:7.8}]; UI.date=t; recompute();
+            for (const tab of ['heute','woche','monat','urlaub','auswertung']) { try { UI.tab=tab; render(); } catch(e) { out.push(sd+' '+tab+': '+e); } } }
+          return out; }""")
+        check('Startdatum heute/morgen/in 40 Tagen: alle Ansichten öffnen ' + str(r[:2]), not r)
+        await pg3.evaluate("()=>{S.cfg.startDatum=E.addDays(todayKey(),1);UI.date=todayKey();UI.tab='heute';render()}")
+        check('Tag vor dem Startdatum: Hinweis', 'vor dem Startdatum' in await pg3.inner_text('#view') or 'before the start date' in (await pg3.inner_text('#view')).lower())
+        await pg3.evaluate("()=>{S.cfg.startDatum='2020-01-01';S.cfg.sollVerlauf=[{ab:'2020-01-01',soll:7.5}];commit()}")
+        # Stichtage als TT.MM.
+        await go(pg3, 'regeln')
+        inp = '[data-f="cfg:urlaubVerfall"]'
+        check('Stichtag wird als TT.MM. angezeigt', await pg3.input_value(inp) in ('01.05.', ''))
+        await pg3.fill(inp, '15.4'); await pg3.keyboard.press('Tab'); await pg3.wait_for_timeout(150)
+        check('Eingabe 15.4 wird 04-15 gespeichert und als 15.04. gezeigt', await pg3.evaluate("()=>S.cfg.urlaubVerfall==='04-15'") and await pg3.input_value(inp) == '15.04.')
+        await pg3.fill(inp, '31.02.'); await pg3.keyboard.press('Tab'); await pg3.wait_for_timeout(150)
+        check('Ungültiges Datum abgewiesen', await pg3.evaluate("()=>S.cfg.urlaubVerfall==='04-15'"))
+        await pg3.evaluate("()=>{S.cfg.kappungTag='31.10.';recompute()}")
+        check('Alt gespeichertes 31.10. wird zu 10-31', await pg3.evaluate("()=>S.cfg.kappungTag==='10-31'"))
+        await pg3.evaluate("()=>{S.cfg.urlaubVerfall='05-01';commit()}")
         check('Zurück auf Standard: keine Überschreibung', await pg3.evaluate("()=>!document.documentElement.style.getPropertyValue('--accent')&&!document.documentElement.dataset.theme"))
         await b.close()
     sys.exit(0 if ok else 1)
