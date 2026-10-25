@@ -1,4 +1,14 @@
 {
+  "1.12.1": {
+    "de": [
+      "Fehler behoben: Liegt das Startdatum in der aktuellen Woche oder in der Zukunft (neues Konto), ließen sich Heute, Woche und Kalender nicht öffnen. Tage vor dem Startdatum zeigen jetzt einen Hinweis.",
+      "Stichtage für Urlaubsverfall und Kappung werden als Tag.Monat eingegeben und angezeigt (z. B. 01.05.). Versehentlich so gespeicherte Werte werden automatisch übernommen."
+    ],
+    "en": [
+      "Fixed: if the start date was in the current week or in the future (new account), Today, Week and Calendar could not be opened. Days before the start date now show a note.",
+      "Cut-off dates for vacation expiry and cap are entered and shown as day.month (e.g. 01.05.). Values accidentally saved that way are converted automatically."
+    ]
+  },
   "1.12.0": {
     "de": [
       "Farbe und Darstellung wählbar: unter „Einstellungen“ → „Allgemein“ acht Akzentfarben und hell, dunkel oder automatisch.",

@@ -48,10 +48,10 @@ function ruleBlocks(c) {
       <div class="fields wide">
         ${nf('urlaubJahr', 'Urlaubstage pro Jahr', '0.5')}
         ${bf('halbeTage', '24.12. und 31.12.', 'halber Urlaubstag', 'normaler Arbeitstag', r.halbeTage, 'Tage mit eigenem Eintrag oder gewählter Art bleiben unberührt.')}
-        <div class="field"><label for="${pre}urlaubVerfall">Verfall Vorjahresurlaub (MM-TT)</label><input id="${pre}urlaubVerfall" value="${esc(r.urlaubVerfall)}" placeholder="05-01" ${f('urlaubVerfall')}><span class="hint">Stichtag, an dem nicht genommener Vorjahresurlaub verfällt. Leer = nie.</span></div>
+        <div class="field"><label for="${pre}urlaubVerfall">Verfall Vorjahresurlaub (TT.MM.)</label><input id="${pre}urlaubVerfall" value="${esc(mdShow(r.urlaubVerfall))}" placeholder="01.05." ${f('urlaubVerfall')} data-md="1"><span class="hint">Stichtag, an dem nicht genommener Vorjahresurlaub verfällt. Leer = nie.</span></div>
         ${nf('lzkMax', 'Urlaub ins Langzeitkonto (Tage, max.)', '0.5', 'So viele Tage des Rests gehen am Verfallstag ins Langzeitkonto, der Rest verfällt.')}
         ${bf('kappungAn', 'Kappung des Zeitkontos', 'aktiv', 'aus', kOn, 'Aus = das Zeitkonto wird nicht gekappt.')}
-        <div class="field"><label for="${pre}kappungTag">Stichtag Kappung (MM-TT)</label><input id="${pre}kappungTag" value="${esc(r.kappungTag)}" placeholder="10-31" ${f('kappungTag')}${kOn ? '' : ' disabled'}></div>
+        <div class="field"><label for="${pre}kappungTag">Stichtag Kappung (TT.MM.)</label><input id="${pre}kappungTag" value="${esc(mdShow(r.kappungTag))}" placeholder="31.10." ${f('kappungTag')} data-md="1"${kOn ? '' : ' disabled'}></div>
         ${nf('kappungMax', 'Saldo nach Kappung (h)', '0.25', 'Höchstwert des Zeitkontos nach dem Stichtag.').replace('<input ', '<input ' + (kOn ? '' : 'disabled '))}
         <div class="field"><label for="${pre}pauseModus">Automatische Pause</label><select id="${pre}pauseModus" ${f('pauseModus')}>${opt('gesetz', 'gesetzlich (Staffel)', r.pauseModus || 'gesetz')}${opt('fest', 'feste Pause', r.pauseModus || 'gesetz')}${opt('keine', 'keine automatische Pause', r.pauseModus || 'gesetz')}</select><span class="hint">Gilt für Tage ohne eigene Pause. Gesetzlich: ab 6 h bis 6,5 h die Überschreitung, bis 9 h 30 min, ab 9,75 h 45 min.</span></div>
         ${(r.pauseModus || 'gesetz') === 'fest' ? nf('pauseAb', 'Feste Pause ab Anwesenheit (h)', '0.25', 'Ab dieser Anwesenheit gilt die feste Pause.') + nf('pauseFest', 'Feste Pause (h)', '0.25', 'z. B. 1 für eine Stunde.') : ''}
@@ -136,6 +136,7 @@ function viewHeute() {
   if (d.e && d.s && H(d.e) <= H(d.s)) warns.push('Gehen liegt vor Kommen. Über Mitternacht wird nicht gerechnet.');
   if (acts.length && gap > 0.5 && !live) warns.push(`Tätigkeiten decken ${fmtT(row.acts)} h von ${fmtT(row.stunden)} h ab (${fmtT(gap)} h offen).`);
   if (acts.some(a => !a.e)) warns.push('Ein Timer läuft noch.');
+  if (row.vorStart) warns.push(`Liegt vor dem Startdatum ${fmtDate(S.cfg.startDatum)}. Einträge an diesem Tag werden nicht gerechnet.`);
   if (['Urlaub', 'Sonderurlaub', 'Betriebsfrei'].includes(row.t) && row.wd < 6 && (d.s || d.e)) warns.push('An diesem Tag sind Zeiten eingetragen. Sie werden ignoriert, weil der Tag frei ist. Lösche sie, wenn du sie nicht brauchst.');
   const f = UI.form;
   const sugS = acts.length ? (acts[acts.length - 1].e || '') : (d.s || '');
