@@ -177,8 +177,8 @@ window.ZW_EN = {
   'An diesem Tag sind Zeiten eingetragen. Sie werden ignoriert, weil der Tag frei ist. Lösche sie, wenn du sie nicht brauchst.': 'Times are entered for this day. They are ignored because the day is off. Delete them if you do not need them.',
   'Anzeige': 'Display', 'Startwerte': 'Starting values', 'Startdatum': 'Start date', 'Startdatum <WD> #': 'Start date <WD> #', 'Gültig ab': 'Valid from', 'Pro Woche (h)': 'Per week (h)',
   'Soll pro Arbeitstag': 'Target per working day', 'Soll pro Arbeitstag (h)': 'Target per working day (h)', 'Änderung der Arbeitszeit hinzufügen': 'Add a working time change', 'Änderung entfernen': 'Remove change',
-  'Max. Stunden pro Tag': 'Max. hours per day', 'Urlaubstage pro Jahr': 'Vacation days per year', 'Verfall Vorjahresurlaub (MM-TT)': 'Expiry of last year’s vacation (MM-DD)', 'Verfall gilt ab Jahr': 'Expiry applies from year',
-  'Urlaub ins Langzeitkonto (Tage)': 'Vacation to long-term account (days)', 'Stichtag Kappung (MM-TT)': 'Cap date (MM-DD)', 'Saldo nach Kappung (h)': 'Balance after cap (h)',
+  'Max. Stunden pro Tag': 'Max. hours per day', 'Urlaubstage pro Jahr': 'Vacation days per year', 'Verfall Vorjahresurlaub (TT.MM.)': 'Expiry of last year’s vacation (DD.MM.)', 'Verfall gilt ab Jahr': 'Expiry applies from year',
+  'Urlaub ins Langzeitkonto (Tage)': 'Vacation to long-term account (days)', 'Stichtag Kappung (TT.MM.)': 'Cap date (DD.MM.)', 'Saldo nach Kappung (h)': 'Balance after cap (h)',
   'Zeitkonto zum Startdatum (h)': 'Time balance at start date (h)', 'Resturlaub zum Startdatum': 'Remaining vacation at start date', 'Langzeitkonto zum Startdatum (Tage)': 'Long-term account at start date (days)',
   'Standard-Thema': 'Default topic', 'Zahlenanzeige': 'Number format', 'Dezimal (#)': 'Decimal (#)', 'Stunden:Minuten (#)': 'Hours:minutes (#)',
   '24.12. und 31.12.': 'Dec 24 and Dec 31', 'halber Urlaubstag': 'half vacation day', 'normaler Arbeitstag': 'regular working day',
@@ -246,4 +246,7 @@ window.ZW_EN = {
   'Automatisch folgt der Einstellung von Betriebssystem oder Browser.': 'Automatic follows the operating system or browser setting.',
   'Akzentfarbe': 'Accent color', 'Farbe für Knöpfe und Hervorhebungen, geprüft auf gute Lesbarkeit in hell und dunkel.': 'Color for buttons and highlights, checked for good readability in light and dark.',
   'Orange': 'Orange', 'Blau': 'Blue', 'Petrol': 'Teal', 'Grün': 'Green', 'Dunkelgrün': 'Dark green', 'Violett': 'Purple', 'Rot': 'Red', 'Graphit': 'Graphite',
+  /* Startdatum, Stichtage */
+  'Liegt vor dem Startdatum <WD> #. Einträge an diesem Tag werden nicht gerechnet.': 'Before the start date <WD> #. Entries on this day are not counted.',
+  'Bitte als Tag.Monat eingeben, z. B. #.': 'Please enter as day.month, e.g. #.',
 };

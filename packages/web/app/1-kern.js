@@ -90,6 +90,10 @@ function ensureSoll() {
 function recompute() {
   E.setRegion(S.cfg.region);
   ensureSoll();
+  // Stichtage, die versehentlich als TT.MM. gespeichert wurden, in MM-TT umwandeln (sonst greifen sie nie)
+  for (const r of [S.cfg].concat(S.cfg.regeln || [])) for (const f of ['urlaubVerfall', 'kappungTag']) {
+    if (r[f] && !/^\d{2}-\d{2}$/.test(r[f])) { const md = mdParse(r[f]); if (md) r[f] = md; }
+  }
   const days = {};
   for (const k in S.days) {
     const d = S.days[k];
@@ -108,7 +112,24 @@ function recompute() {
   const map = {}; rows.forEach((r, i) => { r.i = i; map[r.k] = r; });
   R = { rows, map, years: E.summarize(rows, S.cfg), by };
 }
-function dayRow(k) { return R.map[k]; }
+/** Zeile eines Tages. Vor dem Startdatum gibt es keine berechnete Zeile: dann eine leere, damit Tag,
+    Woche und Kalender auch für eine Woche funktionieren, in der das Startdatum liegt oder die davor liegt. */
+function dayRow(k) { return R.map[k] || emptyRow(k); }
+function emptyRow(k) {
+  const wd = E.weekday(k), vor = !!S.cfg.startDatum && k < S.cfg.startDatum;
+  return { k, kw: E.isoWeek(k), wd, t: wd >= 6 ? 'WE' : 'arbeit', s: 0, e: 0, a: 0, pause: 0, pauseAuto: true, stunden: 0, over: 0, za: 0, zagen: 0,
+    konto: vor ? +S.cfg.startSaldo || 0 : 0, rest: 0, ugen: 0, krank: 0, soll: 0, arbeitstag: 0, netto: 0, acts: 0, planned: false, hol: E.holidayName(k) || null,
+    note: '', adj: 0, az: 0, ort: '', hoH: 0, kd: '', ot: '', loss: 0, lzk: 0, lzkIn: 0, verfall: 0, vorStart: vor, i: -1 };
+}
+/** Stichtage wie Urlaubsverfall und Kappung: gespeichert als MM-TT, angezeigt und eingegeben als TT.MM. */
+const mdShow = v => (/^\d{2}-\d{2}$/.test(v || '') ? v.slice(3) + '.' + v.slice(0, 2) + '.' : (v || ''));
+function mdParse(v) {
+  v = String(v || '').trim(); if (!v) return '';
+  let m = v.match(/^(\d{1,2})\.(\d{1,2})\.?$/), d, mo;
+  if (m) { d = +m[1]; mo = +m[2]; } else if ((m = v.match(/^(\d{2})-(\d{2})$/))) { mo = +m[1]; d = +m[2]; } else return null;
+  if (mo < 1 || mo > 12 || d < 1 || d > [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1]) return null;
+  return pad2(mo) + '-' + pad2(d);
+}
 function commit(rerender = true) { recompute(); save(); if (rerender) render(); else updatePill(); }
 
 /* ---------- Tagesdaten ändern ---------- */
