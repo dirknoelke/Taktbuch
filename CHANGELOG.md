@@ -2,6 +2,7 @@
 
 ## 1.12.1
 
+- The project moved to github.com/nullpointer-ruhr/Taktbuch. The update check now uses the new address (the old one still forwards).
 - Fix: with a start date in the current week or in the future (typical for a new account), Today, Week and Calendar did not open. Days before the start date show a note that they are not counted.
 - Cut-off dates for vacation expiry and time-balance cap are entered and shown as day.month (e.g. 01.05.) instead of MM-DD. Values accidentally saved as day.month are converted automatically.
 
